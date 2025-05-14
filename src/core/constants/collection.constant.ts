@@ -1,0 +1,16 @@
+export const COLLECTION_NAME = {
+    SETTING: 'Setting',
+    USER: 'User',
+    SUBSCRIPTION: 'Subscription',
+    CATEGORY: 'Category',
+    COURSE: 'Course',
+    COURSE_LOG: 'CourseLog',
+    SESSION: 'Session',
+    LESSON: 'Lesson',
+    REVIEW: 'Review',
+    ASSIGNMENT: 'Assignment',
+    CART: 'Cart',
+    PURCHASE: 'Purchase',
+    PAYOUT: 'Payout',
+    BLOG: 'Blog',
+};

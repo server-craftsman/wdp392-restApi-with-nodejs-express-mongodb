@@ -1,0 +1,185 @@
+swagger: '2.0'
+info:
+  description: 'HuyIT Bloodline DNA Testing Service Management System API docs'
+  version: '1.0.0'
+  title: 'Bloodline DNA Testing Service Management System'
+  termOfService: 'HuyIT'
+  contact:
+    email: 'huyit2003@gmail.com'
+  license:
+    name: 'MIT'
+    url: 'https://opensource.org/licenses/MIT'
+basePath: '/api'
+tags:
+- name: 'auth'
+  description: 'Authentication APIs'
+
+schemes:
+- 'https'
+- 'http'
+
+# Declare security scheme
+securityDefinitions:
+  Bearer:
+    type: 'apiKey'
+    name: 'Authorization'
+    in: 'header'
+    description: 'Bearer token for authorization'
+
+paths:
+  /auth:
+    post:
+      tags:
+      - 'auth'
+      summary: 'Login API and get token'
+      description: 'Input email and password'
+      operationId: "login"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'Login for user'
+        required: true
+        schema: 
+          $ref: '#/definitions/LoginDto'
+      responses:
+        '400':
+          description: 'Invalid input'
+    get:
+      tags:
+        - 'auth'
+      summary: 'Get current logged-in user'
+      description: 'Retrieve information about the current logged-in user'
+      operationId: "getCurrentLoginUser"
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          description: 'Current logged-in user information'
+          schema:
+            type: 'object'
+            properties:
+              userId:
+                type: 'string'
+                description: 'The unique identifier for the user'
+              email:
+                type: 'string'
+                description: 'The email of the logged-in user'
+        '401':
+          description: 'Unauthorized - user not logged in'
+        '404':
+          description: 'User not found'
+
+  /auth/google:
+    post:
+      tags:
+      - 'auth'
+      summary: 'Login API and get token By Google'
+      description: 'Input google_id'
+      operationId: "loginByGoogle"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'Login for user via google'
+        required: true
+        schema: 
+          $ref: '#/definitions/LoginGoogleDto'
+      responses:
+        '400':
+          description: 'Invalid input'
+  /auth/verify-token:
+    post:
+      tags:
+      - 'auth'
+      summary: 'Verify Token'
+      description: 'Input verifyToken'
+      operationId: "verifyToken"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: ''
+        required: true
+        schema: 
+          $ref: '#/definitions/VerifiedTokenDto'
+      responses:
+        '400':
+          description: 'Invalid input'
+  /auth/resend-token:
+    post:
+      tags:
+      - 'auth'
+      summary: 'Resend Token'
+      description: ''
+      operationId: ""
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: ''
+        required: true
+        schema: 
+          $ref: '#/definitions/EmailDto'
+      responses:
+        '400':
+          description: 'Invalid input'
+
+definitions:
+  LoginDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: "User's email address"
+          example: "string"
+        password:
+          type: string
+          description: "User's password"
+          minLength: 6
+          example: "string"
+      required:
+        - email
+        - password
+  LoginGoogleDto:
+      type: object
+      properties:
+        google_id:
+          type: string
+          description: "Google ID"
+          example: "string"
+      required:
+        - google_id
+  VerifiedTokenDto:
+      type: object
+      properties:
+        verifyToken:
+          type: string
+          description: "verifyToken"
+          example: "string"
+      required:
+        - verifyToken
+  EmailDto:
+      type: object
+      properties:
+        email:
+          type: string
+          description: "email"
+          example: "string"
+      required:
+        - email
