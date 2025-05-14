@@ -22,7 +22,7 @@ export default class UserRoute implements IRoute {
     }
 
     private initializeRoutes() {
-        // POST domain:/api/users/seed -> Create admin user default
+        // POST domain:/api/users/generate -> Create admin user default
         this.router.post(API_PATH.GENERATE_USERS, this.userController.generateUser);
 
         // POST domain:/api/users -> Register normal user
