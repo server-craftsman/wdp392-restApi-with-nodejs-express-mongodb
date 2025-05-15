@@ -6,7 +6,7 @@ import { IUser } from '../../modules/user';
 export const createToken = (user: IUser): TokenData => {
     const dataInToken: DataStoredInToken = { id: user.id, role: user.role, version: user.token_version };
     const secret: string = process.env.JWT_TOKEN_SECRET!;
-    const expiresIn: number = 28800;
+    const expiresIn: number = 28800; // 8 hours
     return {
         token: jwt.sign(dataInToken, secret, { expiresIn }),
     };
@@ -15,7 +15,7 @@ export const createToken = (user: IUser): TokenData => {
 // create token verification
 export const createTokenVerifiedUser = () => {
     return {
-        verification_token: crypto.randomBytes(16).toString('hex'),
+        verification_token: crypto.randomBytes(16).toString('hex'), // generate random bytes, convert to hex
         verification_token_expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24 hours
     };
 };

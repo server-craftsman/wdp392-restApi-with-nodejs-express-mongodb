@@ -35,7 +35,9 @@ const handleCheckToken = async (
 ) => {
     const userSchema = UserSchema;
     if (authHeader) {
-        const token = authHeader.split(' ')[1];
+        const token = authHeader.startsWith('Bearer ')
+            ? authHeader.split(' ')[1]
+            : authHeader;
 
         if (!token) {
             res.status(HttpStatus.NotFound).json({ message: 'No token, authorization denied.' });

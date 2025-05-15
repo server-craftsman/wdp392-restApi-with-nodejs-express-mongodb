@@ -12,7 +12,7 @@ import UpdateUserDto from './dtos/updateUser.dto';
 import { UserRoleEnum } from './user.enum';
 import { IUser } from './user.interface';
 import UserService from './user.service';
-import ReviewProfileInstructorDto from './dtos/reviewProfileInstructorDto';
+import ReviewProfileDto from './dtos/reviewProfileDto';
 
 export default class UserController {
     private userService = new UserService();
@@ -21,18 +21,14 @@ export default class UserController {
         try {
             const model = new RegisterDto(
                 '',
-                'admin',
+                'Tôi là',
+                'Admin',
                 'admin@gmail.com',
                 '123456',
                 UserRoleEnum.ADMIN,
                 true,
-                '',
-                '',
-                '',
-                '',
-                'MbBank',
                 '0869872830',
-                'HuyIT',
+                'https://yt3.googleusercontent.com/zlWYSmjS34cnOH94qZYmWEeCkU_DnrFl5G-dCd66i3jqTElMvdwBtsOyMJPpoNXfdpHKPjYrmA=s900-c-k-c0x00ffffff-no-rj',
                 new Date(),
                 true,
                 '',
@@ -40,7 +36,7 @@ export default class UserController {
                 0,
                 new Date(),
                 new Date(),
-                false,
+                false
             );
             const user: IUser = await this.userService.createUser(model, false, false);
             res.status(HttpStatus.Created).json(formatResponse<IUser>(user));
@@ -113,10 +109,10 @@ export default class UserController {
         }
     };
 
-    public reviewProfileInstructor = async (req: Request, res: Response, next: NextFunction) => {
+    public reviewProfileAccount = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const model: ReviewProfileInstructorDto = req.body;
-            await this.userService.reviewProfileInstructor(model);
+            const model: ReviewProfileDto = req.body;
+            await this.userService.reviewProfileAccount(model);
             res.status(HttpStatus.Success).json(formatResponse<null>(null));
         } catch (error) {
             next(error);

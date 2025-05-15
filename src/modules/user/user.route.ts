@@ -10,7 +10,7 @@ import UpdateUserDto from './dtos/updateUser.dto';
 import UserController from './user.controller';
 import { UserRoleEnum } from './user.enum';
 import ChangeRoleDto from './dtos/changeRole.dto';
-import ReviewProfileInstructorDto from './dtos/reviewProfileInstructorDto';
+import ReviewProfileDto from './dtos/reviewProfileDto';
 
 export default class UserRoute implements IRoute {
     public path = API_PATH.USERS;
@@ -74,12 +74,12 @@ export default class UserRoute implements IRoute {
             this.userController.changeRole,
         );
 
-        // PUT domain:/api/users/review-profile-instructor -> Review profile instructor
+        // PUT domain:/api/users/review-profile-account -> Review profile account
         this.router.put(
-            API_PATH.REVIEW_PROFILE_INSTRUCTOR,
+            API_PATH.REVIEW_PROFILE_ACCOUNT,
             authMiddleWare([UserRoleEnum.ADMIN]),
-            validationMiddleware(ReviewProfileInstructorDto),
-            this.userController.reviewProfileInstructor,
+            validationMiddleware(ReviewProfileDto),
+            this.userController.reviewProfileAccount,
         );
 
         // PUT domain:/api/users/:id -> Update user

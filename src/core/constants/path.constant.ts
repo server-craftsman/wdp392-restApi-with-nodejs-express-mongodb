@@ -25,7 +25,7 @@ export const API_PATH = {
     CHANGE_PASSWORD_USERS: '/api/users/change-password',
     CHANGE_STATUS_USERS: '/api/users/change-status',
     CHANGE_ROLE_USER: '/api/users/change-role',
-    REVIEW_PROFILE_INSTRUCTOR: '/api/users/review-profile-instructor',
+    REVIEW_PROFILE_ACCOUNT: '/api/users/review-profile-account',
 
     // subscription
     SUBSCRIPTION: '/api/subscription',

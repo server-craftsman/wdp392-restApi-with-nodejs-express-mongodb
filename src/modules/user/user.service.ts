@@ -10,7 +10,7 @@ import ChangePasswordDto from './dtos/changePassword.dto';
 import ChangeRoleDto from './dtos/changeRole.dto';
 import ChangeStatusDto from './dtos/changeStatus.dto';
 import RegisterDto from './dtos/register.dto';
-import ReviewProfileInstructorDto from './dtos/reviewProfileInstructorDto';
+import ReviewProfileDto from './dtos/reviewProfileDto';
 import SearchPaginationUserDto from './dtos/searchPaginationUser.dto';
 import SearchUserDto from './dtos/searchUser.dto';
 import UpdateUserDto from './dtos/updateUser.dto';
@@ -31,12 +31,10 @@ export default class UserService {
 
         let newUser = {
             ...model,
-            role: model.role || UserRoleEnum.STUDENT,
+            role: model.role || UserRoleEnum.CUSTOMER,
             google_id: model.google_id || '',
-            description: model.description || '',
             phone_number: model.phone_number || '',
             avatar_url: model.avatar_url || '',
-            video_url: model.video_url || '',
             token_version: 0,
         };
 
@@ -44,14 +42,10 @@ export default class UserService {
             throw new HttpException(HttpStatus.BadRequest, `The URL '${model.avatar_url}' is not valid`);
         }
 
-        if (newUser.video_url && !checkValidUrl(model.video_url)) {
-            throw new HttpException(HttpStatus.BadRequest, `The URL '${model.video_url}' is not valid`);
-        }
-
         if (isRegister && newUser.role === UserRoleEnum.ADMIN) {
             throw new HttpException(
                 HttpStatus.BadRequest,
-                `You can only register with the Student or Instructor role!`,
+                `You can only register with the Customer or Staff or Manager role!`,
             );
         }
 
@@ -69,52 +63,12 @@ export default class UserService {
 
         // check email duplicates
         const existingUserByEmail = await this.userSchema.findOne({
+            // use regex to find string with space and case insensitive
             email: { $regex: new RegExp('^' + newUser.email + '$', 'i') },
             is_deleted: false,
         });
         if (existingUserByEmail) {
             throw new HttpException(HttpStatus.BadRequest, `Your email: '${newUser.email}' already exists!`);
-        }
-
-        // check user role instructor
-        if (newUser.role === UserRoleEnum.INSTRUCTOR) {
-            const requiredFields = [
-                {
-                    field: model.description,
-                    title: 'description',
-                },
-                {
-                    field: model.avatar_url,
-                    title: 'avatar_url',
-                },
-                {
-                    field: model.video_url,
-                    title: 'video_url',
-                },
-                {
-                    field: model.bank_name,
-                    title: 'bank_name',
-                },
-                {
-                    field: model.bank_account_no,
-                    title: 'bank_account_no',
-                },
-                {
-                    field: model.bank_account_name,
-                    title: 'bank_account_name',
-                },
-                {
-                    field: model.phone_number,
-                    title: 'phone_number',
-                },
-            ];
-
-            // check required fields for role instructor
-            for (const item of requiredFields) {
-                if (!item.field) {
-                    throw new HttpException(HttpStatus.BadRequest, `${item.title} should not be empty!`);
-                }
-            }
         }
 
         // create a new user normal
@@ -126,10 +80,10 @@ export default class UserService {
         // send mail with token
         if (!newUser.is_verified && newUser.role !== UserRoleEnum.ADMIN) {
             let subject: string = 'Verify your email address';
-            let content: string = `Hello, ${newUser.name}.`;
+            let content: string = `Hello, ${newUser.first_name} ${newUser.last_name}.`;
 
-            // role student
-            if (newUser.role === UserRoleEnum.STUDENT) {
+            // role CUSTOMER
+            if (newUser.role === UserRoleEnum.CUSTOMER) {
                 // create token verification
                 const tokenData = createTokenVerifiedUser();
                 newUser.verification_token = tokenData.verification_token;
@@ -138,10 +92,10 @@ export default class UserService {
                 content = `${content}\nPlease click the following link to verify your email address:\n${domain}/verify-email/${tokenData.verification_token}`;
             }
 
-            // role instructor
-            if (newUser.role === UserRoleEnum.INSTRUCTOR) {
-                subject = 'Register profile instructor success';
-                content = `${content}\nYou have successfully registered your profile for the instructor role. Please wait for admin to review the application and notify you via email!`;
+            // // role MANAGER
+            if (newUser.role === UserRoleEnum.MANAGER) {
+                subject = 'Register profile manager success';
+                content = `${content}\nYou have successfully registered your profile for the manager role. Please wait for admin to review the application and notify you via email!`;
             }
 
             const sendMailResult = await sendMail({
@@ -159,7 +113,7 @@ export default class UserService {
         if (!createdUser) {
             throw new HttpException(HttpStatus.Accepted, `Create item failed!`);
         }
-        const resultUser: IUser = createdUser.toObject();
+        const resultUser: IUser = createdUser.toObject(); // convert to plain object
         delete resultUser.password;
         return resultUser;
     }
@@ -173,9 +127,11 @@ export default class UserService {
         if (keyword) {
             const keywordValue = keyword.toLowerCase().trim();
             query = {
+                // search by email or first_name or last_name
                 $or: [
                     { email: { $regex: keywordValue, $options: 'i' } },
-                    { name: { $regex: keywordValue, $options: 'i' } },
+                    { first_name: { $regex: keywordValue, $options: 'i' } },
+                    { last_name: { $regex: keywordValue, $options: 'i' } },
                 ],
             };
         }
@@ -201,14 +157,14 @@ export default class UserService {
         };
 
         const resultQuery = await this.userSchema
-            .find(query)
-            .sort({ updated_at: -1 })
+            .find(query) // query user based on condition
+            .sort({ updated_at: -1 }) // sort by new date
             .select('-password')
-            .skip((pageNum - 1) * pageSize)
+            .skip((pageNum - 1) * pageSize) // skip the number of records based on pageNum and pageSize
             .limit(pageSize)
             .exec();
 
-        const rowCount = await this.userSchema.find(query).countDocuments().exec();
+        const rowCount = await this.userSchema.find(query).countDocuments().exec(); // count the number of records based on query
         const result = new SearchPaginationResponseModel<IUser>();
         result.pageInfo.pageNum = pageNum;
         result.pageInfo.pageSize = pageSize;
@@ -221,7 +177,7 @@ export default class UserService {
         return result;
     }
 
-    // TODO: get transactions info
+    // TODO: get user info
     public async getUserById(
         userId: string,
         is_deletedPassword = true,
@@ -231,16 +187,11 @@ export default class UserService {
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `Item is not exists.`);
         }
-        if (user.role === UserRoleEnum.INSTRUCTOR && userData.id) {
-            const subscriptionItem = await this.subscriptionSchema.findOne({
-                instructor_id: userId,
-                subscriber_id: userData.id,
-                is_deleted: false,
-            });
-            if (subscriptionItem) {
-                user.is_subscribed = subscriptionItem.is_subscribed;
-            }
+
+        if (user.role === UserRoleEnum.MANAGER || user.role === UserRoleEnum.STAFF) {
+            user.is_verified = true;
         }
+
         if (is_deletedPassword) {
             delete user.password;
         }
@@ -273,11 +224,10 @@ export default class UserService {
         }
 
         const updateData = {
-            name: model.name,
-            description: model.description || item.description,
+            first_name: model.first_name,
+            last_name: model.last_name,
             phone_number: model.phone_number || item.phone_number,
             avatar_url: model.avatar_url || item.avatar_url,
-            video_url: model.video_url || item.video_url,
             dob: model.dob || item.dob,
             updated_at: new Date(),
         };
@@ -388,7 +338,7 @@ export default class UserService {
         return true;
     }
 
-    public async reviewProfileInstructor(model: ReviewProfileInstructorDto): Promise<boolean> {
+    public async reviewProfileAccount(model: ReviewProfileDto): Promise<boolean> {
         if (isEmptyObject(model)) {
             throw new HttpException(HttpStatus.BadRequest, 'Model data is empty');
         }
@@ -398,17 +348,17 @@ export default class UserService {
         // check user exits
         const user = await this.userSchema.findOne({
             _id: userId,
-            role: UserRoleEnum.INSTRUCTOR,
+            role: UserRoleEnum.MANAGER || UserRoleEnum.STAFF,
             is_deleted: false,
             is_verified: false,
         });
 
         if (!user) {
-            throw new HttpException(HttpStatus.BadRequest, 'User is not instructor or not exist or already verified!');
+            throw new HttpException(HttpStatus.BadRequest, 'User is not manager or staff or not exist or already verified!');
         }
 
         if (model.status === UserReviewStatusEnum.REJECT && !model.comment) {
-            throw new HttpException(HttpStatus.BadRequest, 'Please enter reason reject profile instructor!');
+            throw new HttpException(HttpStatus.BadRequest, 'Please enter reason reject profile manager or staff!');
         }
 
         // create token verification
@@ -416,17 +366,17 @@ export default class UserService {
         const domain = process.env.DOMAIN_FE;
 
         let subject: string = '';
-        let content: string = `Hello, ${user.name}.`;
+        let content: string = `Hello, ${user.first_name} ${user.last_name}.`;
 
         if (model.status === UserReviewStatusEnum.APPROVE) {
             user.verification_token = tokenData.verification_token;
             user.verification_token_expires = tokenData.verification_token_expires;
             user.updated_at = new Date();
-            subject = 'Register instructor success and verify your email address';
-            content = `${content}\nYour instructor registration profile has been approved by admin.\nPlease click the following link to verify your email address:\n${domain}/verify-email/${tokenData.verification_token}`;
+            subject = 'Register manager or staff success and verify your email address';
+            content = `${content}\nYour manager or staff registration profile has been approved by admin.\nPlease click the following link to verify your email address:\n${domain}/verify-email/${tokenData.verification_token}`;
         } else {
-            subject = 'Register instructor is rejected';
-            content = `${content}\nYour instructor registration profile has been reject by admin.\nReason: '${model.comment}'.\nIf you have any questions please send email for admin!`;
+            subject = 'Register manager or staff is rejected';
+            content = `${content}\nYour manager or staff registration profile has been reject by admin.\nReason: '${model.comment}'.\nIf you have any questions please send email for admin!`;
         }
 
         const sendMailResult = await sendMail({
@@ -465,14 +415,18 @@ export default class UserService {
         return true;
     }
 
+    // get user info from google by idToken, after get user info, format user info to RegisterDto
     private async formatUserByGoogle(google_id: string, newUser: RegisterDto): Promise<RegisterDto> {
         const client = new OAuth2Client();
+        // check google_id is valid
         const ticket = await client.verifyIdToken({
             idToken: google_id,
         });
+        // get user info from ticket
         const payload = ticket.getPayload();
+        // If payload already exists, format user info to RegisterDto
         if (payload) {
-            newUser.name = payload.name!;
+            newUser.last_name = payload.name!;
             newUser.email = payload.email!;
             newUser.avatar_url = payload.picture!;
             newUser.google_id = payload.sub!;

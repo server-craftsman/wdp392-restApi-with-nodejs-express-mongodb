@@ -13,6 +13,8 @@ basePath: '/api'
 tags:
 - name: 'auth'
   description: 'Authentication APIs'
+- name: 'users'
+  description: 'User management APIs'
 
 schemes:
 - 'https'
@@ -25,6 +27,8 @@ securityDefinitions:
     name: 'Authorization'
     in: 'header'
     description: 'Bearer token for authorization'
+    x-tokenName: 'token'
+    x-tokenPrefix: 'Bearer '
 
 paths:
   /auth:
@@ -46,6 +50,10 @@ paths:
         schema: 
           $ref: '#/definitions/LoginDto'
       responses:
+        '200':
+          description: 'Login successful'
+          schema:
+            $ref: '#/definitions/TokenResponse'
         '400':
           description: 'Invalid input'
     get:
@@ -62,14 +70,7 @@ paths:
         '200':
           description: 'Current logged-in user information'
           schema:
-            type: 'object'
-            properties:
-              userId:
-                type: 'string'
-                description: 'The unique identifier for the user'
-              email:
-                type: 'string'
-                description: 'The email of the logged-in user'
+            $ref: '#/definitions/UserResponse'
         '401':
           description: 'Unauthorized - user not logged in'
         '404':
@@ -94,8 +95,13 @@ paths:
         schema: 
           $ref: '#/definitions/LoginGoogleDto'
       responses:
+        '200':
+          description: 'Login successful'
+          schema:
+            $ref: '#/definitions/TokenResponse'
         '400':
           description: 'Invalid input'
+          
   /auth/verify-token:
     post:
       tags:
@@ -115,15 +121,18 @@ paths:
         schema: 
           $ref: '#/definitions/VerifiedTokenDto'
       responses:
+        '200':
+          description: 'Token verified successfully'
         '400':
           description: 'Invalid input'
+          
   /auth/resend-token:
     post:
       tags:
       - 'auth'
       summary: 'Resend Token'
-      description: ''
-      operationId: ""
+      description: 'Resend verification token to user email'
+      operationId: "resendToken"
       consumes:
       - 'application/json'
       produces:
@@ -131,55 +140,678 @@ paths:
       parameters:
       - in: 'body'
         name: 'body'
-        description: ''
+        description: 'Email to send verification token'
         required: true
         schema: 
           $ref: '#/definitions/EmailDto'
       responses:
+        '200':
+          description: 'Token resent successfully'
         '400':
           description: 'Invalid input'
+          
+  /auth/forgot-password:
+    put:
+      tags:
+      - 'auth'
+      summary: 'Forgot Password'
+      description: 'Request a password reset'
+      operationId: "forgotPassword"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'Email to send reset password'
+        required: true
+        schema: 
+          $ref: '#/definitions/EmailDto'
+      responses:
+        '200':
+          description: 'Password reset email sent successfully'
+        '400':
+          description: 'Invalid input'
+          
+  /auth/logout:
+    get:
+      tags:
+      - 'auth'
+      summary: 'Logout'
+      description: 'Logout current user session'
+      operationId: "logout"
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          description: 'Logout successful'
+        '401':
+          description: 'Unauthorized - user not logged in'
+
+  # User routes
+  /users:
+    post:
+      tags:
+      - 'users'
+      summary: 'Register new user'
+      description: 'Register a new user account'
+      operationId: "registerUser"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'User registration data'
+        required: true
+        schema: 
+          $ref: '#/definitions/RegisterDto'
+      responses:
+        '201':
+          description: 'User registered successfully'
+          schema:
+            $ref: '#/definitions/UserResponse'
+        '400':
+          description: 'Invalid input'
+          
+  /users/generate:
+    post:
+      tags:
+      - 'users'
+      summary: 'Generate admin user'
+      description: 'Generate default admin user'
+      operationId: "generateAdminUser"
+      produces:
+      - 'application/json'
+      responses:
+        '201':
+          description: 'Admin user created successfully'
+          schema:
+            $ref: '#/definitions/UserResponse'
+        '400':
+          description: 'Error creating admin user'
+          
+  /users/google:
+    post:
+      tags:
+      - 'users'
+      summary: 'Register with Google'
+      description: 'Register a new user with Google account'
+      operationId: "registerWithGoogle"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'Google registration data'
+        required: true
+        schema: 
+          $ref: '#/definitions/LoginGoogleDto'
+      responses:
+        '201':
+          description: 'User registered successfully'
+          schema:
+            $ref: '#/definitions/UserResponse'
+        '400':
+          description: 'Invalid input'
+          
+  /users/create:
+    post:
+      tags:
+      - 'users'
+      summary: 'Create user (Admin only)'
+      description: 'Create a new user (Admin only)'
+      operationId: "createUser"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'User data'
+        required: true
+        schema: 
+          $ref: '#/definitions/RegisterDto'
+      responses:
+        '201':
+          description: 'User created successfully'
+          schema:
+            $ref: '#/definitions/UserResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+          
+  /users/search:
+    post:
+      tags:
+      - 'users'
+      summary: 'Search users (Admin only)'
+      description: 'Search for users with pagination'
+      operationId: "searchUsers"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'Search criteria and pagination'
+        required: true
+        schema: 
+          $ref: '#/definitions/SearchPaginationUserDto'
+      responses:
+        '200':
+          description: 'Search results'
+          schema:
+            $ref: '#/definitions/SearchPaginationResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+          
+  /users/{id}:
+    get:
+      tags:
+      - 'users'
+      summary: 'Get user by ID'
+      description: 'Get user information by ID'
+      operationId: "getUserById"
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'path'
+        name: 'id'
+        description: 'User ID'
+        required: true
+        type: 'string'
+      responses:
+        '200':
+          description: 'User information'
+          schema:
+            $ref: '#/definitions/UserResponse'
+        '400':
+          description: 'Invalid ID'
+        '404':
+          description: 'User not found'
+    put:
+      tags:
+      - 'users'
+      summary: 'Update user'
+      description: 'Update user information'
+      operationId: "updateUser"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'path'
+        name: 'id'
+        description: 'User ID'
+        required: true
+        type: 'string'
+      - in: 'body'
+        name: 'body'
+        description: 'Updated user data'
+        required: true
+        schema: 
+          $ref: '#/definitions/UpdateUserDto'
+      responses:
+        '200':
+          description: 'User updated successfully'
+          schema:
+            $ref: '#/definitions/UserResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+    delete:
+      tags:
+      - 'users'
+      summary: 'Delete user (Admin only)'
+      description: 'Delete user by ID (soft delete)'
+      operationId: "deleteUser"
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'path'
+        name: 'id'
+        description: 'User ID'
+        required: true
+        type: 'string'
+      responses:
+        '200':
+          description: 'User deleted successfully'
+        '400':
+          description: 'Invalid ID'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'User not found'
+          
+  /users/change-password:
+    put:
+      tags:
+      - 'users'
+      summary: 'Change password'
+      description: 'Change user password'
+      operationId: "changePassword"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'Password change data'
+        required: true
+        schema: 
+          $ref: '#/definitions/ChangePasswordDto'
+      responses:
+        '200':
+          description: 'Password changed successfully'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+          
+  /users/change-status:
+    put:
+      tags:
+      - 'users'
+      summary: 'Change user status (Admin only)'
+      description: 'Enable or disable a user account'
+      operationId: "changeUserStatus"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'Status change data'
+        required: true
+        schema: 
+          $ref: '#/definitions/ChangeStatusDto'
+      responses:
+        '200':
+          description: 'Status changed successfully'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+          
+  /users/change-role:
+    put:
+      tags:
+      - 'users'
+      summary: 'Change user role (Admin only)'
+      description: 'Change the role of a user'
+      operationId: "changeUserRole"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'Role change data'
+        required: true
+        schema: 
+          $ref: '#/definitions/ChangeRoleDto'
+      responses:
+        '200':
+          description: 'Role changed successfully'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+          
+  /users/review-profile-account:
+    put:
+      tags:
+      - 'users'
+      summary: 'Review profile account (Admin only)'
+      description: 'Approve or reject manager/staff profile'
+      operationId: "reviewProfileAccount"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'Review data'
+        required: true
+        schema: 
+          $ref: '#/definitions/ReviewProfileDto'
+      responses:
+        '200':
+          description: 'Profile reviewed successfully'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
 
 definitions:
   LoginDto:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-          description: "User's email address"
-          example: "string"
-        password:
-          type: string
-          description: "User's password"
-          minLength: 6
-          example: "string"
-      required:
-        - email
-        - password
+    type: object
+    properties:
+      email:
+        type: string
+        format: email
+        description: "User's email address"
+        example: "string"
+      password:
+        type: string
+        description: "User's password"
+        minLength: 6
+        example: "string"
+    required:
+      - email
+      - password
+      
   LoginGoogleDto:
-      type: object
-      properties:
-        google_id:
-          type: string
-          description: "Google ID"
-          example: "string"
-      required:
-        - google_id
+    type: object
+    properties:
+      google_id:
+        type: string
+        description: "Google ID token"
+        example: "string"
+    required:
+      - google_id
+      
   VerifiedTokenDto:
-      type: object
-      properties:
-        verifyToken:
-          type: string
-          description: "verifyToken"
-          example: "string"
-      required:
-        - verifyToken
+    type: object
+    properties:
+      verifyToken:
+        type: string
+        description: "Verification token"
+        example: "string"
+    required:
+      - verifyToken
+      
   EmailDto:
-      type: object
-      properties:
-        email:
-          type: string
-          description: "email"
-          example: "string"
-      required:
-        - email
+    type: object
+    properties:
+      email:
+        type: string
+        format: email
+        description: "User's email address"
+        example: "string"
+    required:
+      - email
+      
+  TokenResponse:
+    type: object
+    properties:
+      token:
+        type: string
+        description: "JWT authentication token"
+        
+  UserResponse:
+    type: object
+    properties:
+      _id:
+        type: string
+        description: "User ID"
+      first_name:
+        type: string
+        description: "User's first name"
+      last_name:
+        type: string
+        description: "User's last name"
+      email:
+        type: string
+        format: email
+        description: "User's email address"
+      google_id:
+        type: string
+        description: "Google ID (if applicable)"
+      role:
+        type: string
+        enum: ["admin", "manager", "staff", "customer"]
+        description: "User role"
+      status:
+        type: boolean
+        description: "User account status"
+      phone_number:
+        type: string
+        description: "User's phone number"
+      avatar_url:
+        type: string
+        description: "URL to user's avatar"
+      dob:
+        type: string
+        format: date
+        description: "Date of birth"
+      is_verified:
+        type: boolean
+        description: "Email verification status"
+      created_at:
+        type: string
+        format: date-time
+        description: "Account creation date"
+      updated_at:
+        type: string
+        format: date-time
+        description: "Account last update date"
+        
+  RegisterDto:
+    type: object
+    properties:
+      google_id:
+        type: string
+        description: "Google ID (optional)"
+      first_name:
+        type: string
+        description: "User's first name"
+      last_name:
+        type: string
+        description: "User's last name"
+      email:
+        type: string
+        format: email
+        description: "User's email address"
+      password:
+        type: string
+        minLength: 6
+        description: "User's password"
+      role:
+        type: string
+        enum: ["admin", "manager", "staff", "customer"]
+        description: "User role"
+      status:
+        type: boolean
+        description: "User account status"
+      phone_number:
+        type: string
+        description: "User's phone number"
+      avatar_url:
+        type: string
+        description: "URL to user's avatar"
+      dob:
+        type: string
+        format: date
+        description: "Date of birth"
+    required:
+      - first_name
+      - last_name
+      - email
+      - password
+      
+  UpdateUserDto:
+    type: object
+    properties:
+      first_name:
+        type: string
+        description: "User's first name"
+      last_name:
+        type: string
+        description: "User's last name"
+      phone_number:
+        type: string
+        description: "User's phone number"
+      avatar_url:
+        type: string
+        description: "URL to user's avatar"
+      dob:
+        type: string
+        format: date
+        description: "Date of birth"
+    required:
+      - first_name
+      - last_name
+      
+  ChangePasswordDto:
+    type: object
+    properties:
+      user_id:
+        type: string
+        description: "User ID"
+      old_password:
+        type: string
+        description: "Current password"
+        minLength: 6
+      new_password:
+        type: string
+        description: "New password"
+        minLength: 6
+    required:
+      - user_id
+      - old_password
+      - new_password
+      
+  ChangeStatusDto:
+    type: object
+    properties:
+      user_id:
+        type: string
+        description: "User ID"
+      status:
+        type: boolean
+        description: "New status (true=active, false=inactive)"
+    required:
+      - user_id
+      - status
+      
+  ChangeRoleDto:
+    type: object
+    properties:
+      user_id:
+        type: string
+        description: "User ID"
+      role:
+        type: string
+        enum: ["admin", "manager", "staff", "customer"]
+        description: "New user role"
+    required:
+      - user_id
+      - role
+      
+  ReviewProfileDto:
+    type: object
+    properties:
+      user_id:
+        type: string
+        description: "User ID"
+      status:
+        type: string
+        enum: ["approve", "reject"]
+        description: "Review decision"
+      comment:
+        type: string
+        description: "Review comment (required for reject)"
+    required:
+      - user_id
+      - status
+      
+  SearchUserDto:
+    type: object
+    properties:
+      keyword:
+        type: string
+        description: "Search keyword (email, first name, last name)"
+      role:
+        type: string
+        enum: ["", "all", "admin", "manager", "staff", "customer"]
+        description: "Filter by role"
+      is_verified:
+        type: boolean
+        description: "Filter by verification status"
+      status:
+        type: boolean
+        description: "Filter by user status"
+      is_deleted:
+        type: boolean
+        description: "Include deleted users"
+        
+  PaginationRequestModel:
+    type: object
+    properties:
+      pageNum:
+        type: integer
+        minimum: 1
+        description: "Page number (starting from 1)"
+        default: 1
+      pageSize:
+        type: integer
+        minimum: 1
+        description: "Number of items per page"
+        default: 10
+        
+  SearchPaginationUserDto:
+    type: object
+    properties:
+      pageInfo:
+        $ref: '#/definitions/PaginationRequestModel'
+      searchCondition:
+        $ref: '#/definitions/SearchUserDto'
+        
+  SearchPaginationResponse:
+    type: object
+    properties:
+      pageData:
+        type: array
+        items:
+          $ref: '#/definitions/UserResponse'
+      pageInfo:
+        type: object
+        properties:
+          pageNum:
+            type: integer
+            description: "Current page number"
+          pageSize:
+            type: integer
+            description: "Number of items per page"
+          totalItems:
+            type: integer
+            description: "Total number of items"
+          totalPages:
+            type: integer
+            description: "Total number of pages"

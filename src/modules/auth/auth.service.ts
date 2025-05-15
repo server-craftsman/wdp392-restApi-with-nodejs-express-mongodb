@@ -27,11 +27,14 @@ export default class AuthService {
             if (model.google_id) {
                 try {
                     const client = new OAuth2Client();
+                    // check google_id is valid
                     const ticket = await client.verifyIdToken({
                         idToken: model.google_id,
                     });
                     console.log(ticket);
+                    // get user info from ticket
                     const payload = ticket.getPayload();
+                    // If payload already exists, assign email and emailCheck
                     if (payload) {
                         userLogin.email = payload.email!;
                         emailCheck = payload.email!;
@@ -97,10 +100,12 @@ export default class AuthService {
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `Token is not valid.`);
         }
+        // use moment to parse verification_token_expires with format 'ddd MMM DD YYYY HH:mm:ss [GMT]ZZ'
         const tokenExpires = moment(
             user?.verification_token_expires?.toString(),
             'ddd MMM DD YYYY HH:mm:ss [GMT]ZZ',
         ).toDate();
+        // if current time is after token expires => throw error
         if (moment(new Date()).isAfter(moment(tokenExpires))) {
             throw new HttpException(HttpStatus.BadRequest, `Token is expired!`);
         }
@@ -143,7 +148,7 @@ export default class AuthService {
         const sendMailResult = await sendMail({
             toMail: user.email,
             subject: 'Verify your email address',
-            content: `Hello, ${user.name}.\nPlease click the following link to verify your email address:\n${domain}/verify-email/${tokenData.verification_token}`,
+            content: `Hello, ${user.first_name} ${user.last_name}.\nPlease click the following link to verify your email address:\n${domain}/verify-email/${tokenData.verification_token}`,
         });
         if (!sendMailResult) {
             throw new HttpException(HttpStatus.BadRequest, `Cannot send mail for ${user.email}`);
@@ -158,7 +163,8 @@ export default class AuthService {
     }
 
     public async getCurrentLoginUser(userId: string): Promise<IUser> {
-        const user = await this.userSchema.findById(userId).lean();
+        const user = await this.userSchema.findById(userId).lean(); // lean() => just only read data, do not another action like update, delete, etc.
+        // help reduce overhead memory
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `User is not exists.`);
         }
@@ -186,7 +192,7 @@ export default class AuthService {
         const sendMailResult = await sendMail({
             toMail: user.email,
             subject: 'Generate new password for user',
-            html: `Hello, ${user.name}.<br>This is a new password for ${user.email} is:<br><strong>${generateRandomPassword}</strong>`,
+            html: `Hello, ${user.first_name} ${user.last_name}.<br>This is a new password for ${user.email} is:<br><strong>${generateRandomPassword}</strong>`,
         });
         if (!sendMailResult) {
             throw new HttpException(HttpStatus.BadRequest, `Cannot send mail for ${user.email}`);
@@ -206,16 +212,16 @@ export default class AuthService {
     public async logout(userId: string): Promise<boolean> {
         const user = await this.userSchema.findByIdAndUpdate(userId, { $inc: { token_version: 1 } });
         if (!user) {
-            throw new HttpException(HttpStatus.BadRequest, `Cannot update user!`);
+            throw new HttpException(HttpStatus.BadRequest, `Cannot logout!`);
         }
         return true;
     }
 
     private generateRandomPassword(length: number) {
         return crypto
-            .randomBytes(length)
-            .toString('base64')
-            .slice(0, length)
-            .replace(/[^a-zA-Z0-9]/g, '');
+            .randomBytes(length) // generate random bytes
+            .toString('base64') // convert to base64
+            .slice(0, length) // slice the length of the string, 0 is the start index, length is the end index
+            .replace(/[^a-zA-Z0-9]/g, ''); // replace all non-alphanumeric characters with an empty string
     }
 }

@@ -1,31 +1,26 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsDate, IsNotEmpty, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export default class UpdateUserDto {
     constructor(
-        name: string,
-        description: string,
+        first_name: string,
+        last_name: string,
         phone_number: string,
         avatar_url: string,
-        video_url: string,
         dob: Date | string,
-        bank_account_name: string,
-        bank_name: string,
     ) {
-        this.name = name;
-        this.description = description;
+        this.first_name = first_name;
+        this.last_name = last_name;
         this.phone_number = phone_number;
         this.avatar_url = avatar_url;
-        this.video_url = video_url;
         this.dob = dob;
-        this.bank_account_name = bank_account_name;
-        this.bank_name = bank_name;
     }
 
     @IsNotEmpty()
-    public name: string;
+    public first_name: string;
 
-    @IsString()
-    public description: string;
+    @IsNotEmpty()
+    public last_name: string;
 
     @IsString()
     public phone_number: string;
@@ -33,11 +28,8 @@ export default class UpdateUserDto {
     @IsString()
     public avatar_url: string;
 
-    @IsString()
-    public video_url: string;
-
+    @IsDate()
+    @Type(() => Date)
     public dob: Date | string;
 
-    public bank_account_name: string;
-    public bank_name: string;
 }

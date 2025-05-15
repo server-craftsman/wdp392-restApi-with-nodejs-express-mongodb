@@ -5,6 +5,7 @@ import hpp from 'hpp';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
 import path from 'path';
+import 'reflect-metadata'; // for class-transformer
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import { IRoute } from './core/interfaces';

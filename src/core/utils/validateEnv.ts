@@ -1,5 +1,6 @@
-import { cleanEnv, str } from "envalid";
+import { cleanEnv, str } from 'envalid';
 
+// validate environment variables
 const validateEnv = () => {
     cleanEnv(process.env, {
         NODE_ENV: str(),

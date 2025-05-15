@@ -1,21 +1,20 @@
 import { Document } from 'mongoose';
 import { UserReviewStatusEnum, UserRoleEnum } from './user.enum';
 
-export type UserRole = UserRoleEnum.ADMIN | UserRoleEnum.INSTRUCTOR | UserRoleEnum.STUDENT | UserRoleEnum.ALL;
+export type UserRole = UserRoleEnum.ADMIN | UserRoleEnum.CUSTOMER | UserRoleEnum.STAFF | UserRoleEnum.MANAGER | UserRoleEnum.ALL;
 export type UserReviewStatus = UserReviewStatusEnum.APPROVE | UserReviewStatusEnum.REJECT;
 
 export interface IUser extends Document {
     _id: string;
-    name: string; // required
+    first_name: string; // required
+    last_name: string; // required
     email: string; // unique
     google_id?: string; // default empty
     password?: string; // required if google_id is null or empty
     role: UserRole; // default is "student"
     status: boolean; // default is true, set false if want disabled user status
-    description?: string; // required if role is instructor
     phone_number?: string; // default empty
     avatar_url?: string; // url
-    video_url?: string; // url
     dob?: Date; // date of birth, default new Date()
 
     // check verify
@@ -25,18 +24,15 @@ export interface IUser extends Document {
     token_version: number; // default 0
 
     // check balance
-    balance: number; // default 0,
-    balance_total?: number; // total balance get all course history
-    withdrawn_amount?: number; // amount user had withdrawn
-    bank_name?: string;
-    bank_account_no?: string;
-    bank_account_name?: string;
+    // balance: number; // default 0,
+    // balance_total?: number; // total balance get all course history
+    // withdrawn_amount?: number; // amount user had withdrawn
+    // bank_name?: string;
+    // bank_account_no?: string;
+    // bank_account_name?: string;
 
     // info transactions
-    transactions?: IUserTransaction[];
-
-    // check subscriptions
-    is_subscribed?: boolean; // default false
+    // transactions?: IUserTransaction[];
 
     created_at?: Date; // default new Date()
     updated_at?: Date; // default new Date()

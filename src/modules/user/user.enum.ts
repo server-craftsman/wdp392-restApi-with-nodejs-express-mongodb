@@ -1,8 +1,9 @@
 export enum UserRoleEnum {
     ALL = 'all',
+    CUSTOMER = 'customer',
+    STAFF = 'staff',
+    MANAGER = 'manager',
     ADMIN = 'admin',
-    INSTRUCTOR = 'instructor',
-    STUDENT = 'student',
 }
 
 export enum UserReviewStatusEnum {

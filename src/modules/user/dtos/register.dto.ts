@@ -1,4 +1,5 @@
 import { IsBoolean, IsDate, IsEmail, IsIn, IsNotEmpty, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
 import { UserRoles } from '../user.constant';
 import { UserRole } from '../user.interface';
 import { UserRoleEnum } from './../user.enum';
@@ -6,18 +7,14 @@ import { UserRoleEnum } from './../user.enum';
 export default class RegisterDto {
     constructor(
         google_id: string = '',
-        name: string,
+        first_name: string,
+        last_name: string,
         email: string,
         password: string,
-        role: UserRole = UserRoleEnum.STUDENT,
+        role: UserRole = UserRoleEnum.CUSTOMER,
         status: boolean = true,
-        description: string = '',
         phone_number: string = '',
         avatar_url: string = '',
-        video_url: string = '',
-        bank_name: string = '',
-        bank_account_no: string = '',
-        bank_account_name: string = '',
         dob: Date = new Date(),
 
         is_verified: boolean = false,
@@ -30,25 +27,19 @@ export default class RegisterDto {
         is_deleted: boolean = false,
     ) {
         this.google_id = google_id;
-        this.name = name;
+        this.first_name = first_name;
+        this.last_name = last_name;
         this.email = email;
         this.password = password;
         this.role = role;
         this.status = status;
-        this.description = description;
         this.phone_number = phone_number;
         this.avatar_url = avatar_url;
-        this.video_url = video_url;
-        this.bank_name = bank_name;
-        this.bank_account_no = bank_account_no;
-        this.bank_account_name = bank_account_name;
         this.dob = dob;
-
         this.is_verified = is_verified;
         this.verification_token = verification_token;
         this.verification_token_expires = verification_token_expires;
         this.token_version = token_version;
-
         this.created_at = created_at;
         this.updated_at = updated_at;
         this.is_deleted = is_deleted;
@@ -57,7 +48,10 @@ export default class RegisterDto {
     public google_id: string;
 
     @IsNotEmpty()
-    public name: string;
+    public first_name: string;
+
+    @IsNotEmpty()
+    public last_name: string;
 
     @IsNotEmpty()
     @IsEmail()
@@ -73,15 +67,13 @@ export default class RegisterDto {
     @IsBoolean()
     public status: boolean;
 
-    public description: string;
+    @IsNotEmpty()
     public phone_number: string;
+
     public avatar_url: string;
-    public video_url: string;
-    public bank_name: string;
-    public bank_account_no: string;
-    public bank_account_name: string;
 
     @IsDate()
+    @Type(() => Date)
     public dob: Date;
 
     public is_verified: boolean;
