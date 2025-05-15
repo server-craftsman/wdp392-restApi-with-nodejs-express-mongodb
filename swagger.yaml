@@ -549,12 +549,12 @@ definitions:
   VerifiedTokenDto:
     type: object
     properties:
-      verifyToken:
+      token:
         type: string
         description: "Verification token"
         example: "string"
     required:
-      - verifyToken
+      - token
       
   EmailDto:
     type: object
@@ -644,11 +644,8 @@ definitions:
         description: "User's password"
       role:
         type: string
-        enum: ["admin", "manager", "staff", "customer"]
+        enum: ["customer", "manager", "staff", "admin"]
         description: "User role"
-      status:
-        type: boolean
-        description: "User account status"
       phone_number:
         type: string
         description: "User's phone number"
@@ -664,7 +661,9 @@ definitions:
       - last_name
       - email
       - password
-      
+      - phone_number
+      - dob
+
   UpdateUserDto:
     type: object
     properties:

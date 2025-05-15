@@ -1,4 +1,4 @@
-import { IsBoolean, IsDate, IsEmail, IsIn, IsNotEmpty, MinLength } from 'class-validator';
+import { IsBoolean, IsDate, IsEmail, IsIn, IsNotEmpty, IsOptional, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserRoles } from '../user.constant';
 import { UserRole } from '../user.interface';
@@ -70,10 +70,12 @@ export default class RegisterDto {
     @IsNotEmpty()
     public phone_number: string;
 
+    @IsOptional()
     public avatar_url: string;
 
     @IsDate()
     @Type(() => Date)
+    @IsOptional()
     public dob: Date;
 
     public is_verified: boolean;

@@ -77,6 +77,8 @@ export default class App {
 
         // config for swagger
         this.app.use('/swagger', express.static(path.join(__dirname, '../node_modules/swagger-ui-dist')));
+        // config for images
+        this.app.use('/images', express.static(path.join(__dirname, '../public/images')));
     }
 
     // initialize Swagger documentation
@@ -91,6 +93,36 @@ export default class App {
                 swaggerOptions: {
                     url: '/swagger/swagger.yaml',
                 },
+                customCss: `
+                  .swagger-ui .topbar {
+                    padding: 10px 0;
+                    background-color:rgb(255, 177, 8);
+                  }
+                  
+                  .topbar-wrapper img {
+                    display: none;
+                  }
+                  
+                  .topbar-wrapper:after {
+                    content: '';
+                    background-image: url('/images/logo.jpg');
+                    background-size: contain;
+                    background-repeat: no-repeat;
+                    background-position: left center;
+                    display: inline-block;
+                    height: 200px;
+                    width: 200px;
+                    margin-left: 20px;
+                    vertical-align: middle;
+                  }
+                  
+                  .swagger-ui .topbar .download-url-wrapper {
+                    display: flex;
+                    align-items: center;
+                    margin: 0;
+                  }
+                `,
+                customSiteTitle: 'Bloodline DNA Testing Service API',
             }),
         );
     }
