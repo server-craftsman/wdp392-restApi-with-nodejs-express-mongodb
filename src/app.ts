@@ -96,31 +96,31 @@ export default class App {
                 customCss: `
                   .swagger-ui .topbar {
                     padding: 10px 0;
-                    background-color: #1b1b1b;
+                    background-color:rgb(27, 27, 27);
                   }
                   
                   .topbar-wrapper img {
                     display: none;
                   }
                   
-                //   .topbar-wrapper:after {
-                //     content: '';
-                //     background-image: url('/images/logo.jpg');
-                //     background-size: contain;
-                //     background-repeat: no-repeat;
-                //     background-position: left center;
-                //     display: inline-block;
-                //     height: 200px;
-                //     width: 200px;
-                //     margin-left: 20px;
-                //     vertical-align: middle;
-                //   }
+                  .topbar-wrapper:after {
+                    content: '';
+                    background-image: url('/images/logo.jpg');
+                    background-size: contain;
+                    background-repeat: no-repeat;
+                    background-position: left center;
+                    display: inline-block;
+                    height: 200px;
+                    width: 200px;
+                    margin-left: 20px;
+                    vertical-align: middle;
+                  }
                   
-                //   .swagger-ui .topbar .download-url-wrapper {
-                //     display: flex;
-                //     align-items: center;
-                //     margin: 0;
-                //   }
+                  .swagger-ui .topbar .download-url-wrapper {
+                    display: flex;
+                    align-items: center;
+                    margin: 0;
+                  }
                 `,
                 customSiteTitle: 'Bloodline DNA Testing Service API',
             }),
