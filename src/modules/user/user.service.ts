@@ -426,7 +426,9 @@ export default class UserService {
         const payload = ticket.getPayload();
         // If payload already exists, format user info to RegisterDto
         if (payload) {
-            newUser.last_name = payload.name!;
+            // newUser.last_name = newUser.first_name = payload.name!;
+            newUser.first_name = payload.given_name!;
+            newUser.last_name = payload.family_name!;
             newUser.email = payload.email!;
             newUser.avatar_url = payload.picture!;
             newUser.google_id = payload.sub!;
