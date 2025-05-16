@@ -62,6 +62,7 @@ export default class RegisterDto {
     public password: string;
 
     @IsIn(UserRoles)
+    @IsOptional()
     public role: UserRole;
 
     @IsBoolean()

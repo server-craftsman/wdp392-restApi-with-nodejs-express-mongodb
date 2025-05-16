@@ -34,6 +34,8 @@ export interface IUser extends Document {
     // info transactions
     // transactions?: IUserTransaction[];
 
+    //role manager
+
     created_at?: Date; // default new Date()
     updated_at?: Date; // default new Date()
     is_deleted?: boolean; // flag remove logic when user is deleted, default is false

@@ -31,7 +31,7 @@ export default class UserService {
 
         let newUser = {
             ...model,
-            role: model.role || UserRoleEnum.CUSTOMER,
+            role: UserRoleEnum.CUSTOMER,
             google_id: model.google_id || '',
             phone_number: model.phone_number || '',
             avatar_url: model.avatar_url || '',
@@ -93,10 +93,10 @@ export default class UserService {
             }
 
             // // role MANAGER
-            if (newUser.role === UserRoleEnum.MANAGER) {
-                subject = 'Register profile manager success';
-                content = `${content}\nYou have successfully registered your profile for the manager role. Please wait for admin to review the application and notify you via email!`;
-            }
+            // if (newUser.role === UserRoleEnum.MANAGER) {
+            //     subject = 'Register profile manager success';
+            //     content = `${content}\nYou have successfully registered your profile for the manager role. Please wait for admin to review the application and notify you via email!`;
+            // }
 
             const sendMailResult = await sendMail({
                 toMail: newUser.email,

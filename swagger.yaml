@@ -490,33 +490,6 @@ paths:
         '401':
           description: 'Unauthorized'
           
-  /users/review-profile-account:
-    put:
-      tags:
-      - 'users'
-      summary: 'Review profile account (Admin only)'
-      description: 'Approve or reject manager/staff profile'
-      operationId: "reviewProfileAccount"
-      consumes:
-      - 'application/json'
-      produces:
-      - 'application/json'
-      security:
-        - Bearer: []
-      parameters:
-      - in: 'body'
-        name: 'body'
-        description: 'Review data'
-        required: true
-        schema: 
-          $ref: '#/definitions/ReviewProfileDto'
-      responses:
-        '200':
-          description: 'Profile reviewed successfully'
-        '400':
-          description: 'Invalid input'
-        '401':
-          description: 'Unauthorized'
 
 definitions:
   LoginDto:
@@ -732,23 +705,6 @@ definitions:
     required:
       - user_id
       - role
-      
-  ReviewProfileDto:
-    type: object
-    properties:
-      user_id:
-        type: string
-        description: "User ID"
-      status:
-        type: string
-        enum: ["approve", "reject"]
-        description: "Review decision"
-      comment:
-        type: string
-        description: "Review comment (required for reject)"
-    required:
-      - user_id
-      - status
       
   SearchUserDto:
     type: object
