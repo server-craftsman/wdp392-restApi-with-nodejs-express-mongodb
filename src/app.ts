@@ -110,17 +110,17 @@ export default class App {
                     background-repeat: no-repeat;
                     background-position: left center;
                     display: inline-block;
-                    height: 200px;
-                    width: 200px;
+                    height: 2000px;
+                    width: 2000px;
                     margin-left: 20px;
                     vertical-align: middle;
                   }
                   
-                  .swagger-ui .topbar .download-url-wrapper {
-                    display: flex;
-                    align-items: center;
-                    margin: 0;
-                  }
+                //   .swagger-ui .topbar .download-url-wrapper {
+                //     display: flex;
+                //     align-items: center;
+                //     margin: 0;
+                //   }
                 `,
                 customSiteTitle: 'Bloodline DNA Testing Service API',
             }),
