@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: rest-api-nodejs-express-mongodb
+    env: node
+    buildCommand: npm install -g pnpm && pnpm install && pnpm run build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
