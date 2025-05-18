@@ -1,5 +1,9 @@
 export const PREFIX_TITLE = {
-    CART: 'CART',
-    PURCHASE: 'PURCHASE',
-    PAYOUT: 'PAYOUT',
+    APPOINTMENT: 'APPT',
+    KIT: 'KIT',
+    SAMPLE: 'SAMPLE',
+    RESULT: 'RESULT',
+    PAYMENT: 'PAY',
+    TRANSACTION: 'TRANS',
+    REFUND: 'REFUND',
 };

@@ -10,3 +10,15 @@ export enum UserReviewStatusEnum {
     APPROVE = 'approve',
     REJECT = 'reject',
 }
+
+export enum UserGenderEnum {
+    MALE = 'male',
+    FEMALE = 'female',
+    OTHER = 'other'
+}
+
+export enum UserStatusEnum {
+    ACTIVE = 'active',
+    INACTIVE = 'inactive',
+    SUSPENDED = 'suspended'
+}

@@ -27,61 +27,72 @@ export const API_PATH = {
     CHANGE_ROLE_USER: '/api/users/change-role',
     REVIEW_PROFILE_ACCOUNT: '/api/users/review-profile-account',
 
-    // subscription
-    SUBSCRIPTION: '/api/subscription',
-    SEARCH_SUBSCRIPTION_BY_INSTRUCTOR: '/api/subscription/search-for-instructor',
-    SEARCH_SUBSCRIPTION_BY_SUBSCRIBER: '/api/subscription/search-for-subscriber',
+    // DNA Testing Service API paths
+    // Service
+    SERVICE: '/api/service',
+    SEARCH_SERVICE: '/api/service/search',
 
-    // category
-    CATEGORY: '/api/category',
-    SEARCH_CATEGORY: '/api/category/search',
+    // Appointment
+    APPOINTMENT: '/api/appointment',
+    SEARCH_APPOINTMENT: '/api/appointment/search',
+    APPOINTMENT_FEEDBACK: '/api/appointment/feedback',
 
-    // course
-    COURSE: '/api/course',
-    SEARCH_COURSE: '/api/course/search',
-    CHANGE_STATUS_COURSE: '/api/course/change-status',
-    GET_COURSE_DETAIL: '/api/course/detail',
+    // Kit
+    KIT: '/api/kit',
+    SEARCH_KIT: '/api/kit/search',
+    ASSIGN_KIT: '/api/kit/assign',
+    RETURN_KIT: '/api/kit/return',
 
-    COURSE_LOG: '/api/course/log',
-    SEARCH_COURSE_LOG: '/api/course/log/search',
+    // Sample
+    SAMPLE: '/api/sample',
+    SEARCH_SAMPLE: '/api/sample/search',
+    COLLECT_SAMPLE: '/api/sample/collect',
+    RECEIVE_SAMPLE: '/api/sample/receive',
 
-    // session
-    SESSION: '/api/session',
-    SEARCH_SESSION: '/api/session/search',
+    // Registration Form
+    REGISTRATION_FORM: '/api/registration-form',
+    SEARCH_REGISTRATION_FORM: '/api/registration-form/search',
 
-    // lesson
-    LESSON: '/api/lesson',
-    SEARCH_LESSON: '/api/lesson/search',
+    // Result
+    RESULT: '/api/result',
+    SEARCH_RESULT: '/api/result/search',
 
-    // review
-    REVIEW: '/api/review',
-    SEARCH_REVIEW: '/api/review/search',
+    // Payment
+    PAYMENT: '/api/payment',
+    SEARCH_PAYMENT: '/api/payment/search',
 
-    // cart
-    CART: '/api/cart',
-    SEARCH_CART: '/api/cart/search',
-    UPDATE_STATUS_CART: '/api/cart/update-status',
+    // Transaction
+    TRANSACTION: '/api/transaction',
+    SEARCH_TRANSACTION: '/api/transaction/search',
 
-    // purchase
-    PURCHASE: '/api/purchase',
-    SEARCH_PURCHASE: '/api/purchase/search',
-    SEARCH_PURCHASE_BY_INSTRUCTOR: '/api/purchase/search-for-instructor',
-    SEARCH_PURCHASE_BY_STUDENT: '/api/purchase/search-for-student',
+    // Audit Log
+    AUDIT_LOG: '/api/audit-log',
+    SEARCH_AUDIT_LOG: '/api/audit-log/search',
 
-    // payout
-    PAYOUT: '/api/payout',
-    SEARCH_PAYOUT: '/api/payout/search',
-    UPDATE_STATUS_PAYOUT: '/api/payout/update-status',
+    // Department
+    DEPARTMENT: '/api/department',
+    SEARCH_DEPARTMENT: '/api/department/search',
 
-    // blog
-    BLOG: '/api/blog',
-    SEARCH_BLOG: '/api/blog/search',
+    // Staff Profile
+    STAFF_PROFILE: '/api/staff-profile',
+    SEARCH_STAFF_PROFILE: '/api/staff-profile/search',
 
-    // client
-    CLIENT: '/api/client',
-    COURSE_IN_CLIENT: '/api/client/course',
-    SEARCH_COURSE_IN_CLIENT: '/api/client/course/search',
-    SEARCH_CATEGORY_IN_CLIENT: '/api/client/category/search',
-    BLOG_IN_CLIENT: '/api/client/blog',
-    SEARCH_BLOG_IN_CLIENT: '/api/client/blog/search',
+    // Work Schedule
+    WORK_SCHEDULE: '/api/work-schedule',
+    SEARCH_WORK_SCHEDULE: '/api/work-schedule/search',
+
+    // Slot
+    SLOT: '/api/slot',
+    SEARCH_SLOT: '/api/slot/search',
+
+    // Attendance
+    ATTENDANCE: '/api/attendance',
+    SEARCH_ATTENDANCE: '/api/attendance/search',
+
+    // Refund
+    REFUND: '/api/refund',
+    SEARCH_REFUND: '/api/refund/search',
+    APPROVE_REFUND: '/api/refund/approve',
+    REJECT_REFUND: '/api/refund/reject',
+    COMPLETE_REFUND: '/api/refund/complete',
 };

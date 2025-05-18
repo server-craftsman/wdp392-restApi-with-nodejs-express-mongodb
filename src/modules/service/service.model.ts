@@ -1,0 +1,27 @@
+import mongoose, { Schema } from 'mongoose';
+import { COLLECTION_NAME } from '../../core/constants';
+import { SampleMethods, ServiceTypes } from './service.constant';
+import { IService } from './service.interface';
+
+const ServiceSchemaEntity: Schema<IService> = new Schema({
+    name: { type: String, required: true },
+    description: { type: String, required: true },
+    type: {
+        type: String,
+        enum: ServiceTypes,
+        required: true
+    },
+    sample_method: {
+        type: String,
+        enum: SampleMethods,
+        required: true
+    },
+    estimated_time: { type: Number, required: true }, // in hours
+    price: { type: Number, required: true },
+    is_active: { type: Boolean, default: true },
+    created_at: { type: Date, default: Date.now },
+    updated_at: { type: Date, default: Date.now },
+});
+
+const ServiceSchema = mongoose.model<IService & mongoose.Document>(COLLECTION_NAME.SERVICE, ServiceSchemaEntity);
+export default ServiceSchema; 

@@ -1,0 +1,18 @@
+import { Document } from 'mongoose';
+import { SampleMethodEnum, ServiceTypeEnum } from './service.enum';
+
+export type ServiceType = ServiceTypeEnum.CIVIL | ServiceTypeEnum.ADMINISTRATIVE;
+export type SampleMethod = SampleMethodEnum.SELF_COLLECTED | SampleMethodEnum.FACILITY_COLLECTED | SampleMethodEnum.HOME_COLLECTED;
+
+export interface IService extends Document {
+    _id: string;
+    name: string;
+    description: string;
+    type: ServiceType;
+    sample_method: SampleMethod;
+    estimated_time: number; // in hours
+    price: number;
+    is_active: boolean;
+    created_at?: Date;
+    updated_at?: Date;
+} 

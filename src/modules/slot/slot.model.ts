@@ -1,0 +1,26 @@
+import mongoose, { Schema } from 'mongoose';
+import { COLLECTION_NAME } from '../../core/constants';
+import { SlotStatuses } from './slot.constant';
+import { ISlot } from './slot.interface';
+
+const SlotSchemaEntity: Schema<ISlot> = new Schema({
+    staff_profile_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.STAFF_PROFILE, required: true },
+    appointment_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.APPOINTMENT },
+    appointment_limit: { type: Number, required: true, default: 1 },
+    start_time: { type: Date, required: true },
+    end_time: { type: Date, required: true },
+    status: {
+        type: String,
+        enum: SlotStatuses,
+        required: true
+    },
+    created_at: { type: Date, default: Date.now },
+    updated_at: { type: Date, default: Date.now }
+});
+
+const SlotSchema = mongoose.model<ISlot & mongoose.Document>(
+    COLLECTION_NAME.SLOT,
+    SlotSchemaEntity
+);
+
+export default SlotSchema; 
