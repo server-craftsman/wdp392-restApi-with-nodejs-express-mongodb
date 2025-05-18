@@ -21,11 +21,7 @@ const UserSchemaEntity: Schema<IUser> = new Schema({
         default: UserRoleEnum.CUSTOMER,
         required: true,
     },
-    status: {
-        type: String,
-        enum: UserStatuses,
-        default: UserStatusEnum.ACTIVE
-    },
+    status: { type: Boolean },
     phone_number: { type: String, unique: true },
     avatar_url: { type: String },
     dob: { type: Date },

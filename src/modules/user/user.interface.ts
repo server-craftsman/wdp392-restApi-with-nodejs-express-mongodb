@@ -16,7 +16,7 @@ export interface IUser extends Document {
     password?: string; // required if google_id is null or empty
     dob?: Date; // date of birth
     role: UserRole; // default is "client"
-    status: UserStatus; // active, inactive, suspended
+    status: boolean; // active, inactive, suspended
     is_verified?: boolean; // default false
     verification_token?: string; // default empty
     verification_token_expires?: Date; // default new Date()
