@@ -11,6 +11,7 @@ const PaymentSchemaEntity: Schema<IPayment> = new Schema({
         enum: PaymentMethods,
         required: true
     },
+    order_id: { type: String, required: true },
     status: {
         type: String,
         enum: PaymentStatuses,

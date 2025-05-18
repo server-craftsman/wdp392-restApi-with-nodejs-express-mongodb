@@ -17,6 +17,7 @@ export interface IPayment extends Document {
     amount: number;
     payment_method: PaymentMethod;
     status: PaymentStatus;
+    order_id: string;
     created_at: Date;
     updated_at: Date;
 } 
