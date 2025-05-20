@@ -21,7 +21,7 @@ const UserSchemaEntity: Schema<IUser> = new Schema({
         default: UserRoleEnum.CUSTOMER,
         required: true,
     },
-    status: { type: Boolean },
+    status: { type: Boolean, default: true },
     phone_number: { type: String, unique: true },
     avatar_url: { type: String },
     dob: { type: Date },
