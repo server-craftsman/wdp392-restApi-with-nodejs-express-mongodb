@@ -31,7 +31,7 @@ export default class UserService {
 
         let newUser = {
             ...model,
-            role: UserRoleEnum.CUSTOMER,
+            role: model.role || UserRoleEnum.CUSTOMER,
             google_id: model.google_id || '',
             phone_number: model.phone_number || '',
             avatar_url: model.avatar_url || '',
@@ -82,8 +82,8 @@ export default class UserService {
             let subject: string = 'Verify your email address';
             let content: string = `Hello, ${newUser.first_name} ${newUser.last_name}.`;
 
-            // role CUSTOMER
-            if (newUser.role === UserRoleEnum.CUSTOMER) {
+            // for customer, manager, staff
+            if (newUser.role === UserRoleEnum.CUSTOMER || newUser.role === UserRoleEnum.MANAGER || newUser.role === UserRoleEnum.STAFF) {
                 // create token verification
                 const tokenData = createTokenVerifiedUser();
                 newUser.verification_token = tokenData.verification_token;
