@@ -1,4 +1,4 @@
-import { IsBoolean, IsDate, IsEmail, IsIn, IsNotEmpty, IsOptional, MinLength } from 'class-validator';
+import { IsBoolean, IsDate, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserRoles } from '../user.constant';
 import { UserRole } from '../user.interface';
@@ -16,6 +16,9 @@ export default class RegisterDto {
         phone_number: string = '',
         avatar_url: string = '',
         dob: Date = new Date(),
+        address: string = '',
+        gender: string = '',
+
 
         is_verified: boolean = false,
         verification_token: string = '',
@@ -36,6 +39,8 @@ export default class RegisterDto {
         this.phone_number = phone_number;
         this.avatar_url = avatar_url;
         this.dob = dob;
+        this.address = address;
+        this.gender = gender;
         this.is_verified = is_verified;
         this.verification_token = verification_token;
         this.verification_token_expires = verification_token_expires;
@@ -78,6 +83,14 @@ export default class RegisterDto {
     @Type(() => Date)
     @IsOptional()
     public dob: Date;
+
+    @IsString()
+    @IsOptional()
+    public address: string;
+
+    @IsString()
+    @IsOptional()
+    public gender: string
 
     public is_verified: boolean;
     public verification_token: string;

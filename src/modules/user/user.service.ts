@@ -229,6 +229,8 @@ export default class UserService {
             phone_number: model.phone_number || item.phone_number,
             avatar_url: model.avatar_url || item.avatar_url,
             dob: model.dob || item.dob,
+            address: model.address || item.address,
+            gender: model.gender || item.gender,
             updated_at: new Date(),
         };
 

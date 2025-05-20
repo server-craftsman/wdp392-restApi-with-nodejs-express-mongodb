@@ -1,4 +1,4 @@
-import { IsDate, IsNotEmpty, IsString } from 'class-validator';
+import { IsDate, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export default class UpdateUserDto {
@@ -8,12 +8,16 @@ export default class UpdateUserDto {
         phone_number: string,
         avatar_url: string,
         dob: Date | string,
+        address: string,
+        gender: string
     ) {
         this.first_name = first_name;
         this.last_name = last_name;
         this.phone_number = phone_number;
         this.avatar_url = avatar_url;
         this.dob = dob;
+        this.address = address;
+        this.gender = gender;
     }
 
     @IsNotEmpty()
@@ -32,4 +36,11 @@ export default class UpdateUserDto {
     @Type(() => Date)
     public dob: Date | string;
 
+    @IsString()
+    @IsOptional()
+    public address: string;
+
+    @IsString()
+    @IsOptional()
+    public gender: string;
 }

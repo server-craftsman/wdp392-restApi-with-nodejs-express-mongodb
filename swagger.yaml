@@ -629,6 +629,12 @@ definitions:
         type: string
         format: date
         description: "Date of birth"
+      address:
+        type: string
+        description: "User's address"
+      gender:
+        type: string
+        description: "User's gender"
     required:
       - first_name
       - last_name
@@ -656,6 +662,12 @@ definitions:
         type: string
         format: date
         description: "Date of birth"
+      address:
+        type: string
+        description: "User's address"
+      gender:
+        type: string
+        description: "User's gender"
     required:
       - first_name
       - last_name
