@@ -19,7 +19,6 @@ export default class RegisterDto {
         address: string = '',
         gender: string = '',
 
-
         is_verified: boolean = false,
         verification_token: string = '',
         verification_token_expires: Date = new Date(),

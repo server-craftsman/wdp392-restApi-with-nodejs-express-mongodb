@@ -30,6 +30,8 @@ export default class UserController {
                 '0869872830',
                 'https://yt3.googleusercontent.com/zlWYSmjS34cnOH94qZYmWEeCkU_DnrFl5G-dCd66i3jqTElMvdwBtsOyMJPpoNXfdpHKPjYrmA=s900-c-k-c0x00ffffff-no-rj',
                 new Date(),
+                '',
+                '',
                 true,
                 '',
                 new Date(),
