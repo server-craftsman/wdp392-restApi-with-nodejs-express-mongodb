@@ -1,12 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
-import { API_PATH } from '../../core/constants';
 import { HttpStatus } from '../../core/enums';
-import { SearchPaginationResponseModel } from '../../core/models';
 import { formatResponse } from '../../core/utils';
 import ServiceService from './service.service';
 import CreateServiceDto from './dtos/createService.dto';
 import { IService } from './service.interface';
-
+import { SearchPaginationResponseModel } from '../../core/models/searchPagination.model';
 
 export default class ServiceController {
     private serviceService = new ServiceService();
@@ -23,8 +21,8 @@ export default class ServiceController {
 
     public getServices = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const services = await this.serviceService.getServices();
-            res.status(HttpStatus.Success).json(formatResponse<IService[]>(services));
+            const services = await this.serviceService.getServices(req.query);
+            res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IService>>(services));
         } catch (error) {
             next(error);
         }
@@ -42,7 +40,7 @@ export default class ServiceController {
     public updateService = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const service = await this.serviceService.updateService(req.params.id, req.body);
-            res.status(HttpStatus.Success).json(formatResponse<IService>(service));
+            res.status(HttpStatus.Success).json(formatResponse<IService>(service as IService));
         } catch (error) {
             next(error);
         }
@@ -57,4 +55,15 @@ export default class ServiceController {
         }
     }
 
+    /**
+     * Lấy danh sách dịch vụ dựa trên thông tin cuộc hẹn
+     */
+    public getServicesByAppointment = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const services = await this.serviceService.getServicesByAppointment(req.query);
+            res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IService>>(services));
+        } catch (error) {
+            next(error);
+        }
+    }
 }

@@ -22,34 +22,41 @@ export default class ServiceRoute implements IRoute {
         // POST: domain:/api/service/create -> Create service
         this.router.post(
             API_PATH.CREATE_SERVICE,
-            authMiddleWare([UserRoleEnum.ADMIN]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             validationMiddleware(CreateServiceDto),
             this.serviceController.createService);
 
         // GET: domain:/api/service/search -> Get all services
         this.router.get(
             API_PATH.SEARCH_SERVICE,
-            authMiddleWare([UserRoleEnum.ADMIN]),
+            authMiddleWare([], true),
             this.serviceController.getServices);
 
         // GET: domain:/api/service/:id -> Get service by id
         this.router.get(
             API_PATH.GET_SERVICE_BY_ID,
-            authMiddleWare([UserRoleEnum.ADMIN]),
+            authMiddleWare([], true),
             this.serviceController.getServiceById);
 
         // PUT: domain:/api/service/:id -> Update service by id
         this.router.put(
             API_PATH.UPDATE_SERVICE,
-            authMiddleWare([UserRoleEnum.ADMIN]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             validationMiddleware(UpdateServiceDto),
             this.serviceController.updateService);
 
         // DELETE: domain:/api/service/:id -> Delete service by id
         this.router.delete(
             API_PATH.DELETE_SERVICE,
-            authMiddleWare([UserRoleEnum.ADMIN]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             this.serviceController.deleteService);
+
+        // GET: domain:/api/service/appointments -> Lấy các dịch vụ dựa trên thông tin cuộc hẹn
+        this.router.get(
+            `${this.path}/appointments`,
+            authMiddleWare([], true),
+            this.serviceController.getServicesByAppointment
+        );
 
     }
 }

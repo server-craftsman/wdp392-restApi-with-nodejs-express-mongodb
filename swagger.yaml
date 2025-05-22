@@ -15,6 +15,8 @@ tags:
   description: 'Authentication APIs'
 - name: 'users'
   description: 'User management APIs'
+- name: 'services'
+  description: 'Service management APIs'
 
 schemes:
 - 'https'
@@ -490,6 +492,273 @@ paths:
         '401':
           description: 'Unauthorized'
           
+  /service/create:
+    post:
+      tags:
+      - 'services'
+      summary: 'Create new service (Admin, Manager only)'
+      description: 'Create a new service '
+      operationId: "createService"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'Service information'
+        required: true
+        schema: 
+          $ref: '#/definitions/CreateServiceDto'
+      responses:
+        '201':
+          description: 'Service created successfully'
+          schema:
+            $ref: '#/definitions/ServiceResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+
+  /service/search:
+    get:
+      tags:
+      - 'services'
+      summary: 'Search and filter services (All roles)'
+      description: 'Search services with pagination and filtering'
+      operationId: "getServices"
+      produces:
+      - 'application/json'
+      parameters:
+      - in: 'query'
+        name: 'type'
+        description: 'Filter by service type (civil, administrative)'
+        required: false
+        type: 'string'
+      - in: 'query'
+        name: 'sample_method'
+        description: 'Filter by sample method (self_collected, facility_collected, home_collected)'
+        required: false
+        type: 'string'
+      - in: 'query'
+        name: 'is_active'
+        description: 'Filter by active status'
+        required: false
+        type: 'boolean'
+      - in: 'query'
+        name: 'min_price'
+        description: 'Minimum price'
+        required: false
+        type: 'number'
+      - in: 'query'
+        name: 'max_price'
+        description: 'Maximum price'
+        required: false
+        type: 'number'
+      - in: 'query'
+        name: 'pageNum'
+        description: 'Page number'
+        required: false
+        type: 'integer'
+        default: 1
+      - in: 'query'
+        name: 'pageSize'
+        description: 'Items per page'
+        required: false
+        type: 'integer'
+        default: 10
+      - in: 'query'
+        name: 'keyword'
+        description: 'Search by name or description'
+        required: false
+        type: 'string'
+      - in: 'query'
+        name: 'sort_by'
+        description: 'Sort field (name, price, created_at, estimated_time)'
+        required: false
+        type: 'string'
+        default: 'created_at'
+      - in: 'query'
+        name: 'sort_order'
+        description: 'Sort order (asc, desc)'
+        required: false
+        type: 'string'
+        default: 'desc'
+      - in: 'query'
+        name: 'start_date'
+        description: 'Filter by creation date (start)'
+        required: false
+        type: 'string'
+        format: 'date'
+      - in: 'query'
+        name: 'end_date'
+        description: 'Filter by creation date (end)'
+        required: false
+        type: 'string'
+        format: 'date'
+      responses:
+        '200':
+          description: 'Service list with pagination'
+          schema:
+            $ref: '#/definitions/ServicePaginationResponse'
+        '401':
+          description: 'Unauthorized'
+
+  /service/{id}:
+    get:
+      tags:
+      - 'services'
+      summary: 'Get service by ID (All roles)'
+      description: 'Retrieve service details by ID'
+      operationId: "getServiceById"
+      produces:
+      - 'application/json'
+      parameters:
+      - in: 'path'
+        name: 'id'
+        description: 'Service ID'
+        required: true
+        type: 'string'
+      responses:
+        '200':
+          description: 'Service details'
+          schema:
+            $ref: '#/definitions/ServiceResponse'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Service not found'
+          
+    put:
+      tags:
+      - 'services'
+      summary: 'Update service (Admin, Manager only)'
+      description: 'Update service information'
+      operationId: "updateService"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'path'
+        name: 'id'
+        description: 'Service ID'
+        required: true
+        type: 'string'
+      - in: 'body'
+        name: 'body'
+        description: 'Updated service information'
+        required: true
+        schema: 
+          $ref: '#/definitions/UpdateServiceDto'
+      responses:
+        '200':
+          description: 'Service updated successfully'
+          schema:
+            $ref: '#/definitions/ServiceResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Service not found'
+
+    delete:
+      tags:
+      - 'services'
+      summary: 'Delete service (Admin, Manager only)'
+      description: 'Delete service (soft delete)'
+      operationId: "deleteService"
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'path'
+        name: 'id'
+        description: 'Service ID'
+        required: true
+        type: 'string'
+      responses:
+        '200':
+          description: 'Service deleted successfully'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Service not found'
+
+  /service/appointments:
+    get:
+      tags:
+      - 'services'
+      summary: 'Get services by appointment criteria'
+      description: 'Filter services based on related appointments'
+      operationId: "getServicesByAppointment"
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'query'
+        name: 'status'
+        description: 'Filter by appointment status'
+        required: false
+        type: 'string'
+      - in: 'query'
+        name: 'start_appointment_date'
+        description: 'Filter by appointment date (start)'
+        required: false
+        type: 'string'
+        format: 'date'
+      - in: 'query'
+        name: 'end_appointment_date'
+        description: 'Filter by appointment date (end)'
+        required: false
+        type: 'string'
+        format: 'date'
+      - in: 'query'
+        name: 'appointment_type'
+        description: 'Filter by appointment type (self, facility, home)'
+        required: false
+        type: 'string'
+      - in: 'query'
+        name: 'customer_id'
+        description: 'Filter by customer ID'
+        required: false
+        type: 'string'
+      - in: 'query'
+        name: 'staff_id'
+        description: 'Filter by staff ID'
+        required: false
+        type: 'string'
+      - in: 'query'
+        name: 'collection_address'
+        description: 'Filter by collection address'
+        required: false
+        type: 'string'
+      - in: 'query'
+        name: 'pageNum'
+        description: 'Page number'
+        required: false
+        type: 'integer'
+        default: 1
+      - in: 'query'
+        name: 'pageSize'
+        description: 'Items per page'
+        required: false
+        type: 'integer'
+        default: 10
+      responses:
+        '200':
+          description: 'Service list filtered by appointment data'
+          schema:
+            $ref: '#/definitions/ServicePaginationResponse'
+        '401':
+          description: 'Unauthorized'
 
 definitions:
   LoginDto:
@@ -724,19 +993,24 @@ definitions:
       keyword:
         type: string
         description: "Search keyword (email, first name, last name)"
+        example: "string"
       role:
         type: string
         enum: ["", "all", "admin", "manager", "staff", "customer"]
         description: "Filter by role"
+        example: ""
       is_verified:
         type: boolean
         description: "Filter by verification status"
+        example: "true"
       status:
         type: boolean
         description: "Filter by user status"
+        example: "true"
       is_deleted:
         type: boolean
         description: "Include deleted users"
+        example: "false"
         
   PaginationRequestModel:
     type: object
@@ -782,3 +1056,132 @@ definitions:
           totalPages:
             type: integer
             description: "Total number of pages"
+
+  CreateServiceDto:
+    type: object
+    properties:
+      name:
+        type: string
+        description: "Service name"
+        example: "Dân Sự"
+      description:
+        type: string
+        description: "Service description"
+        example: "Dịch vụ dân sự"
+      price:
+        type: number
+        description: "Service price"
+        example: 1500000
+      type:
+        type: string
+        enum: ["civil", "administrative"]
+        description: "Service type"
+        example: "civil"
+      sample_method:
+        type: string
+        enum: ["self_collected", "facility_collected", "home_collected"]
+        description: "Sample collection method"
+        example: "home_collected"
+      estimated_time:
+        type: number
+        description: "Estimated time in hours"
+        example: 48
+    required:
+      - name
+      - description
+      - price
+      - type
+      - sample_method
+      - estimated_time
+
+  UpdateServiceDto:
+    type: object
+    properties:
+      name:
+        type: string
+        description: "Service name"
+      description:
+        type: string
+        description: "Service description"
+      price:
+        type: number
+        description: "Service price"
+      type:
+        type: string
+        enum: ["civil", "administrative"]
+        description: "Service type"
+      sample_method:
+        type: string
+        enum: ["self_collected", "facility_collected", "home_collected"]
+        description: "Sample collection method"
+      estimated_time:
+        type: number
+        description: "Estimated time in hours"
+    required:
+      - name
+      - description
+      - price
+      - type
+      - sample_method
+      - estimated_time
+
+  ServiceResponse:
+    type: object
+    properties:
+      _id:
+        type: string
+        description: "Service ID"
+      name:
+        type: string
+        description: "Service name"
+      description:
+        type: string
+        description: "Service description"
+      price:
+        type: number
+        description: "Service price"
+      type:
+        type: string
+        enum: ["civil", "administrative"]
+        description: "Service type"
+      sample_method:
+        type: string
+        enum: ["self_collected", "facility_collected", "home_collected"]
+        description: "Sample collection method"
+      estimated_time:
+        type: number
+        description: "Estimated time in hours"
+      is_active:
+        type: boolean
+        description: "Service status"
+      created_at:
+        type: string
+        format: date-time
+        description: "Creation date"
+      updated_at:
+        type: string
+        format: date-time
+        description: "Last update date"
+
+  ServicePaginationResponse:
+    type: object
+    properties:
+      pageData:
+        type: array
+        items:
+          $ref: '#/definitions/ServiceResponse'
+      pageInfo:
+        type: object
+        properties:
+          totalItems:
+            type: integer
+            description: "Total number of items"
+          totalPages:
+            type: integer
+            description: "Total number of pages"
+          pageNum:
+            type: integer
+            description: "Current page number"
+          pageSize:
+            type: integer
+            description: "Number of items per page"
