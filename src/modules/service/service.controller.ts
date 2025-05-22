@@ -49,7 +49,7 @@ export default class ServiceController {
     public deleteService = async (req: Request, res: Response, next: NextFunction) => {
         try {
             await this.serviceService.deleteService(req.params.id);
-            res.status(HttpStatus.Success).json(formatResponse<null>(null));
+            res.status(HttpStatus.Success).json(formatResponse<string>('Delete service successfully'));
         } catch (error) {
             next(error);
         }
@@ -62,6 +62,40 @@ export default class ServiceController {
         try {
             const services = await this.serviceService.getServicesByAppointment(req.query);
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IService>>(services));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Đếm số lượng dịch vụ theo loại
+     */
+    public countServicesByType = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const statistics = await this.serviceService.countServicesByType(req.query);
+            res.status(HttpStatus.Success).json(formatResponse(statistics));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Thay đổi trạng thái hoạt động của dịch vụ
+     */
+    public changeServiceStatus = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { id } = req.params;
+            const { is_active } = req.body;
+
+            if (is_active === undefined) {
+                res.status(HttpStatus.BadRequest).json(
+                    formatResponse<string>('is_active field is required')
+                );
+                return;
+            }
+
+            const service = await this.serviceService.changeServiceStatus(id, is_active);
+            res.status(HttpStatus.Success).json(formatResponse<IService>(service));
         } catch (error) {
             next(error);
         }

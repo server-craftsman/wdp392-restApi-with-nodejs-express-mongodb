@@ -12,8 +12,8 @@ import { AppointmentStatusEnum } from '../appointment/appointment.enum';
 import AppointmentSchema from '../appointment/appointment.model';
 
 export default class ServiceService {
-    public serviceSchema = ServiceSchema;
-    public appointmentSchema = AppointmentSchema;
+    private serviceSchema = ServiceSchema;
+    private appointmentSchema = AppointmentSchema;
 
     public async createService(model: CreateServiceDto): Promise<IService> {
         if (isEmptyObject(model)) {
@@ -366,14 +366,21 @@ export default class ServiceService {
                 appointmentQuery.collection_address = { $regex: cleanParams.collection_address, $options: 'i' };
             }
 
-            // Tìm các appointment phù hợp
+            console.log('Appointment query:', appointmentQuery);
+
+            // Tìm các appointment phù hợp và chỉ lấy service_id
             const appointments = await this.appointmentSchema.find(appointmentQuery).select('service_id');
+            console.log('Found appointments:', appointments.length);
 
             // Lấy danh sách các service_id từ các appointment
             const serviceIds = appointments.map(app => app.service_id);
 
+            // Loại bỏ các giá trị trùng lặp và giá trị null/undefined
+            const uniqueServiceIds = [...new Set(serviceIds.filter(id => id))];
+            console.log('Unique service IDs:', uniqueServiceIds.length);
+
             // Nếu không có service_id nào, trả về danh sách trống
-            if (serviceIds.length === 0) {
+            if (uniqueServiceIds.length === 0) {
                 return {
                     pageData: [],
                     pageInfo: {
@@ -387,7 +394,7 @@ export default class ServiceService {
 
             // Tạo query để tìm các service tương ứng
             const serviceQuery: any = {
-                _id: { $in: serviceIds },
+                _id: { $in: uniqueServiceIds },
                 is_deleted: false
             };
 
@@ -423,8 +430,11 @@ export default class ServiceService {
                 ];
             }
 
+            console.log('Service query:', serviceQuery);
+
             // Đếm tổng số dịch vụ phù hợp
             const totalItems = await this.serviceSchema.countDocuments(serviceQuery);
+            console.log('Total matching services:', totalItems);
 
             // Xử lý sắp xếp
             const sortField = cleanParams.sort_by || 'created_at';
@@ -438,6 +448,8 @@ export default class ServiceService {
                 .sort(sortOptions)
                 .skip(skip)
                 .limit(limit);
+
+            console.log('Retrieved services:', services.length);
 
             // Tính toán thông tin phân trang
             const totalPages = Math.ceil(totalItems / limit);
@@ -512,5 +524,168 @@ export default class ServiceService {
             sort_by: allowedSortFields.includes(sortBy) ? sortBy : 'created_at',
             sort_order: processedParams.sort_order === 'asc' ? 'asc' : 'desc',
         };
+    }
+
+    /**
+     * Đếm số lượng dịch vụ theo loại
+     */
+    public async countServicesByType(queryParams: any = {}): Promise<{
+        total: number;
+        byType: Record<string, number>;
+        byStatus: Record<string, number>;
+        bySampleMethod: Record<string, number>;
+    }> {
+        try {
+            // Xử lý tham số truy vấn
+            const cleanParams = this.processQueryParams(queryParams);
+
+            // Xây dựng query cơ bản
+            const baseQuery: any = { is_deleted: false };
+
+            // Thêm các điều kiện lọc nếu có
+            if (cleanParams.is_active !== undefined) {
+                baseQuery.is_active = cleanParams.is_active;
+            }
+
+            if (cleanParams.keyword) {
+                const keyword = cleanParams.keyword.toLowerCase();
+                baseQuery.$or = [
+                    { name: { $regex: keyword, $options: 'i' } },
+                    { description: { $regex: keyword, $options: 'i' } }
+                ];
+            }
+
+            // Ghi log query để debug
+            console.log('Base query for counting:', baseQuery);
+
+            // Đếm tổng số dịch vụ
+            const total = await this.serviceSchema.countDocuments(baseQuery);
+            console.log('Total services:', total);
+
+            // Khởi tạo các objects kết quả với giá trị mặc định
+            const byType: Record<string, number> = {
+                [ServiceTypeEnum.CIVIL]: 0,
+                [ServiceTypeEnum.ADMINISTRATIVE]: 0
+            };
+
+            const bySampleMethod: Record<string, number> = {
+                [SampleMethodEnum.SELF_COLLECTED]: 0,
+                [SampleMethodEnum.FACILITY_COLLECTED]: 0,
+                [SampleMethodEnum.HOME_COLLECTED]: 0
+            };
+
+            const byStatus = {
+                active: 0,
+                inactive: 0
+            };
+
+            // Nếu không có dịch vụ nào, trả về kết quả với các giá trị mặc định
+            if (total === 0) {
+                return {
+                    total: 0,
+                    byType,
+                    byStatus,
+                    bySampleMethod
+                };
+            }
+
+            // Đếm theo loại dịch vụ
+            const typeCountsPromise = Promise.all([
+                this.serviceSchema.countDocuments({ ...baseQuery, type: ServiceTypeEnum.CIVIL }),
+                this.serviceSchema.countDocuments({ ...baseQuery, type: ServiceTypeEnum.ADMINISTRATIVE })
+            ]);
+
+            // Đếm theo trạng thái (luôn đếm cả active và inactive, bất kể giá trị is_active trong query)
+            const activeQuery = { ...baseQuery, is_active: true };
+            const inactiveQuery = { ...baseQuery, is_active: false };
+
+            // Xóa điều kiện is_active khỏi query để đếm tất cả trạng thái
+            if (activeQuery.is_active !== undefined) delete activeQuery.is_active;
+            if (inactiveQuery.is_active !== undefined) delete inactiveQuery.is_active;
+
+            const statusCountsPromise = Promise.all([
+                this.serviceSchema.countDocuments({ ...activeQuery, is_active: true }),
+                this.serviceSchema.countDocuments({ ...inactiveQuery, is_active: false })
+            ]);
+
+            // Đếm theo phương thức lấy mẫu
+            const sampleMethodCountsPromise = Promise.all([
+                this.serviceSchema.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.SELF_COLLECTED }),
+                this.serviceSchema.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.FACILITY_COLLECTED }),
+                this.serviceSchema.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.HOME_COLLECTED })
+            ]);
+
+            // Đợi tất cả các truy vấn hoàn thành
+            const [typeCounts, statusCounts, sampleMethodCounts] = await Promise.all([
+                typeCountsPromise,
+                statusCountsPromise,
+                sampleMethodCountsPromise
+            ]);
+
+            // Cập nhật kết quả
+            byType[ServiceTypeEnum.CIVIL] = typeCounts[0];
+            byType[ServiceTypeEnum.ADMINISTRATIVE] = typeCounts[1];
+
+            byStatus.active = statusCounts[0];
+            byStatus.inactive = statusCounts[1];
+
+            bySampleMethod[SampleMethodEnum.SELF_COLLECTED] = sampleMethodCounts[0];
+            bySampleMethod[SampleMethodEnum.FACILITY_COLLECTED] = sampleMethodCounts[1];
+            bySampleMethod[SampleMethodEnum.HOME_COLLECTED] = sampleMethodCounts[2];
+
+            console.log('Count statistics:', {
+                total,
+                byType,
+                byStatus,
+                bySampleMethod
+            });
+
+            return {
+                total,
+                byType,
+                byStatus,
+                bySampleMethod
+            };
+        } catch (error) {
+            console.error('Error in countServicesByType:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Thay đổi trạng thái hoạt động của dịch vụ
+     */
+    public async changeServiceStatus(id: string, isActive: boolean): Promise<IService> {
+        // Kiểm tra dịch vụ có tồn tại không
+        const service = await this.serviceSchema.findById(id);
+        if (!service) {
+            throw new HttpException(HttpStatus.NotFound, 'Service not found');
+        }
+
+        // Kiểm tra nếu dịch vụ đã bị xóa
+        if (service.is_deleted) {
+            throw new HttpException(HttpStatus.BadRequest, 'Cannot change status of a deleted service');
+        }
+
+        // Nếu trạng thái    không thay đổi, trả về dịch vụ hiện tại
+        if (service.is_active === isActive) {
+            return service;
+        }
+
+        // Cập nhật trạng thái
+        const updatedService = await this.serviceSchema.findByIdAndUpdate(
+            id,
+            {
+                is_active: isActive,
+                updated_at: new Date()
+            },
+            { new: true }
+        );
+
+        if (!updatedService) {
+            throw new HttpException(HttpStatus.InternalServerError, 'Failed to update service status');
+        }
+
+        return updatedService;
     }
 }

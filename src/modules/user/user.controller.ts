@@ -85,7 +85,7 @@ export default class UserController {
         try {
             const model: ChangePasswordDto = req.body;
             await this.userService.changePassword(model);
-            res.status(HttpStatus.Success).json(formatResponse<null>(null));
+            res.status(HttpStatus.Success).json(formatResponse<string>('Change password successfully'));
         } catch (error) {
             next(error);
         }
@@ -95,7 +95,7 @@ export default class UserController {
         try {
             const model: ChangeStatusDto = req.body;
             await this.userService.changeStatus(model);
-            res.status(HttpStatus.Success).json(formatResponse<null>(null));
+            res.status(HttpStatus.Success).json(formatResponse<string>('Change status successfully'));
         } catch (error) {
             next(error);
         }
@@ -115,7 +115,7 @@ export default class UserController {
         try {
             const model: ReviewProfileDto = req.body;
             await this.userService.reviewProfileAccount(model);
-            res.status(HttpStatus.Success).json(formatResponse<null>(null));
+            res.status(HttpStatus.Success).json(formatResponse<string>('Review profile account successfully'));
         } catch (error) {
             next(error);
         }
@@ -134,7 +134,7 @@ export default class UserController {
     public deleteUser = async (req: Request, res: Response, next: NextFunction) => {
         try {
             await this.userService.deleteUser(req.params.id);
-            res.status(HttpStatus.Success).json(formatResponse<null>(null));
+            res.status(HttpStatus.Success).json(formatResponse<string>('Delete user successfully'));
         } catch (error) {
             next(error);
         }

@@ -6,6 +6,7 @@ const DepartmentSchemaEntity: Schema<IDepartment> = new Schema({
     name: { type: String, required: true },
     description: { type: String, required: true },
     manager_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true },
+    is_deleted: { type: Boolean, default: false },
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }
 });

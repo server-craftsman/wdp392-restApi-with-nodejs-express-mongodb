@@ -17,6 +17,8 @@ tags:
   description: 'User management APIs'
 - name: 'services'
   description: 'Service management APIs'
+- name: 'departments'
+  description: 'Department management APIs'
 
 schemes:
 - 'https'
@@ -695,7 +697,7 @@ paths:
     get:
       tags:
       - 'services'
-      summary: 'Get services by appointment criteria'
+      summary: 'Get services by appointment criteria (Admin, Manager, Staff only)'
       description: 'Filter services based on related appointments'
       operationId: "getServicesByAppointment"
       produces:
@@ -759,6 +761,368 @@ paths:
             $ref: '#/definitions/ServicePaginationResponse'
         '401':
           description: 'Unauthorized'
+
+  /department/create:
+    post:
+      tags:
+      - 'departments'
+      summary: 'Create new department (Admin only)'
+      description: 'Create a new department with manager assignment'
+      operationId: "createDepartment"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'body'
+        name: 'body'
+        description: 'Department information'
+        required: true
+        schema: 
+          $ref: '#/definitions/CreateDepartmentDto'
+      responses:
+        '201':
+          description: 'Department created successfully'
+          schema:
+            $ref: '#/definitions/DepartmentResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+        '409':
+          description: 'Department with this name already exists'
+
+  /department/search:
+    get:
+      tags:
+      - 'departments'
+      summary: 'Search and filter departments (Admin, Manager, Staff)'
+      description: 'Search departments with pagination and filtering'
+      operationId: "getDepartments"
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'query'
+        name: 'pageNum'
+        description: 'Page number'
+        required: false
+        type: 'integer'
+        default: 1
+      - in: 'query'
+        name: 'pageSize'
+        description: 'Items per page'
+        required: false
+        type: 'integer'
+        default: 10
+      - in: 'query'
+        name: 'keyword'
+        description: 'Search by name or description'
+        required: false
+        type: 'string'
+      - in: 'query'
+        name: 'sort_by'
+        description: 'Sort field (name, created_at, updated_at)'
+        required: false
+        type: 'string'
+        default: 'created_at'
+      - in: 'query'
+        name: 'sort_order'
+        description: 'Sort order (asc, desc)'
+        required: false
+        type: 'string'
+        default: 'desc'
+      - in: 'query'
+        name: 'is_deleted'
+        description: 'Filter by deletion status'
+        required: false
+        type: 'boolean'
+        default: false
+      - in: 'query'
+        name: 'is_active'
+        description: 'Filter by active status'
+        required: false
+        type: 'boolean'
+      responses:
+        '200':
+          description: 'Department list with pagination'
+          schema:
+            $ref: '#/definitions/DepartmentPaginationResponse'
+        '401':
+          description: 'Unauthorized'
+
+  /department/manager/{managerId}:
+    get:
+      tags:
+      - 'departments'
+      summary: 'Get departments by manager ID (Admin, Manager)'
+      description: 'Retrieve departments managed by a specific manager'
+      operationId: "getManagerDepartments"
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'path'
+        name: 'managerId'
+        description: 'Manager ID'
+        required: true
+        type: 'string'
+      - in: 'query'
+        name: 'is_deleted'
+        description: 'Filter by deletion status'
+        required: false
+        type: 'boolean'
+        default: false
+      responses:
+        '200':
+          description: 'List of departments managed by the manager'
+          schema:
+            type: 'object'
+            properties:
+              departments:
+                type: 'array'
+                items:
+                  $ref: '#/definitions/DepartmentResponse'
+              count:
+                type: 'integer'
+                description: 'Number of departments'
+        '400':
+          description: 'Invalid manager ID'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Manager not found'
+
+  /department/count:
+    get:
+      tags:
+      - 'departments'
+      summary: 'Count departments (Admin, Manager)'
+      description: 'Count total number of departments in the system'
+      operationId: "countDepartments"
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'query'
+        name: 'is_deleted'
+        description: 'Filter by deletion status'
+        required: false
+        type: 'boolean'
+        default: false
+      responses:
+        '200':
+          description: 'Count of departments'
+          schema:
+            type: 'object'
+            properties:
+              totalDepartments:
+                type: 'integer'
+                description: 'Total number of departments'
+        '401':
+          description: 'Unauthorized'
+
+  /department/{id}:
+    get:
+      tags:
+      - 'departments'
+      summary: 'Get department by ID (Admin, Manager, Staff)'
+      description: 'Retrieve department details by ID'
+      operationId: "getDepartmentById"
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'path'
+        name: 'id'
+        description: 'Department ID'
+        required: true
+        type: 'string'
+      responses:
+        '200':
+          description: 'Department details'
+          schema:
+            $ref: '#/definitions/DepartmentResponse'
+        '400':
+          description: 'Invalid department ID'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Department not found'
+          
+    put:
+      tags:
+      - 'departments'
+      summary: 'Update department (Admin, Manager)'
+      description: 'Update department information'
+      operationId: "updateDepartment"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'path'
+        name: 'id'
+        description: 'Department ID'
+        required: true
+        type: 'string'
+      - in: 'body'
+        name: 'body'
+        description: 'Updated department information'
+        required: true
+        schema: 
+          $ref: '#/definitions/UpdateDepartmentDto'
+      responses:
+        '200':
+          description: 'Department updated successfully'
+          schema:
+            $ref: '#/definitions/DepartmentResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Department not found'
+        '409':
+          description: 'Department with this name already exists'
+
+    delete:
+      tags:
+      - 'departments'
+      summary: 'Delete department (Admin only)'
+      description: 'Delete department (soft delete)'
+      operationId: "deleteDepartment"
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'path'
+        name: 'id'
+        description: 'Department ID'
+        required: true
+        type: 'string'
+      responses:
+        '200':
+          description: 'Department deleted successfully'
+        '400':
+          description: 'Invalid department ID'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Department not found'
+
+  # Additional service endpoints (not already in your swagger.yaml)
+  /service/statistics:
+    get:
+      tags:
+      - 'services'
+      summary: 'Get service statistics (Admin, Manager)'
+      description: 'Count services grouped by type, status, and sample method'
+      operationId: "countServicesByType"
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'query'
+        name: 'is_active'
+        description: 'Filter by active status'
+        required: false
+        type: 'boolean'
+      - in: 'query'
+        name: 'keyword'
+        description: 'Search by name or description'
+        required: false
+        type: 'string'
+      responses:
+        '200':
+          description: 'Service statistics'
+          schema:
+            type: 'object'
+            properties:
+              total:
+                type: 'integer'
+                description: 'Total number of services'
+              byType:
+                type: 'object'
+                description: 'Services counted by type'
+                properties:
+                  civil:
+                    type: 'integer'
+                  administrative:
+                    type: 'integer'
+              byStatus:
+                type: 'object'
+                description: 'Services counted by status'
+                properties:
+                  active:
+                    type: 'integer'
+                  inactive:
+                    type: 'integer'
+              bySampleMethod:
+                type: 'object'
+                description: 'Services counted by sample method'
+                properties:
+                  self_collected:
+                    type: 'integer'
+                  facility_collected:
+                    type: 'integer'
+                  home_collected:
+                    type: 'integer'
+        '401':
+          description: 'Unauthorized'
+
+  /service/{id}/status:
+    patch:
+      tags:
+      - 'services'
+      summary: 'Change service status (Admin, Manager)'
+      description: 'Activate or deactivate a service'
+      operationId: "changeServiceStatus"
+      consumes:
+      - 'application/json'
+      produces:
+      - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+      - in: 'path'
+        name: 'id'
+        description: 'Service ID'
+        required: true
+        type: 'string'
+      - in: 'body'
+        name: 'body'
+        description: 'Status change data'
+        required: true
+        schema:
+          type: 'object'
+          properties:
+            is_active:
+              type: 'boolean'
+              description: 'New active status'
+          required:
+            - is_active
+      responses:
+        '200':
+          description: 'Service status changed successfully'
+          schema:
+            $ref: '#/definitions/ServiceResponse'
+        '400':
+          description: 'Invalid input or service is deleted'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Service not found'
 
 definitions:
   LoginDto:
@@ -1170,6 +1534,109 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/ServiceResponse'
+      pageInfo:
+        type: object
+        properties:
+          totalItems:
+            type: integer
+            description: "Total number of items"
+          totalPages:
+            type: integer
+            description: "Total number of pages"
+          pageNum:
+            type: integer
+            description: "Current page number"
+          pageSize:
+            type: integer
+            description: "Number of items per page"
+
+  CreateDepartmentDto:
+    type: object
+    properties:
+      name:
+        type: string
+        description: "Department name"
+        example: "Cardiology Department"
+      description:
+        type: string
+        description: "Department description"
+        example: "Department for heart-related services"
+      manager_id:
+        type: string
+        description: "Manager ID (must be a user with MANAGER role)"
+        example: "60d0fe4f5311236168a109ca"
+    required:
+      - name
+      - description
+      - manager_id
+
+  UpdateDepartmentDto:
+    type: object
+    properties:
+      name:
+        type: string
+        description: "Department name"
+        example: "Cardiology Department"
+      description:
+        type: string
+        description: "Department description"
+        example: "Department for heart-related services"
+      manager_id:
+        type: string
+        description: "Manager ID (must be a user with MANAGER role)"
+        example: "60d0fe4f5311236168a109ca"
+    required:
+      - name
+      - description
+      - manager_id
+
+  DepartmentResponse:
+    type: object
+    properties:
+      _id:
+        type: string
+        description: "Department ID"
+      name:
+        type: string
+        description: "Department name"
+      description:
+        type: string
+        description: "Department description"
+      manager_id:
+        type: object
+        description: "Manager information"
+        properties:
+          _id:
+            type: string
+            description: "Manager ID"
+          first_name:
+            type: string
+            description: "Manager's first name"
+          last_name:
+            type: string
+            description: "Manager's last name"
+          email:
+            type: string
+            description: "Manager's email"
+      is_deleted:
+        type: boolean
+        description: "Deletion status"
+      created_at:
+        type: string
+        format: date-time
+        description: "Creation date"
+      updated_at:
+        type: string
+        format: date-time
+        description: "Last update date"
+
+  DepartmentPaginationResponse:
+    type: object
+    properties:
+      pageData:
+        type: array
+        items:
+          $ref: '#/definitions/DepartmentResponse'
       pageInfo:
         type: object
         properties:

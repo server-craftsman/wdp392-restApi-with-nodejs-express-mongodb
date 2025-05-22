@@ -6,6 +6,7 @@ import { UserRoute } from './modules/user';
 import { AuthRoute } from './modules/auth';
 import { PaymentRoute } from './modules/payment';
 import { ServiceRoute } from './modules/service';
+import { DepartmentRoute } from './modules/department';
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ const routes = [
     new UserRoute(),
     new PaymentRoute(),
     new ServiceRoute(),
+    new DepartmentRoute(),
 ];
 
 const app = new App(routes);
