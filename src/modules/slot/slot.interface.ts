@@ -10,7 +10,7 @@ export interface ISlot extends Document {
     _id: string;
     staff_profile_id: Schema.Types.ObjectId;
     appointment_id?: Schema.Types.ObjectId;
-    appointment_limit: number;
+    appointment_limit: number; //max appointment per slot
     start_time: Date;
     end_time: Date;
     status: SlotStatus;

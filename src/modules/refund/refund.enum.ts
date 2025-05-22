@@ -7,6 +7,6 @@ export enum RefundStatusEnum {
 
 export enum RefundMethodEnum {
     CASH = 'cash',
-    VNPAY = 'vnpay',
-    BANK_TRANSFER = 'bank_transfer'
+    BANK_TRANSFER = 'bank_transfer',
+    OTHER = 'other'
 } 

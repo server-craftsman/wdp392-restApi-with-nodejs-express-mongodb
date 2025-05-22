@@ -20,7 +20,7 @@ export interface IStaffProfile extends Document {
     department_id: Schema.Types.ObjectId;
     job_title: string;
     hire_date: Date;
-    employee_id: string;
+    employee_id: string; //unique
     salary: number;
     status: StaffStatus;
     qualifications: IQualification[];

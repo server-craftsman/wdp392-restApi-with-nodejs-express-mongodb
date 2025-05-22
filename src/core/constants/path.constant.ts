@@ -31,6 +31,11 @@ export const API_PATH = {
     // Service
     SERVICE: '/api/service',
     SEARCH_SERVICE: '/api/service/search',
+    CREATE_SERVICE: '/api/service/create',
+    GET_SERVICE_BY_ID: '/api/service/:id',
+    UPDATE_SERVICE: '/api/service/:id',
+    DELETE_SERVICE: '/api/service/:id',
+
 
     // Appointment
     APPOINTMENT: '/api/appointment',

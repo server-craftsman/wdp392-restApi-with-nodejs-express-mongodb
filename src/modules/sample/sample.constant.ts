@@ -1,5 +1,4 @@
-import { SampleStatusEnum, SampleTypeEnum } from './sample.enum';
-import { CollectionMethodEnum } from '../appointment/appointment.enum';
+import { CollectionMethodEnum, SampleStatusEnum, SampleTypeEnum } from './sample.enum';
 
 export const SampleTypes = [
     '',

@@ -13,10 +13,12 @@ export interface IResultData {
 export interface IResult extends Document {
     _id: string;
     sample_id: Schema.Types.ObjectId;
+    customer_id: Schema.Types.ObjectId;
+    appointment_id: Schema.Types.ObjectId;
     is_match: boolean;
-    result_data: IResultData;
-    report_url: string;
-    completed_at: Date;
+    result_data: IResultData | null;
+    report_url: string | null;
+    completed_at: Date | null;
     created_at: Date;
     updated_at: Date;
 } 

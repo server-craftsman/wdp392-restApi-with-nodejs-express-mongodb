@@ -12,3 +12,9 @@ export enum SampleStatusEnum {
     COMPLETED = 'completed',
     INVALID = 'invalid'
 } 
+
+export enum CollectionMethodEnum {
+    SELF = 'self',
+    FACILITY = 'facility',
+    HOME = 'home'
+} 

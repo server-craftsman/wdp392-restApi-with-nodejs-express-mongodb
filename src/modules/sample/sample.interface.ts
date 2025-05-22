@@ -1,6 +1,6 @@
 import { Document, Schema } from 'mongoose';
 import { SampleStatusEnum, SampleTypeEnum } from './sample.enum';
-import { CollectionMethodEnum } from '../appointment/appointment.enum';
+import { CollectionMethodEnum } from './sample.enum';
 
 export type SampleType =
     SampleTypeEnum.SALIVA |
@@ -24,7 +24,7 @@ export interface ISample extends Document {
     _id: string;
     appointment_id: Schema.Types.ObjectId;
     kit_id: Schema.Types.ObjectId;
-    type: SampleType;
+    type: SampleType | null;
     collection_method: CollectionMethod;
     collection_date: Date;
     received_date?: Date;

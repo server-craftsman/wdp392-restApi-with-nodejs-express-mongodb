@@ -1,16 +1,17 @@
 import AppointmentSchema from './appointment.model';
-import { IAppointment, AppointmentStatus, CollectionMethod, IFeedback } from './appointment.interface';
-import { AppointmentStatusEnum, CollectionMethodEnum } from './appointment.enum';
-import { AppointmentStatuses, CollectionMethods } from './appointment.constant';
+import { IAppointment, AppointmentStatus, CollectionType } from './appointment.interface';
+import { AppointmentStatusEnum, TypeEnum } from './appointment.enum';
+import { AppointmentStatuses, CollectionTypes } from './appointment.constant';
+import { CollectionMethodEnum } from '../sample/sample.enum';
 
 export {
     AppointmentSchema,
     IAppointment,
     AppointmentStatus,
-    CollectionMethod,
-    IFeedback,
+    CollectionType,
     AppointmentStatusEnum,
+    TypeEnum,
     CollectionMethodEnum,
     AppointmentStatuses,
-    CollectionMethods
+    CollectionTypes,
 }; 

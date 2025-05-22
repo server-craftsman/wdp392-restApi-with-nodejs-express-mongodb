@@ -6,8 +6,8 @@ import { IStaffProfile } from './staff-profile.interface';
 const QualificationSchema = new Schema({
     name: { type: String, required: true },
     institution: { type: String, required: true },
-    issueDate: { type: Date, required: true },
-    expiryDate: { type: Date },
+    issue_date: { type: Date, required: true },
+    expiry_date: { type: Date },
     description: { type: String }
 });
 

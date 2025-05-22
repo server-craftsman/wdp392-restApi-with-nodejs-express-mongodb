@@ -1,10 +1,9 @@
 import { Document } from 'mongoose';
-import { UserReviewStatusEnum, UserRoleEnum, UserGenderEnum, UserStatusEnum } from './user.enum';
+import { UserReviewStatusEnum, UserRoleEnum, UserGenderEnum } from './user.enum';
 
-export type UserRole = UserRoleEnum.ADMIN | UserRoleEnum.CUSTOMER | UserRoleEnum.STAFF | UserRoleEnum.MANAGER | UserRoleEnum.ALL;
+export type UserRole = UserRoleEnum.ADMIN | UserRoleEnum.CUSTOMER | UserRoleEnum.STAFF | UserRoleEnum.MANAGER | UserRoleEnum.ALL | UserRoleEnum.LABORATORY_TECHNICIAN;
 export type UserReviewStatus = UserReviewStatusEnum.APPROVE | UserReviewStatusEnum.REJECT;
 export type UserGender = UserGenderEnum.MALE | UserGenderEnum.FEMALE | UserGenderEnum.OTHER;
-export type UserStatus = UserStatusEnum.ACTIVE | UserStatusEnum.INACTIVE | UserStatusEnum.SUSPENDED;
 
 export interface IUser extends Document {
     _id: string;
@@ -25,13 +24,16 @@ export interface IUser extends Document {
     avatar_url?: string; // url
     address?: string; // address
 
+
+    // bank account info
+    balance: number; // default 0
+    balance_total: number; // default 0
+    withdrawn_amount: number; // default 0
+    bank_name: string; // default empty
+    bank_account_no: string; // default empty
+    bank_account_name: string; // default empty
+
     created_at?: Date; // default new Date()
     updated_at?: Date; // default new Date()
     is_deleted?: boolean; // flag remove logic when user is deleted, default is false
-}
-
-export interface IUserTransaction {
-    payout_id: string; // required, reference to Purchase model
-    payout_no: string;
-    payout_amount: number;
 }

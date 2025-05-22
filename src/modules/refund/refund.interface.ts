@@ -9,8 +9,8 @@ export type RefundStatus =
 
 export type RefundMethod =
     RefundMethodEnum.CASH |
-    RefundMethodEnum.VNPAY |
-    RefundMethodEnum.BANK_TRANSFER;
+    RefundMethodEnum.BANK_TRANSFER |
+    RefundMethodEnum.OTHER;
 
 export interface IRefund extends Document {
     _id: string;

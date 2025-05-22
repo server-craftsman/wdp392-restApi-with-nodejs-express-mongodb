@@ -2,8 +2,8 @@ import { Document, Schema } from 'mongoose';
 
 export interface IBlogImage {
     name: string;
-    imageUrl: string;
-    createdAt: Date;
+    image_url: string;
+    created_at: Date;
 }
 
 export interface IBlog extends Document {

@@ -3,7 +3,7 @@ import { PaymentMethodEnum, PaymentStatusEnum } from './payment.enum';
 export const PaymentMethods = [
     '',
     PaymentMethodEnum.CASH,
-    PaymentMethodEnum.VNPAY
+    PaymentMethodEnum.PAY_OS
 ];
 
 export const PaymentStatuses = [

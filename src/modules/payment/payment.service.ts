@@ -49,7 +49,7 @@ export default class PaymentService {
             payment = await this.paymentSchema.create({
                 appointment_id: createPaymentDto.appointment_id,
                 amount: createPaymentDto.amount,
-                payment_method: PaymentMethodEnum.VNPAY,
+                payment_method: PaymentMethodEnum.PAY_OS,
                 status: PaymentStatusEnum.PENDING,
                 order_id: orderCode,
                 order_code: orderCode,

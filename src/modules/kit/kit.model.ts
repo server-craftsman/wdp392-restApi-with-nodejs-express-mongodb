@@ -10,7 +10,9 @@ const KitSchemaEntity: Schema<IKit> = new Schema({
         enum: KitStatuses,
         required: true
     },
+    appointment_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.APPOINTMENT, required: true },
     assigned_date: { type: Date },
+    assigned_to_user_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true },
     return_date: { type: Date },
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }

@@ -11,6 +11,6 @@ export const RefundStatuses = [
 export const RefundMethods = [
     '',
     RefundMethodEnum.CASH,
-    RefundMethodEnum.VNPAY,
-    RefundMethodEnum.BANK_TRANSFER
+    RefundMethodEnum.BANK_TRANSFER,
+    RefundMethodEnum.OTHER
 ]; 

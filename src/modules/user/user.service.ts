@@ -83,7 +83,7 @@ export default class UserService {
             let content: string = `Hello, ${newUser.first_name} ${newUser.last_name}.`;
 
             // for customer, manager, staff
-            if (newUser.role === UserRoleEnum.CUSTOMER || newUser.role === UserRoleEnum.MANAGER || newUser.role === UserRoleEnum.STAFF) {
+            if (newUser.role === UserRoleEnum.CUSTOMER || newUser.role === UserRoleEnum.MANAGER || newUser.role === UserRoleEnum.STAFF || newUser.role === UserRoleEnum.LABORATORY_TECHNICIAN) {
                 // create token verification
                 const tokenData = createTokenVerifiedUser();
                 newUser.verification_token = tokenData.verification_token;

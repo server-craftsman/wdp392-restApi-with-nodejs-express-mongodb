@@ -3,6 +3,7 @@ export enum UserRoleEnum {
     CUSTOMER = 'customer',
     STAFF = 'staff',
     MANAGER = 'manager',
+    LABORATORY_TECHNICIAN = 'laboratory_technician',
     ADMIN = 'admin',
 }
 
@@ -17,8 +18,3 @@ export enum UserGenderEnum {
     OTHER = 'other'
 }
 
-export enum UserStatusEnum {
-    ACTIVE = 'active',
-    INACTIVE = 'inactive',
-    SUSPENDED = 'suspended'
-}

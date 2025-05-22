@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 import { COLLECTION_NAME } from '../../core/constants';
-import { UserRoles, UserGenders, UserStatuses } from './user.constant';
-import { UserRoleEnum, UserGenderEnum, UserStatusEnum } from './user.enum';
+import { UserRoles, UserGenders } from './user.constant';
+import { UserRoleEnum, UserGenderEnum } from './user.enum';
 import { IUser } from './user.interface';
 
 const UserSchemaEntity: Schema<IUser> = new Schema({

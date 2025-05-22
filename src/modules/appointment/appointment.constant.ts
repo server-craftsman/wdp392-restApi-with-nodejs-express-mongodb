@@ -1,4 +1,4 @@
-import { AppointmentStatusEnum, CollectionMethodEnum } from './appointment.enum';
+import { AppointmentStatusEnum, TypeEnum } from './appointment.enum';
 
 export const AppointmentStatuses = [
     '',
@@ -11,9 +11,9 @@ export const AppointmentStatuses = [
     AppointmentStatusEnum.CANCELLED
 ];
 
-export const CollectionMethods = [
+export const CollectionTypes = [
     '',
-    CollectionMethodEnum.SELF,
-    CollectionMethodEnum.FACILITY,
-    CollectionMethodEnum.HOME
+    TypeEnum.SELF,
+    TypeEnum.FACILITY,
+    TypeEnum.HOME
 ]; 

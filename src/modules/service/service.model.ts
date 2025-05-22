@@ -19,6 +19,7 @@ const ServiceSchemaEntity: Schema<IService> = new Schema({
     estimated_time: { type: Number, required: true }, // in hours
     price: { type: Number, required: true },
     is_active: { type: Boolean, default: true },
+    is_deleted: { type: Boolean, default: false },
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now },
 });

@@ -11,8 +11,17 @@ const PaymentSchemaEntity: Schema<IPayment> = new Schema({
         enum: PaymentMethods,
         required: true
     },
-    order_id: { type: String, required: true },
-    order_code: { type: String, required: true },
+    // demo payOs
+    order_id: { type: String },
+    order_code: { type: String },   
+    // end demo payOs
+    payos_payment_id: { type: String },
+    payos_payment_url: { type: String },
+    payos_payment_status: { type: String },
+    payos_payment_status_message: { type: String },
+    payos_payment_status_code: { type: String },
+    payos_payment_status_detail: { type: String },
+    payos_payment_status_time: { type: Date },
     status: {
         type: String,
         enum: PaymentStatuses,

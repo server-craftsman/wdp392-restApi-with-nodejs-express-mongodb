@@ -1,6 +1,6 @@
 export enum PaymentMethodEnum {
     CASH = 'cash',
-    VNPAY = 'vnpay'
+    PAY_OS = 'pay_os'
 }
 
 export enum PaymentStatusEnum {
