@@ -123,38 +123,31 @@ export default class UserService {
         const { keyword, role, is_verified, status, is_deleted } = searchCondition;
         const { pageNum, pageSize } = model.pageInfo;
 
-        let query = {};
+        let query: any = {
+            role: { $ne: UserRoleEnum.ADMIN }, // $ne is not equal
+            is_deleted: is_deleted
+        };
+
         if (keyword) {
             const keywordValue = keyword.toLowerCase().trim();
-            query = {
-                // search by email or first_name or last_name
-                $or: [
-                    { email: { $regex: keywordValue, $options: 'i' } },
-                    { first_name: { $regex: keywordValue, $options: 'i' } },
-                    { last_name: { $regex: keywordValue, $options: 'i' } },
-                ],
-            };
+            query.$or = [
+                { email: { $regex: keywordValue, $options: 'i' } },
+                { first_name: { $regex: keywordValue, $options: 'i' } },
+                { last_name: { $regex: keywordValue, $options: 'i' } },
+            ];
         }
 
         if (role && role !== UserRoleEnum.ALL) {
-            query = {
-                ...query,
-                role: role,
-            };
+            query.role = role;
         }
 
         if (is_verified !== '') {
-            query = {
-                ...query,
-                is_verified,
-            };
+            query.is_verified = is_verified;
         }
 
-        query = {
-            ...query,
-            status,
-            is_deleted,
-        };
+        if (status !== undefined) {
+            query.status = status;
+        }
 
         const resultQuery = await this.userSchema
             .find(query) // query user based on condition
