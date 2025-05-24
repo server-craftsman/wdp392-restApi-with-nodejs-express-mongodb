@@ -21,7 +21,7 @@ export default class StaffProfileRoute implements IRoute {
         // POST: domain: /api/staff-profile/create -> Create staff profile
         this.router.post(
             `${this.path}/create`,
-            authMiddleWare([UserRoleEnum.ADMIN]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             validationMiddleware(CreateStaffProfileDto),
             this.staffProfileController.createStaffProfile
         );
@@ -29,28 +29,28 @@ export default class StaffProfileRoute implements IRoute {
         // GET: domain: /api/staff-profile/search -> Get all staff profiles
         this.router.get(
             `${this.path}/search`,
-            authMiddleWare([UserRoleEnum.ADMIN]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
             this.staffProfileController.getStaffProfiles
         );
 
         // GET: domain: /api/staff-profile/department/:id -> Get staff profiles by department id
         this.router.get(
             `${this.path}/department/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             this.staffProfileController.getStaffProfilesByDepartment
         );
 
         // GET: domain: /api/staff-profile/:id -> Get staff profile by id
         this.router.get(
             `${this.path}/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
             this.staffProfileController.getStaffProfileById
         );
 
         // PUT: domain: /api/staff-profile/:id -> Update staff profile
         this.router.put(
             `${this.path}/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             validationMiddleware(UpdateStaffProfileDto),
             this.staffProfileController.updateStaffProfile
         );
@@ -58,7 +58,7 @@ export default class StaffProfileRoute implements IRoute {
         // PUT: domain: /api/staff-profile/:id/status -> Change staff status
         this.router.put(
             `${this.path}/:id/status`,
-            authMiddleWare([UserRoleEnum.ADMIN]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             this.staffProfileController.changeStaffStatus
         );
 

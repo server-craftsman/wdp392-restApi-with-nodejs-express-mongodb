@@ -37,14 +37,14 @@ export default class SlotRoute implements IRoute {
         // GET: domain:/api/slot/search -> Search slots with filters
         this.router.get(
             `${API_PATH.SEARCH_SLOT}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
             this.slotController.getSlots
         );
 
         // GET: domain:/api/slot/staff/:staffProfileId -> Get slots by staff
         this.router.get(
             `${API_PATH.GET_SLOT_BY_STAFF}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
             this.slotController.getSlotsByStaff
         );
 
@@ -58,14 +58,14 @@ export default class SlotRoute implements IRoute {
         // GET: domain:/api/slot/:id -> Get slot by id
         this.router.get(
             `${API_PATH.GET_SLOT_BY_ID}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
             this.slotController.getSlotById
         );
 
         // GET: domain:/api/slot/service/:serviceId -> Get slots by service
         this.router.get(
             `${API_PATH.GET_SLOT_BY_SERVICE}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
             this.slotController.getSlotsByService
         );
 

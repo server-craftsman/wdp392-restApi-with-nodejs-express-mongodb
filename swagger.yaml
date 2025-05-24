@@ -1129,7 +1129,7 @@ paths:
     post:
       tags:
         - 'staff_profiles'
-      summary: 'Create a new staff profile (Admin only)'
+      summary: 'Create a new staff profile (Admin, Manager only)'
       description: 'Create a new staff profile with user and department association'
       operationId: 'createStaffProfile'
       consumes:
@@ -1161,7 +1161,7 @@ paths:
     get:
       tags:
         - 'staff_profiles'
-      summary: 'Search staff profiles (Admin only)'
+      summary: 'Search staff profiles (Admin, Manager, Laboratory Technician, Staff only)'
       description: 'Search for staff profiles with pagination and filtering'
       operationId: 'getStaffProfiles'
       produces:
@@ -1220,7 +1220,7 @@ paths:
     get:
       tags:
         - 'staff_profiles'
-      summary: 'Get staff profiles by department ID (Admin only)'
+      summary: 'Get staff profiles by department ID (Admin, Manager only)'
       description: 'Retrieve staff profiles associated with a specific department'
       operationId: 'getStaffProfilesByDepartment'
       produces:
@@ -1249,7 +1249,7 @@ paths:
     get:
       tags:
         - 'staff_profiles'
-      summary: 'Get staff profile by ID (Admin only)'
+      summary: 'Get staff profile by ID (Admin, Manager, Laboratory Technician, Staff only)'
       description: 'Retrieve staff profile details by ID'
       operationId: 'getStaffProfileById'
       produces:
@@ -1276,7 +1276,7 @@ paths:
     put:
       tags:
         - 'staff_profiles'
-      summary: 'Update staff profile (Admin only)'
+      summary: 'Update staff profile (Admin, Manager only)'
       description: 'Update staff profile information'
       operationId: 'updateStaffProfile'
       consumes:
@@ -1313,7 +1313,7 @@ paths:
     put:
       tags:
         - 'staff_profiles'
-      summary: 'Change staff status (Admin only)'
+      summary: 'Change staff status (Admin, Manager only)'
       description: 'Change the status of a staff profile'
       operationId: 'changeStaffStatus'
       consumes:
@@ -1386,7 +1386,7 @@ paths:
     get:
       tags:
         - 'slots'
-      summary: 'Search slots with filters (Admin, Manager, Staff)'
+      summary: 'Search slots with filters (Admin, Manager, Laboratory Technician, Staff only)'
       description: 'Search for slots with pagination and filtering'
       operationId: 'getSlots'
       produces:
@@ -1445,7 +1445,7 @@ paths:
     get:
       tags:
         - 'slots'
-      summary: 'Get slot by ID (Admin, Manager, Staff)'
+      summary: 'Get slot by ID (Admin, Manager, Laboratory Technician, Staff only)'
       description: 'Retrieve slot details by ID'
       operationId: 'getSlotById'
       produces:
@@ -1551,7 +1551,7 @@ paths:
     get:
       tags:
         - 'slots'
-      summary: 'Get slots by staff profile ID (Admin, Manager, Staff)'
+      summary: 'Get slots by staff profile ID (Admin, Manager, Laboratory Technician, Staff only)'
       description: 'Retrieve slots associated with a specific staff profile'
       operationId: 'getSlotsByStaff'
       produces:
@@ -1580,7 +1580,7 @@ paths:
     get:
       tags:
         - 'slots'
-      summary: 'Get slots by department ID (Admin, Manager)'
+      summary: 'Get slots by department ID (Admin, Manager only)'
       description: 'Retrieve slots associated with a specific department'
       operationId: 'getSlotsByDepartment'
       produces:
@@ -1609,7 +1609,7 @@ paths:
     get:
       tags:
         - 'slots'
-      summary: 'Get slots by service ID (Admin, Manager, Staff)'
+      summary: 'Get slots by service ID (Admin, Manager, Laboratory Technician, Staff only)'
       description: 'Retrieve slots associated with a specific service'
       operationId: 'getSlotsByService'
       produces:
@@ -1638,7 +1638,7 @@ paths:
     get:
       tags:
         - 'departments'
-      summary: 'Get department capacity statistics (Admin, Manager)'
+      summary: 'Get department capacity statistics (Admin, Manager only)'
       description: 'Retrieve capacity statistics for a department, including staff count, slot count, and booking rate'
       operationId: 'getDepartmentCapacity'
       produces:
