@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { model } from "mongoose";
 import { HttpStatus } from "../../core/enums";
 import { HttpException } from "../../core/exceptions";
 import { IError } from "../../core/interfaces";
@@ -30,10 +30,10 @@ export default class StaffProfileService {
             throw new HttpException(HttpStatus.BadRequest, 'Data is required');
         }
 
-        // Kiểm tra user_id có tồn tại và có role STAFF
+        // Kiểm tra user_id có tồn tại và có role STAFF hoặc LABORATORY TECHNICIAN  
         const user = await this.userSchema.findById(model.user_id);
-        if (!user || user.role !== UserRoleEnum.STAFF) {
-            throw new HttpException(HttpStatus.BadRequest, 'User does not exist or does not have Staff role');
+        if (!user || user.role !== UserRoleEnum.STAFF && user.role !== UserRoleEnum.LABORATORY_TECHNICIAN) {
+            throw new HttpException(HttpStatus.BadRequest, 'User does not exist or does not have Staff or Laboratory Technician role');
         }
 
         // Kiểm tra user đã có hồ sơ nhân viên chưa
