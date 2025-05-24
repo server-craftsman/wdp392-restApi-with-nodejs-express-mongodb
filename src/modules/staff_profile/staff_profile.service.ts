@@ -1,10 +1,8 @@
-import mongoose, { model } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { HttpStatus } from "../../core/enums";
 import { HttpException } from "../../core/exceptions";
-import { IError } from "../../core/interfaces";
 import { SearchPaginationResponseModel } from "../../core/models";
 import { IStaffProfile, StaffStatus } from "./staff_profile.interface";
-import StaffProfileSchema from "./staff_profile.model";
 import { StaffStatusEnum } from "./staff_profile.enum";
 import { SlotStatusEnum } from "../slot/slot.enum";
 import SlotSchema from "../slot/slot.model";
@@ -14,10 +12,10 @@ import CreateStaffProfileDto from "./dtos/createStaffProfile.dto";
 import UpdateStaffProfileDto from "./dtos/updateStaffProfile.dto";
 import { isEmptyObject } from "../../core/utils";
 import { UserRoleEnum } from "../user/user.enum";
-
+import StaffProfileRepository from './staff_profile.repository';
 
 export default class StaffProfileService {
-    private staffProfileSchema = StaffProfileSchema;
+    private staffProfileRepository = new StaffProfileRepository();
     private departmentSchema = DepartmentSchema;
     private userSchema = UserSchema;
     private slotSchema = SlotSchema;
@@ -37,7 +35,7 @@ export default class StaffProfileService {
         }
 
         // Kiểm tra user đã có hồ sơ nhân viên chưa
-        const existingProfile = await this.staffProfileSchema.findOne({ user_id: model.user_id });
+        const existingProfile = await this.staffProfileRepository.findOne({ user_id: model.user_id });
         if (existingProfile) {
             throw new HttpException(HttpStatus.Conflict, 'User already has a staff profile');
         }
@@ -52,8 +50,10 @@ export default class StaffProfileService {
         const employeeId = await this.generateEmployeeId();
 
         // Tạo hồ sơ nhân viên mới với các giá trị mặc định
-        const newProfile = await this.staffProfileSchema.create({
+        const newProfile = await this.staffProfileRepository.createStaffProfile({
             ...model,
+            user_id: new Schema.Types.ObjectId(model.user_id),
+            department_id: new Schema.Types.ObjectId(model.department_id),
             employee_id: employeeId,
             status: StaffStatusEnum.ACTIVE,
             salary: model.salary || 0,
@@ -73,7 +73,7 @@ export default class StaffProfileService {
         const currentYear = new Date().getFullYear().toString().substr(-2);
 
         // Đếm số nhân viên đã tạo trong năm hiện tại
-        const count = await this.staffProfileSchema.countDocuments({
+        const count = await this.staffProfileRepository.countDocuments({
             employee_id: { $regex: `^${prefix}${currentYear}` }
         });
 
@@ -137,20 +137,14 @@ export default class StaffProfileService {
             }
 
             // Đếm tổng số nhân viên
-            const totalItems = await this.staffProfileSchema.countDocuments(query);
+            const totalItems = await this.staffProfileRepository.countDocuments(query);
 
             // Xử lý sắp xếp
             const sortOptions: any = {};
             sortOptions[sort_by] = sort_order === 'asc' ? 1 : -1;
 
-            // Lấy dữ liệu với phân trang
-            const staffProfiles = await this.staffProfileSchema
-                .find(query) // Tìm kiếm theo query
-                .sort(sortOptions) // Sắp xếp theo sort_by và sort_order
-                .skip(skip) // Bỏ qua skip số lượng nhân viên
-                .limit(pageSize) // Giới hạn số lượng nhân viên trả về
-                .populate('user_id', 'first_name last_name email') // Populate user_id với các trường first_name, last_name và email
-                .populate('department_id', 'name'); // Populate department_id với trường name
+            // Lấy dữ liệu với phân trang và populate
+            const staffProfiles = await this.staffProfileRepository.findWithPopulate(query, sortOptions, skip, pageSize);
 
             const totalPages = Math.ceil(totalItems / pageSize);
 
@@ -192,7 +186,7 @@ export default class StaffProfileService {
      * Lấy nhân viên theo id
      */
     public async getStaffProfileById(id: string): Promise<IStaffProfile> {
-        const staffProfile = await this.staffProfileSchema.findById(id);
+        const staffProfile = await this.staffProfileRepository.findByIdWithPopulate(id);
         if (!staffProfile) {
             throw new HttpException(HttpStatus.NotFound, 'Staff profile not found');
         }
@@ -204,7 +198,7 @@ export default class StaffProfileService {
      */
     public async updateStaffProfile(id: string, model: UpdateStaffProfileDto): Promise<IStaffProfile> {
         // Kiểm tra hồ sơ tồn tại
-        const staffProfile = await this.staffProfileSchema.findById(id);
+        const staffProfile = await this.staffProfileRepository.findById(id);
         if (!staffProfile) {
             throw new HttpException(HttpStatus.NotFound, 'Staff profile not found');
         }
@@ -218,10 +212,12 @@ export default class StaffProfileService {
         }
 
         // Cập nhật thông tin hồ sơ
-        const updatedProfile = await this.staffProfileSchema.findByIdAndUpdate(
+        const updatedProfile = await this.staffProfileRepository.findByIdAndUpdate(
             id,
             {
                 ...model,
+                user_id: new Schema.Types.ObjectId(model.user_id),
+                department_id: new Schema.Types.ObjectId(model.department_id),
                 updated_at: new Date()
             },
             { new: true }
@@ -239,7 +235,7 @@ export default class StaffProfileService {
      */
     public async changeStaffStatus(id: string, status: StaffStatus): Promise<IStaffProfile> {
         // Kiểm tra hồ sơ tồn tại
-        const staffProfile = await this.staffProfileSchema.findById(id);
+        const staffProfile = await this.staffProfileRepository.findById(id);
         if (!staffProfile) {
             throw new HttpException(HttpStatus.NotFound, 'Staff profile not found');
         }
@@ -263,7 +259,7 @@ export default class StaffProfileService {
         }
 
         // Cập nhật trạng thái
-        const updatedProfile = await this.staffProfileSchema.findByIdAndUpdate(
+        const updatedProfile = await this.staffProfileRepository.findByIdAndUpdate(
             id,
             { status, updated_at: new Date() },
             { new: true }

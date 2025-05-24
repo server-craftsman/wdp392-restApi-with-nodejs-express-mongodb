@@ -10,10 +10,12 @@ import { isEmptyObject } from "../../core/utils";
 import { SampleMethodEnum, ServiceTypeEnum } from "./service.enum";
 import { AppointmentStatusEnum } from '../appointment/appointment.enum';
 import AppointmentSchema from '../appointment/appointment.model';
+import ServiceRepository from './service.repository';
 
 export default class ServiceService {
     private serviceSchema = ServiceSchema;
     private appointmentSchema = AppointmentSchema;
+    private serviceRepository = new ServiceRepository();
 
     public async createService(model: CreateServiceDto): Promise<IService> {
         if (isEmptyObject(model)) {
@@ -61,21 +63,19 @@ export default class ServiceService {
         }
 
         // kiểm tra tên dịch vụ có bị trùng không
-        // Nếu có dịch vụ trùng tên nhưng đã bị xóa (is_deleted = true) thì vẫn cho phép tạo mới
-        const existingService = await this.serviceSchema.findOne({ name: model.name, is_deleted: false });
+        const existingService = await this.serviceRepository.findOne({ name: model.name, is_deleted: false });
         if (existingService) {
             throw new HttpException(HttpStatus.Conflict, 'Service with this name already exists');
         }
 
-        // Tạo dịch vụ mới
         let newService = {
             ...model,
-            is_active: true, // Mặc định dịch vụ mới là active
+            is_active: true,
             created_at: new Date(),
             updated_at: new Date(),
         };
 
-        return this.serviceSchema.create(newService);
+        return this.serviceRepository.createService(newService);
     }
 
     /**
@@ -145,14 +145,10 @@ export default class ServiceService {
             }
 
             // Đếm tổng số bản ghi phù hợp với điều kiện tìm kiếm
-            const totalItems = await this.serviceSchema.countDocuments(query); // đếm tổng số bản ghi phù hợp với điều kiện tìm kiếm
+            const totalItems = await this.serviceRepository.countDocuments(query);
 
             // Lấy dữ liệu với phân trang và sắp xếp
-            const items = await this.serviceSchema
-                .find(query) // tìm kiếm dữ liệu phù hợp với điều kiện tìm kiếm
-                .sort(sortOptions) // sắp xếp dữ liệu theo tùy chọn sắp xếp
-                .skip(skip) // bỏ qua số bản ghi được chỉ định
-                .limit(limit); // giới hạn số bản ghi trả về
+            const items = await this.serviceRepository.find(query, sortOptions, skip, limit);
 
             // Tính toán thông tin phân trang
             const totalPages = Math.ceil(totalItems / limit);
@@ -226,7 +222,7 @@ export default class ServiceService {
             throw new HttpException(HttpStatus.BadRequest, 'Model data is empty');
         }
 
-        const service = await this.serviceSchema.findById(id);
+        const service = await this.serviceRepository.findById(id);
         if (!service) {
             throw new HttpException(HttpStatus.NotFound, 'Service not found');
         }
@@ -239,7 +235,7 @@ export default class ServiceService {
             } as UpdateServiceDto;
 
             // kiểm tra tên dịch vụ có bị trùng không
-            const existingService = await this.serviceSchema.findOne({ name: updatedModel.name });
+            const existingService = await this.serviceRepository.findOne({ name: updatedModel.name });
             if (existingService) {
                 throw new HttpException(HttpStatus.Conflict, 'Service with this name already exists');
             }
@@ -255,7 +251,7 @@ export default class ServiceService {
             }
 
             // Cập nhật dịch vụ
-            const updatedService = await this.serviceSchema.findByIdAndUpdate(
+            const updatedService = await this.serviceRepository.findByIdAndUpdate(
                 id, {
                 ...updatedModel,
                 updated_at: new Date()
@@ -274,7 +270,7 @@ export default class ServiceService {
      * Xóa dịch vụ (soft delete - chỉ vô hiệu hóa)
      */
     public async deleteService(id: string): Promise<IService> {
-        const service = await this.serviceSchema.findByIdAndUpdate(
+        const service = await this.serviceRepository.findByIdAndUpdate(
             id,
             { is_deleted: true, is_active: false, updated_at: new Date() },
             { new: true }
@@ -291,7 +287,7 @@ export default class ServiceService {
      * Tìm dịch vụ theo ID
      */
     public async getServiceById(id: string): Promise<IService> {
-        const service = await this.serviceSchema.findById(id);
+        const service = await this.serviceRepository.findById(id);
         if (!service) {
             throw new HttpException(HttpStatus.NotFound, 'Service not found');
         }
@@ -302,14 +298,14 @@ export default class ServiceService {
      * Tìm kiếm dịch vụ theo loại
      */
     public async getServicesByType(type: ServiceType): Promise<IService[]> {
-        return this.serviceSchema.find({ type, is_active: true });
+        return this.serviceRepository.findAll({ type, is_active: true });
     }
 
     /**
      * Lấy dịch vụ theo phương thức lấy mẫu
      */
     public async getServicesBySampleMethod(sampleMethod: SampleMethod): Promise<IService[]> {
-        return this.serviceSchema.find({ sample_method: sampleMethod, is_active: true });
+        return this.serviceRepository.findAll({ sample_method: sampleMethod, is_active: true });
     }
 
     /**
@@ -433,7 +429,7 @@ export default class ServiceService {
             console.log('Service query:', serviceQuery);
 
             // Đếm tổng số dịch vụ phù hợp
-            const totalItems = await this.serviceSchema.countDocuments(serviceQuery);
+            const totalItems = await this.serviceRepository.countDocuments(serviceQuery);
             console.log('Total matching services:', totalItems);
 
             // Xử lý sắp xếp
@@ -443,11 +439,7 @@ export default class ServiceService {
             sortOptions[sortField] = sortOrder;
 
             // Lấy danh sách dịch vụ với phân trang
-            const services = await this.serviceSchema
-                .find(serviceQuery)
-                .sort(sortOptions)
-                .skip(skip)
-                .limit(limit);
+            const services = await this.serviceRepository.find(serviceQuery, sortOptions, skip, limit);
 
             console.log('Retrieved services:', services.length);
 
@@ -559,7 +551,7 @@ export default class ServiceService {
             console.log('Base query for counting:', baseQuery);
 
             // Đếm tổng số dịch vụ
-            const total = await this.serviceSchema.countDocuments(baseQuery);
+            const total = await this.serviceRepository.countDocuments(baseQuery);
             console.log('Total services:', total);
 
             // Khởi tạo các objects kết quả với giá trị mặc định
@@ -591,8 +583,8 @@ export default class ServiceService {
 
             // Đếm theo loại dịch vụ
             const typeCountsPromise = Promise.all([
-                this.serviceSchema.countDocuments({ ...baseQuery, type: ServiceTypeEnum.CIVIL }),
-                this.serviceSchema.countDocuments({ ...baseQuery, type: ServiceTypeEnum.ADMINISTRATIVE })
+                this.serviceRepository.countDocuments({ ...baseQuery, type: ServiceTypeEnum.CIVIL }),
+                this.serviceRepository.countDocuments({ ...baseQuery, type: ServiceTypeEnum.ADMINISTRATIVE })
             ]);
 
             // Đếm theo trạng thái (luôn đếm cả active và inactive, bất kể giá trị is_active trong query)
@@ -604,15 +596,15 @@ export default class ServiceService {
             if (inactiveQuery.is_active !== undefined) delete inactiveQuery.is_active;
 
             const statusCountsPromise = Promise.all([
-                this.serviceSchema.countDocuments({ ...activeQuery, is_active: true }),
-                this.serviceSchema.countDocuments({ ...inactiveQuery, is_active: false })
+                this.serviceRepository.countDocuments({ ...activeQuery, is_active: true }),
+                this.serviceRepository.countDocuments({ ...inactiveQuery, is_active: false })
             ]);
 
             // Đếm theo phương thức lấy mẫu
             const sampleMethodCountsPromise = Promise.all([
-                this.serviceSchema.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.SELF_COLLECTED }),
-                this.serviceSchema.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.FACILITY_COLLECTED }),
-                this.serviceSchema.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.HOME_COLLECTED })
+                this.serviceRepository.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.SELF_COLLECTED }),
+                this.serviceRepository.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.FACILITY_COLLECTED }),
+                this.serviceRepository.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.HOME_COLLECTED })
             ]);
 
             // Đợi tất cả các truy vấn hoàn thành
@@ -657,7 +649,7 @@ export default class ServiceService {
      */
     public async changeServiceStatus(id: string, isActive: boolean): Promise<IService> {
         // Kiểm tra dịch vụ có tồn tại không
-        const service = await this.serviceSchema.findById(id);
+        const service = await this.serviceRepository.findById(id);
         if (!service) {
             throw new HttpException(HttpStatus.NotFound, 'Service not found');
         }
@@ -673,7 +665,7 @@ export default class ServiceService {
         }
 
         // Cập nhật trạng thái
-        const updatedService = await this.serviceSchema.findByIdAndUpdate(
+        const updatedService = await this.serviceRepository.findByIdAndUpdate(
             id,
             {
                 is_active: isActive,

@@ -1,11 +1,11 @@
 import { Type } from "class-transformer";
 import { IsBoolean, IsDate, IsEnum, IsNotEmpty, IsOptional, IsNumber, IsString, IsArray } from "class-validator";
 import { SlotPattern } from "../slot.interface";
-
+import mongoose, { Schema } from "mongoose";
 export class UpdateSlotDto {
     constructor(
         staff_profile_ids: string[],
-        service_id: string,
+        service_id: Schema.Types.ObjectId,
         start_time: Date,
         end_time: Date,
         appointment_limit: number,
@@ -14,7 +14,7 @@ export class UpdateSlotDto {
         status?: string,
     ) {
         this.staff_profile_ids = staff_profile_ids;
-        this.service_id = service_id;
+        this.service_id = service_id as unknown as string;
         this.start_time = start_time;
         this.end_time = end_time;
         this.appointment_limit = appointment_limit;

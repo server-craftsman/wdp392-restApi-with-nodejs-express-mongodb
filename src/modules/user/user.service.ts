@@ -19,8 +19,10 @@ import { IUser } from './user.interface';
 import UserSchema from './user.model';
 // import { SubscriptionSchema } from '../subscription';
 import { DataStoredInToken, UserInfoInTokenDefault } from '../auth';
+import UserRepository from './user.repository';
 
 export default class UserService {
+    private userRepository = new UserRepository();
     public userSchema = UserSchema;
     // public subscriptionSchema = SubscriptionSchema;
 
@@ -62,11 +64,7 @@ export default class UserService {
         }
 
         // check email duplicates
-        const existingUserByEmail = await this.userSchema.findOne({
-            // use regex to find string with space and case insensitive
-            email: { $regex: new RegExp('^' + newUser.email + '$', 'i') },
-            is_deleted: false,
-        });
+        const existingUserByEmail = await this.userRepository.findUserByEmail(newUser.email);
         if (existingUserByEmail) {
             throw new HttpException(HttpStatus.BadRequest, `Your email: '${newUser.email}' already exists!`);
         }
@@ -109,7 +107,7 @@ export default class UserService {
             }
         }
 
-        const createdUser: IUser = await this.userSchema.create(newUser);
+        const createdUser: IUser = await this.userRepository.createUser(newUser as IUser);
         if (!createdUser) {
             throw new HttpException(HttpStatus.Accepted, `Create item failed!`);
         }
@@ -124,7 +122,7 @@ export default class UserService {
         const { pageNum, pageSize } = model.pageInfo;
 
         let query: any = {
-            role: { $ne: UserRoleEnum.ADMIN }, // $ne is not equal
+            role: { $ne: UserRoleEnum.ADMIN },
             is_deleted: is_deleted
         };
 
@@ -149,15 +147,9 @@ export default class UserService {
             query.status = status;
         }
 
-        const resultQuery = await this.userSchema
-            .find(query) // query user based on condition
-            .sort({ updated_at: -1 }) // sort by new date
-            .select('-password')
-            .skip((pageNum - 1) * pageSize) // skip the number of records based on pageNum and pageSize
-            .limit(pageSize)
-            .exec();
+        const resultQuery = await this.userRepository.getUsers(query, pageNum, pageSize);
+        const rowCount = await this.userRepository.countUsers(query);
 
-        const rowCount = await this.userSchema.find(query).countDocuments().exec(); // count the number of records based on query
         const result = new SearchPaginationResponseModel<IUser>();
         result.pageInfo.pageNum = pageNum;
         result.pageInfo.pageSize = pageSize;
@@ -170,13 +162,12 @@ export default class UserService {
         return result;
     }
 
-    // TODO: get user info
     public async getUserById(
         userId: string,
         is_deletedPassword = true,
         userData: DataStoredInToken = UserInfoInTokenDefault,
     ): Promise<IUser> {
-        const user = await this.userSchema.findOne({ _id: userId, is_deleted: false, is_verified: true }).lean();
+        const user = await this.userRepository.findUserById(userId);
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `Item is not exists.`);
         }
@@ -227,9 +218,9 @@ export default class UserService {
             updated_at: new Date(),
         };
 
-        const updateUserId = await this.userSchema.updateOne({ _id: userId }, updateData);
+        const updateUserId = await this.userRepository.updateUser(userId, updateData as Partial<IUser>);
 
-        if (!updateUserId.acknowledged) {
+        if (!updateUserId) {
             throw new HttpException(HttpStatus.BadRequest, 'Update user info failed!');
         }
 
@@ -266,13 +257,7 @@ export default class UserService {
 
         // handle encode password
         const newPassword = await encodePasswordUserNormal(model.new_password);
-        const updatePasswordUser = await this.userSchema
-            .findByIdAndUpdate(userId, {
-                ...user,
-                password: newPassword,
-                updated_at: new Date(),
-            })
-            .lean();
+        const updatePasswordUser = await this.userRepository.updatePassword(userId, newPassword);
 
         if (!updatePasswordUser) throw new HttpException(HttpStatus.BadRequest, 'Change password failed!');
 
@@ -294,12 +279,9 @@ export default class UserService {
             throw new HttpException(HttpStatus.BadRequest, `User status is already ${model.status}`);
         }
 
-        const updateUserId = await this.userSchema.updateOne(
-            { _id: userId },
-            { status: model.status, updated_at: new Date() },
-        );
+        const updateUserId = await this.userRepository.updateStatus(userId, model.status);
 
-        if (!updateUserId.acknowledged) {
+        if (!updateUserId) {
             throw new HttpException(HttpStatus.BadRequest, 'Update user status failed!');
         }
 
@@ -321,12 +303,9 @@ export default class UserService {
             throw new HttpException(HttpStatus.BadRequest, `User role is already ${model.role}`);
         }
 
-        const updateUserId = await this.userSchema.updateOne(
-            { _id: userId },
-            { role: model.role, updated_at: new Date() },
-        );
+        const updateUserId = await this.userRepository.updateRole(userId, model.role);
 
-        if (!updateUserId.acknowledged) {
+        if (!updateUserId) {
             throw new HttpException(HttpStatus.BadRequest, 'Update user status failed!');
         }
 
@@ -341,12 +320,7 @@ export default class UserService {
         const userId = model.user_id;
 
         // check user exits
-        const user = await this.userSchema.findOne({
-            _id: userId,
-            role: UserRoleEnum.MANAGER || UserRoleEnum.STAFF,
-            is_deleted: false,
-            is_verified: false,
-        });
+        const user = await this.userRepository.findUserById(userId);
 
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, 'User is not manager or staff or not exist or already verified!');
@@ -398,12 +372,9 @@ export default class UserService {
             throw new HttpException(HttpStatus.BadRequest, `Item is not exists.`);
         }
 
-        const updateUserId = await this.userSchema.updateOne(
-            { _id: userId },
-            { is_deleted: true, updated_at: new Date() },
-        );
+        const updateUserId = await this.userRepository.deleteUser(userId);
 
-        if (!updateUserId.acknowledged) {
+        if (!updateUserId) {
             throw new HttpException(HttpStatus.BadRequest, 'Delete item failed!');
         }
 

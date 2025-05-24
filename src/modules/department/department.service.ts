@@ -1,18 +1,17 @@
 import { HttpStatus } from "../../core/enums";
 import { HttpException } from "../../core/exceptions";
-import { IError } from "../../core/interfaces";
 import { SearchPaginationResponseModel } from "../../core/models";
 import { IDepartment } from "./department.interface";
-import DepartmentSchema from "./department.model";
 import CreateDepartmentDto from "./dtos/createDepartment.dto";
 import UpdateDepartmentDto from "./dtos/updateDepartment.dto";
 import { isEmptyObject } from "../../core/utils";
 import { UserRoleEnum, UserSchema } from "../user";
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
+import DepartmentRepository from './department.repository';
 
 export default class DepartmentService {
-    private departmentSchema = DepartmentSchema;
     private userSchema = UserSchema;
+    private departmentRepository = new DepartmentRepository();
 
     /**
      * Tạo phòng ban mới
@@ -23,7 +22,7 @@ export default class DepartmentService {
         }
 
         // Kiểm tra tên phòng ban đã tồn tại chưa
-        const existingDepartment = await this.departmentSchema.findOne({ name: model.name });
+        const existingDepartment = await this.departmentRepository.findOne({ name: model.name });
         if (existingDepartment) {
             throw new HttpException(HttpStatus.Conflict, `The department with name "${model.name}" already exists`);
         }
@@ -38,12 +37,17 @@ export default class DepartmentService {
             throw new HttpException(HttpStatus.BadRequest, 'The manager must have the role of Manager');
         }
 
+        if (!mongoose.Types.ObjectId.isValid(model.manager_id)) {
+            throw new HttpException(HttpStatus.BadRequest, 'The manager ID is invalid');
+        }
+
         // Tạo phòng ban mới
-        const department = await this.departmentSchema.create({
+        const department = await this.departmentRepository.createDepartment({
             ...model,
+            manager_id: new Schema.Types.ObjectId(model.manager_id),
             created_at: new Date(),
             updated_at: new Date()
-        });
+        }) as IDepartment;
 
         return department;
     }
@@ -85,18 +89,13 @@ export default class DepartmentService {
             }
 
             // Đếm tổng số phòng ban
-            const totalItems = await this.departmentSchema.countDocuments(query);
+            const totalItems = await this.departmentRepository.countDocuments(query);
 
             const sortOptions: any = {};
             sortOptions[sort_by] = sort_order === 'asc' ? 1 : -1; // Sắp xếp theo trường và thứ tự
 
-            // Lấy dữ liệu với phân trang
-            const departments = await this.departmentSchema
-                .find(query) // Tìm kiếm theo các điều kiện trong query
-                .sort(sortOptions) // Sắp xếp theo trường và thứ tự
-                .skip(skip) // Bỏ qua các bản ghi đầu tiên
-                .limit(pageSize) // Giới hạn số bản ghi trả về
-                .populate('manager_id', 'first_name last_name email'); // Populate thông tin người quản lý
+            // Lấy dữ liệu với phân trang và populate
+            const departments = await this.departmentRepository.findWithPopulate(query, sortOptions, skip, pageSize);
 
             // Tính tổng số trang
             const totalPages = Math.ceil(totalItems / pageSize);
@@ -125,10 +124,7 @@ export default class DepartmentService {
             throw new HttpException(HttpStatus.BadRequest, 'The department ID is invalid');
         }
 
-        const department = await this.departmentSchema
-            .findById(id)
-            .populate('manager_id', 'first_name last_name email');
-
+        const department = await this.departmentRepository.findByIdWithPopulate(id);
         if (!department) {
             throw new HttpException(HttpStatus.NotFound, 'The department is not found');
         }
@@ -149,14 +145,14 @@ export default class DepartmentService {
         }
 
         // Kiểm tra phòng ban tồn tại
-        const department = await this.departmentSchema.findById(id);
+        const department = await this.departmentRepository.findById(id);
         if (!department) {
             throw new HttpException(HttpStatus.NotFound, 'The department is not found');
         }
 
         // Kiểm tra tên phòng ban đã tồn tại chưa (nếu tên thay đổi)
         if (model.name !== department.name) {
-            const existingDepartment = await this.departmentSchema.findOne({ name: model.name, _id: { $ne: id } });
+            const existingDepartment = await this.departmentRepository.findOne({ name: model.name, _id: { $ne: id } });
             if (existingDepartment) {
                 throw new HttpException(HttpStatus.Conflict, `The department with name "${model.name}" already exists`);
             }
@@ -175,14 +171,15 @@ export default class DepartmentService {
         }
 
         // Cập nhật phòng ban
-        const updatedDepartment = await this.departmentSchema.findByIdAndUpdate(
+        const updatedDepartment = await this.departmentRepository.findByIdAndUpdate(
             id,
             {
                 ...model,
+                manager_id: model.manager_id ? new Schema.Types.ObjectId(model.manager_id) as any : department.manager_id,
                 updated_at: new Date()
             },
-            { new: true } // Trả về dữ liệu sau khi cập nhật
-        ).populate('manager_id', 'first_name last_name email');
+            { new: true }
+        );
 
         if (!updatedDepartment) {
             throw new HttpException(HttpStatus.InternalServerError, 'Cannot update the department');
@@ -200,15 +197,15 @@ export default class DepartmentService {
         }
 
         // Kiểm tra phòng ban tồn tại
-        const department = await this.departmentSchema.findById(id);
+        const department = await this.departmentRepository.findById(id);
         if (!department) {
             throw new HttpException(HttpStatus.NotFound, 'The department is not found');
         }
 
         // Cập nhật cột is_deleted thành true
-        const deletedDepartment = await this.departmentSchema.findByIdAndUpdate(
+        const deletedDepartment = await this.departmentRepository.findByIdAndUpdate(
             id,
-            { is_deleted: true, is_active: false, updated_at: new Date() },
+            { is_deleted: true, updated_at: new Date() },
             { new: true }
         );
 
@@ -296,9 +293,7 @@ export default class DepartmentService {
         }
 
         // Lấy danh sách phòng ban và đếm số lượng
-        const departments = await this.departmentSchema
-            .find(query)
-            .populate('manager_id', 'first_name last_name email');
+        const departments = await this.departmentRepository.findWithPopulate(query, {}, 0, 1000);
 
         return {
             departments,
@@ -325,6 +320,6 @@ export default class DepartmentService {
         }
 
         // Đếm số lượng phòng ban
-        return await this.departmentSchema.countDocuments(query);
+        return await this.departmentRepository.countDocuments(query);
     }
 }

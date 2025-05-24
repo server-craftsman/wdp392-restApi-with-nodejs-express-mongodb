@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { HttpStatus } from "../../core/enums";
 import { HttpException } from "../../core/exceptions";
 // import { IError } from "../../core/interfaces";
@@ -14,11 +14,13 @@ import { CreateSlotDto } from "./dtos/createSlot.dto";
 import { UserRoleEnum } from "../user/user.enum";
 import ServiceSchema from "../service/service.model";
 import { ServiceTypeEnum, SampleMethodEnum } from "../service/service.enum";
+import SlotRepository from "./slot.repository";
 
 export default class SlotService {
     private slotSchema = SlotSchema;
     private staffProfileSchema = StaffProfileSchema;
     private serviceSchema = ServiceSchema;
+    private slotRepository = new SlotRepository();
     // private errorResults: IError[] = [];
 
     /**
@@ -215,22 +217,10 @@ export default class SlotService {
         }
 
         // Đếm tổng số slot
-        const totalItems = await this.slotSchema.countDocuments(query);
+        const totalItems = await this.slotRepository.countDocuments(query);
 
         // Lấy dữ liệu với phân trang
-        const slots = await this.slotSchema
-            .find(query) // tìm kiếm slot theo query
-            .sort({ start_time: 1 }) // sắp xếp theo start_time tăng dần
-            .skip(skip) // bỏ qua skip số lượng slot
-            .limit(pageSize) // giới hạn số lượng slot trả về
-            .populate({
-                path: 'staff_profile_ids',
-                select: 'employee_id job_title',
-                populate: {
-                    path: 'user_id',
-                    select: 'first_name last_name'
-                }
-            });
+        const slots = await this.slotRepository.findWithPopulate(query, { start_time: 1 }, skip, pageSize);
 
         const totalPages = Math.ceil(totalItems / pageSize);
 
@@ -253,7 +243,7 @@ export default class SlotService {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid slot ID');
         }
 
-        const slot = await this.slotSchema.findById(id);
+        const slot = await this.slotRepository.findById(id);
         if (!slot) {
             throw new HttpException(HttpStatus.NotFound, 'Slot not found');
         }
@@ -281,7 +271,7 @@ export default class SlotService {
         const staffProfileIds = staffProfiles.map(profile => profile._id);
 
         // Check for overlapping slots (excluding the current slot)
-        const overlappingSlots = await this.slotSchema.findOne({
+        const overlappingSlots = await this.slotRepository.findOne({
             _id: { $ne: id }, // không tính chính nó - $ne is not equal to
             staff_profile_ids: { $in: model.staff_profile_ids },
             $or: [
@@ -303,11 +293,11 @@ export default class SlotService {
         }
 
         // Update the slot
-        const updatedSlot = await this.slotSchema.findByIdAndUpdate(
+        const updatedSlot = await this.slotRepository.findByIdAndUpdate(
             id,
             {
                 staff_profile_ids: staffProfileIds,
-                service_id: model.service_id,
+                service_id: new Schema.Types.ObjectId(model.service_id),
                 start_time: model.start_time,
                 end_time: model.end_time,
                 appointment_limit: model.appointment_limit,
@@ -317,14 +307,7 @@ export default class SlotService {
                 updated_at: new Date()
             },
             { new: true }
-        ).populate({
-            path: 'staff_profile_ids',
-            select: 'employee_id job_title',
-            populate: {
-                path: 'user_id',
-                select: 'first_name last_name'
-            }
-        });
+        );
 
         if (!updatedSlot) {
             throw new HttpException(HttpStatus.NotFound, 'Slot not found after update');

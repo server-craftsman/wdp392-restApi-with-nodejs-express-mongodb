@@ -10,9 +10,11 @@ import { IUser, UserSchema } from '../user';
 import { TokenData } from './auth.interface';
 import LoginDto from './dtos/login.dto';
 import LoginGoogleDto from './dtos/loginGoogle.dto';
+import AuthRepository from './auth.repository';
 
 export default class AuthService {
     public userSchema = UserSchema;
+    private authRepository = new AuthRepository();
 
     public async login(model: LoginDto | LoginGoogleDto, isGoogle = false): Promise<TokenData> {
         if (isEmptyObject(model)) {
@@ -50,7 +52,7 @@ export default class AuthService {
             }
         }
 
-        const user = await this.userSchema.findOne({ email: emailCheck }).exec();
+        const user = await this.authRepository.findUserByEmail(emailCheck);
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `Your email: ${emailCheck} is not exists.`);
         }
@@ -93,9 +95,7 @@ export default class AuthService {
     }
 
     public async verifiedTokenUser(verifiedToken: string): Promise<boolean> {
-        const user = await this.userSchema.findOne({
-            verification_token: verifiedToken,
-        });
+        const user = await this.authRepository.findUserByVerificationToken(verifiedToken);
 
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `Token is not valid.`);
@@ -115,7 +115,7 @@ export default class AuthService {
         user.verification_token_expires = undefined;
         user.updated_at = new Date();
 
-        const updateUserId = await user.save();
+        const updateUserId = await this.authRepository.updateUser(user);
         if (!updateUserId) {
             throw new HttpException(HttpStatus.BadRequest, 'Cannot update user!');
         }
@@ -124,7 +124,7 @@ export default class AuthService {
     }
 
     public async resendTokenUser(email: string): Promise<boolean> {
-        const user = await this.userSchema.findOne({ email }).exec();
+        const user = await this.authRepository.findUserByEmail(email);
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `User with mail: ${email} is not exists.`);
         }
@@ -154,7 +154,7 @@ export default class AuthService {
             throw new HttpException(HttpStatus.BadRequest, `Cannot send mail for ${user.email}`);
         }
 
-        const updateUser = await user.save();
+        const updateUser = await this.authRepository.updateUser(user);
         if (!updateUser) {
             throw new HttpException(HttpStatus.BadRequest, 'Cannot update user!');
         }
@@ -163,7 +163,7 @@ export default class AuthService {
     }
 
     public async getCurrentLoginUser(userId: string): Promise<IUser> {
-        const user = await this.userSchema.findById(userId).lean(); // lean() => just only read data, do not another action like update, delete, etc.
+        const user = await this.authRepository.findUserById(userId);
         // help reduce overhead memory
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `User is not exists.`);
@@ -201,7 +201,7 @@ export default class AuthService {
         const newPassword = await encodePasswordUserNormal(generateRandomPassword);
         user.password = newPassword;
         user.updated_at = new Date();
-        const updateUser = await user.save();
+        const updateUser = await this.authRepository.updateUser(user);
         if (!updateUser) {
             throw new HttpException(HttpStatus.BadRequest, 'Cannot update user!');
         }
@@ -210,7 +210,7 @@ export default class AuthService {
     }
 
     public async logout(userId: string): Promise<boolean> {
-        const user = await this.userSchema.findByIdAndUpdate(userId, { $inc: { token_version: 1 } });
+        const user = await this.authRepository.updateUserById(userId, { token_version: 1 });
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `Cannot logout!`);
         }
