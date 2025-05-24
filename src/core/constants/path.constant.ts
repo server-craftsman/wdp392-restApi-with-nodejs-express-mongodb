@@ -70,17 +70,21 @@ export const API_PATH = {
     TRANSACTION: '/api/transaction',
     SEARCH_TRANSACTION: '/api/transaction/search',
 
-    // Audit Log
-    AUDIT_LOG: '/api/audit-log',
-    SEARCH_AUDIT_LOG: '/api/audit-log/search',
 
     // Department
     DEPARTMENT: '/api/department',
     SEARCH_DEPARTMENT: '/api/department/search',
+    DEPARTMENT_STATISTICS: '/api/department/:departmentId/statistics',
+    DEPARTMENT_CAPACITY: '/api/department/:departmentId/capacity',
+    DEPARTMENT_PERFORMANCE: '/api/department/:departmentId/performance',
+
 
     // Staff Profile
     STAFF_PROFILE: '/api/staff-profile',
     SEARCH_STAFF_PROFILE: '/api/staff-profile/search',
+    CREATE_STAFF_PROFILE: '/api/staff-profile/create',
+    UPDATE_STAFF_PROFILE: '/api/staff-profile/:id',
+    DELETE_STAFF_PROFILE: '/api/staff-profile/:id',
 
     // Work Schedule
     WORK_SCHEDULE: '/api/work-schedule',
@@ -89,6 +93,15 @@ export const API_PATH = {
     // Slot
     SLOT: '/api/slot',
     SEARCH_SLOT: '/api/slot/search',
+    CREATE_SLOT: '/api/slot/create',
+    UPDATE_SLOT: '/api/slot/:id',
+    DELETE_SLOT: '/api/slot/:id',
+    CHANGE_SLOT_STATUS: '/api/slot/:id/status',
+    GET_SLOT_BY_SERVICE: '/api/slot/service/:serviceId',
+    GET_SLOT_BY_STAFF: '/api/slot/staff/:staffProfileId',
+    GET_SLOT_BY_DEPARTMENT: '/api/slot/department/:departmentId',
+    GET_SLOT_BY_ID: '/api/slot/:id',
+    
 
     // Attendance
     ATTENDANCE: '/api/attendance',

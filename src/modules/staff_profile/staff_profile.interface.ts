@@ -1,5 +1,5 @@
 import { Document, Schema } from 'mongoose';
-import { StaffStatusEnum } from './staff-profile.enum';
+import { StaffStatusEnum } from './staff_profile.enum';
 
 export type StaffStatus =
     StaffStatusEnum.ACTIVE |
@@ -9,8 +9,8 @@ export type StaffStatus =
 export interface IQualification {
     name: string;
     institution: string;
-    issueDate: Date;
-    expiryDate?: Date;
+    issue_date: Date;
+    expiry_date?: Date;
     description?: string;
 }
 

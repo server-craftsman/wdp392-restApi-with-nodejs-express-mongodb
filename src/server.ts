@@ -7,6 +7,8 @@ import { AuthRoute } from './modules/auth';
 import { PaymentRoute } from './modules/payment';
 import { ServiceRoute } from './modules/service';
 import { DepartmentRoute } from './modules/department';
+import { StaffProfileRoute } from './modules/staff_profile';
+import { SlotRoute } from './modules/slot';
 
 dotenv.config();
 
@@ -19,6 +21,8 @@ const routes = [
     new PaymentRoute(),
     new ServiceRoute(),
     new DepartmentRoute(),
+    new StaffProfileRoute(),
+    new SlotRoute(),
 ];
 
 const app = new App(routes);

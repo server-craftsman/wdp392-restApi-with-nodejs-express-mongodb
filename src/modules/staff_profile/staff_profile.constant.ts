@@ -1,4 +1,4 @@
-import { StaffStatusEnum } from './staff-profile.enum';
+import { StaffStatusEnum } from './staff_profile.enum';
 
 export const StaffStatuses = [
     '',

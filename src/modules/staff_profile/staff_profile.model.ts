@@ -1,8 +1,8 @@
 import mongoose, { Schema } from 'mongoose';
 import { COLLECTION_NAME } from '../../core/constants';
-import { StaffStatuses } from './staff-profile.constant';
-import { IStaffProfile } from './staff-profile.interface';
-
+import { StaffStatuses } from './staff_profile.constant';
+import { IStaffProfile } from './staff_profile.interface';
+import { StaffStatusEnum } from './staff_profile.enum';
 const QualificationSchema = new Schema({
     name: { type: String, required: true },
     institution: { type: String, required: true },
@@ -17,11 +17,12 @@ const StaffProfileSchemaEntity: Schema<IStaffProfile> = new Schema({
     job_title: { type: String, required: true },
     hire_date: { type: Date, required: true },
     employee_id: { type: String, required: true, unique: true },
-    salary: { type: Number, required: true },
+    salary: { type: Number, required: true, default: 0 },
     status: {
         type: String,
         enum: StaffStatuses,
-        required: true
+        required: true,
+        default: StaffStatusEnum.ACTIVE
     },
     qualifications: [QualificationSchema],
     created_at: { type: Date, default: Date.now },
