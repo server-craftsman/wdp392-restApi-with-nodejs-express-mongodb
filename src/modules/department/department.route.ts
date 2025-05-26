@@ -28,7 +28,7 @@ export default class DepartmentRoute implements IRoute {
         // GET: domain:/api/department/search -> Get all departments with pagination
         this.router.get(
             API_PATH.SEARCH_DEPARTMENT,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
             this.departmentController.getDepartments
         );
 
@@ -49,7 +49,7 @@ export default class DepartmentRoute implements IRoute {
         // GET: domain:/api/department/:id -> Get department by ID
         this.router.get(
             `${this.path}/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
             this.departmentController.getDepartmentById
         );
 

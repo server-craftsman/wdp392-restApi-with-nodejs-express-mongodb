@@ -798,7 +798,7 @@ paths:
     get:
       tags:
       - 'departments'
-      summary: 'Search and filter departments (Admin, Manager, Staff)'
+      summary: 'Search and filter departments (Admin, Manager, Laboratory Technician, Staff)'
       description: 'Search departments with pagination and filtering'
       operationId: "getDepartments"
       produces:
@@ -931,7 +931,7 @@ paths:
     get:
       tags:
       - 'departments'
-      summary: 'Get department by ID (Admin, Manager, Staff)'
+      summary: 'Get department by ID (Admin, Manager, Laboratory Technician, Staff)'
       description: 'Retrieve department details by ID'
       operationId: "getDepartmentById"
       produces:
