@@ -52,7 +52,7 @@ export default class UserRepository {
     public async updateStatus(userId: string, status: boolean): Promise<boolean> {
         const result = await UserSchema.updateOne(
             { _id: userId },
-            { is_verified: status, updated_at: new Date() }
+            { status: status, updated_at: new Date() }
         );
         return result.acknowledged;
     }
