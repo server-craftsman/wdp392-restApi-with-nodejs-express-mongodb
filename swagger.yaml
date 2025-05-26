@@ -1689,6 +1689,34 @@ paths:
         '404':
           description: 'Department not found'
 
+  /service/{id}/child:
+    get:
+      tags:
+        - services
+      summary: 'Get child services by parent service ID'
+      description: 'Retrieve all services that have the given service as their parent'
+      operationId: "getChildServices"
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'path'
+          name: 'id'
+          description: 'Parent service ID'
+          required: true
+          type: 'string'
+      responses:
+        '200':
+          description: 'List of child services'
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ServiceResponse'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Parent service not found'
+
+
 definitions:
   LoginDto:
     type: object
@@ -1992,29 +2020,26 @@ definitions:
       name:
         type: string
         description: "Service name"
-        example: "Dân Sự"
       description:
         type: string
         description: "Service description"
-        example: "Dịch vụ dân sự"
+      parent_service_id:
+        type: string
+        description: "Parent service ID (optional)"
       price:
         type: number
         description: "Service price"
-        example: 1500000
       type:
         type: string
         enum: ["civil", "administrative"]
         description: "Service type"
-        example: "civil"
       sample_method:
         type: string
         enum: ["self_collected", "facility_collected", "home_collected"]
         description: "Sample collection method"
-        example: "home_collected"
       estimated_time:
         type: number
         description: "Estimated time in hours"
-        example: 48
     required:
       - name
       - description
@@ -2032,6 +2057,9 @@ definitions:
       description:
         type: string
         description: "Service description"
+      parent_service_id:
+        type: string
+        description: "Parent service ID (optional)"
       price:
         type: number
         description: "Service price"
@@ -2066,6 +2094,9 @@ definitions:
       description:
         type: string
         description: "Service description"
+      parent_service_id:
+        type: string
+        description: "Parent service ID (if any)"
       price:
         type: number
         description: "Service price"
@@ -2083,6 +2114,9 @@ definitions:
       is_active:
         type: boolean
         description: "Service status"
+      is_deleted:
+        type: boolean
+        description: "Service deletion status"
       created_at:
         type: string
         format: date-time

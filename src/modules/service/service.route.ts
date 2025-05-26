@@ -51,6 +51,12 @@ export default class ServiceRoute implements IRoute {
             authMiddleWare([], true),
             this.serviceController.getServiceById);
 
+        // GET: domain:/api/service/:id/child -> Get child services by id
+        this.router.get(
+            `${this.path}/:id/child`,
+            authMiddleWare([], true),
+            this.serviceController.getChildServices);
+
         // PUT: domain:/api/service/:id -> Update service by id
         this.router.put(
             API_PATH.UPDATE_SERVICE,

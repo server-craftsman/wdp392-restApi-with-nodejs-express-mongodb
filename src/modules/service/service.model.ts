@@ -6,6 +6,7 @@ import { IService } from './service.interface';
 const ServiceSchemaEntity: Schema<IService> = new Schema({
     name: { type: String, required: true },
     description: { type: String, required: true },
+    parent_service_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.SERVICE },
     type: {
         type: String,
         enum: ServiceTypes,

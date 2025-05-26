@@ -1,10 +1,11 @@
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { IService, SampleMethod, ServiceType } from "../service.interface";
 
 export default class CreateServiceDto {
     constructor(
         name: string,
         description: string,
+        parent_service_id: string,
         price: number,
         type: ServiceType,
         sample_method: SampleMethod,
@@ -12,6 +13,7 @@ export default class CreateServiceDto {
     ) {
         this.name = name;
         this.description = description;
+        this.parent_service_id = parent_service_id;
         this.price = price;
         this.type = type;
         this.sample_method = sample_method;
@@ -25,6 +27,10 @@ export default class CreateServiceDto {
     @IsString()
     @IsNotEmpty()
     public description: string;
+
+    @IsString()
+    @IsOptional()
+    public parent_service_id: string;
 
     @IsNumber()
     @IsNotEmpty()

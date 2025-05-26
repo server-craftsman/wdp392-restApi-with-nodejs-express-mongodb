@@ -1,19 +1,15 @@
 import { HttpStatus } from "../../core/enums";
 import { HttpException } from "../../core/exceptions";
-import { IError } from "../../core/interfaces";
 import { SearchPaginationResponseModel } from "../../core/models";
 import { IService, SampleMethod, ServiceType } from "./service.interface";
-import ServiceSchema from "./service.model";
 import CreateServiceDto from "./dtos/createService.dto";
 import UpdateServiceDto from "./dtos/updateService.dto";
 import { isEmptyObject } from "../../core/utils";
 import { SampleMethodEnum, ServiceTypeEnum } from "./service.enum";
-import { AppointmentStatusEnum } from '../appointment/appointment.enum';
 import AppointmentSchema from '../appointment/appointment.model';
 import ServiceRepository from './service.repository';
 
 export default class ServiceService {
-    private serviceSchema = ServiceSchema;
     private appointmentSchema = AppointmentSchema;
     private serviceRepository = new ServiceRepository();
 
@@ -47,6 +43,14 @@ export default class ServiceService {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid service type');
         }
 
+        // Xác thực parent_service_id
+        if (model.parent_service_id) {
+            const parentService = await this.serviceRepository.findByIdAndPopulateParentService(model.parent_service_id);
+            if (!parentService) {
+                throw new HttpException(HttpStatus.BadRequest, 'Parent service not found');
+            }
+        }
+
         // Xác thực phương thức lấy mẫu
         if (!Object.values(SampleMethodEnum).includes(model.sample_method as SampleMethodEnum)) {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid sample method');
@@ -70,6 +74,7 @@ export default class ServiceService {
 
         let newService = {
             ...model,
+            parent_service_id: model.parent_service_id ? model.parent_service_id : undefined,
             is_active: true,
             created_at: new Date(),
             updated_at: new Date(),
@@ -228,11 +233,49 @@ export default class ServiceService {
         }
 
         // Cập nhật giá
-        if (model.price || model.sample_method || model.type || model.estimated_time) {
+        if (model.price || model.sample_method || model.type || model.estimated_time || model.parent_service_id) {
             const updatedModel = {
                 ...service.toObject(),
                 ...model
             } as UpdateServiceDto;
+
+            // Xác thực tên dịch vụ
+            if (!updatedModel.name || updatedModel.name.trim() === '') {
+                throw new HttpException(HttpStatus.BadRequest, 'Service name is required');
+            }
+
+            // Xác thực mô tả
+            if (!updatedModel.description || updatedModel.description.trim() === '') {
+                throw new HttpException(HttpStatus.BadRequest, 'Service description is required');
+            }
+
+            // Xác thực giá
+            if (updatedModel.price <= 0) {
+                throw new HttpException(HttpStatus.BadRequest, 'Service price must be greater than 0');
+            }
+
+            // Xác thực thời gian ước tính
+            if (updatedModel.estimated_time <= 0) {
+                throw new HttpException(HttpStatus.BadRequest, 'Estimated time must be greater than 0');
+            }
+
+            // Xác thực loại dịch vụ
+            if (!Object.values(ServiceTypeEnum).includes(updatedModel.type as ServiceTypeEnum)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid service type');
+            }
+
+            // Xác thực phương thức lấy mẫu
+            if (!Object.values(SampleMethodEnum).includes(updatedModel.sample_method as SampleMethodEnum)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid sample method');
+            }
+
+            // Xác thực parent_service_id
+            if (updatedModel.parent_service_id) {
+                const parentService = await this.serviceRepository.findByIdAndPopulateParentService(updatedModel.parent_service_id);
+                if (!parentService) {
+                    throw new HttpException(HttpStatus.BadRequest, 'Parent service not found');
+                }
+            }
 
             // kiểm tra tên dịch vụ có bị trùng không
             const existingService = await this.serviceRepository.findOne({ name: updatedModel.name });
@@ -306,6 +349,17 @@ export default class ServiceService {
      */
     public async getServicesBySampleMethod(sampleMethod: SampleMethod): Promise<IService[]> {
         return this.serviceRepository.findAll({ sample_method: sampleMethod, is_active: true });
+    }
+
+    /**
+     * Lấy danh sách dịch vụ con của một dịch vụ cha
+     */
+    public async getChildServices(parentServiceId: string): Promise<IService[]> {
+        const parentService = await this.serviceRepository.findChildServices({ parent_service_id: parentServiceId });
+        if (!parentService) {
+            throw new HttpException(HttpStatus.NotFound, 'Parent service not found');
+        }
+        return parentService;
     }
 
     /**

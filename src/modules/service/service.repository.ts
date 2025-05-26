@@ -11,7 +11,18 @@ export default class ServiceRepository {
     }
 
     public async findById(id: string): Promise<IService | null> {
-        return ServiceSchema.findById(id);
+        return ServiceSchema.findById(id).populate({
+            path: 'parent_service_id',
+            select: 'name'
+        });
+    }
+
+    // find by id and populate parent service
+    public async findByIdAndPopulateParentService(id: string): Promise<IService | null> {
+        return ServiceSchema.findById(id).populate({
+            path: 'parent_service_id',
+            select: 'name'
+        });
     }
 
     public async findByIdAndUpdate(id: string, update: Partial<IService>, options: any = {}): Promise<IService | null> {
@@ -23,10 +34,21 @@ export default class ServiceRepository {
     }
 
     public async find(query: any, sort: any = {}, skip = 0, limit = 10): Promise<IService[]> {
-        return ServiceSchema.find(query).sort(sort).skip(skip).limit(limit);
+        return ServiceSchema.find(query).sort(sort).skip(skip).limit(limit).populate({
+            path: 'parent_service_id',
+            select: 'name'
+        });
     }
 
     public async findAll(query: any): Promise<IService[]> {
         return ServiceSchema.find(query);
+    }
+
+    // find child services
+    public async findChildServices(query: any): Promise<IService[]> {
+        return ServiceSchema.find(query).populate({
+            path: 'parent_service_id',
+            select: 'name'
+        });
     }
 }

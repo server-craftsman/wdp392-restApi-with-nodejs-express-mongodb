@@ -37,6 +37,15 @@ export default class ServiceController {
         }
     }
 
+    public getChildServices = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const services = await this.serviceService.getChildServices(req.params.id);
+            res.status(HttpStatus.Success).json(formatResponse<IService[]>(services));
+        } catch (error) {
+            next(error);
+        }
+    }
+
     public updateService = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const service = await this.serviceService.updateService(req.params.id, req.body);

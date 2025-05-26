@@ -8,6 +8,7 @@ export interface IService extends Document {
     _id: string;
     name: string;
     description: string;
+    parent_service_id?: string;
     type: ServiceType;
     sample_method: SampleMethod;
     estimated_time: number; // in hours

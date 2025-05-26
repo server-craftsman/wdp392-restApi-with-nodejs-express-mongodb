@@ -6,6 +6,7 @@ export default class UpdateServiceDto {
     constructor(
         name: string,
         description: string,
+        parent_service_id: string,
         price: number,
         type: ServiceType,
         sample_method: SampleMethod,
@@ -13,6 +14,7 @@ export default class UpdateServiceDto {
     ) {
         this.name = name;
         this.description = description;
+        this.parent_service_id = parent_service_id;
         this.price = price;
         this.type = type;
         this.sample_method = sample_method;
@@ -26,6 +28,10 @@ export default class UpdateServiceDto {
     @IsString()
     @IsNotEmpty()
     description: string;
+
+    @IsString()
+    @IsOptional()
+    parent_service_id: string;
 
     @IsNumber()
     @IsNotEmpty()
