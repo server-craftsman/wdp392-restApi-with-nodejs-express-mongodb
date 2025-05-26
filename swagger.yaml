@@ -693,6 +693,33 @@ paths:
         '404':
           description: 'Service not found'
 
+  /service/{id}/child:
+    get:
+      tags:
+      - 'services'
+      summary: 'Get child services by parent service ID (All roles)'
+      description: 'Retrieve all services that have the given service as their parent'
+      operationId: "getChildServices"
+      produces:
+      - 'application/json'
+      parameters:
+      - in: 'path'
+        name: 'id'
+        description: 'Parent service ID'
+        required: true
+        type: 'string'
+      responses:
+        '200':
+          description: 'List of child services'
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ServiceResponse'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Parent service not found'
+
   /service/appointments:
     get:
       tags:
@@ -1689,32 +1716,6 @@ paths:
         '404':
           description: 'Department not found'
 
-  /service/{id}/child:
-    get:
-      tags:
-        - services
-      summary: 'Get child services by parent service ID'
-      description: 'Retrieve all services that have the given service as their parent'
-      operationId: "getChildServices"
-      produces:
-        - 'application/json'
-      parameters:
-        - in: 'path'
-          name: 'id'
-          description: 'Parent service ID'
-          required: true
-          type: 'string'
-      responses:
-        '200':
-          description: 'List of child services'
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/ServiceResponse'
-        '401':
-          description: 'Unauthorized'
-        '404':
-          description: 'Parent service not found'
 
 
 definitions:
