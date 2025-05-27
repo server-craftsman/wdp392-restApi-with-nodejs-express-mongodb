@@ -1188,7 +1188,7 @@ paths:
     get:
       tags:
         - 'staff_profiles'
-      summary: 'Search staff profiles (Admin, Manager, Laboratory Technician, Staff only)'
+      summary: 'Search staff profiles (Admin, Manager only)'
       description: 'Search for staff profiles with pagination and filtering'
       operationId: 'getStaffProfiles'
       produces:
@@ -1276,7 +1276,7 @@ paths:
     get:
       tags:
         - 'staff_profiles'
-      summary: 'Get staff profile by ID (Admin, Manager, Laboratory Technician, Staff only)'
+      summary: 'Get staff profile by ID (Admin, Manager only)'
       description: 'Retrieve staff profile details by ID'
       operationId: 'getStaffProfileById'
       produces:

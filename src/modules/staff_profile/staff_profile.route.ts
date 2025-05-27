@@ -29,7 +29,7 @@ export default class StaffProfileRoute implements IRoute {
         // GET: domain: /api/staff-profile/search -> Get all staff profiles
         this.router.get(
             `${this.path}/search`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             this.staffProfileController.getStaffProfiles
         );
 
@@ -43,7 +43,7 @@ export default class StaffProfileRoute implements IRoute {
         // GET: domain: /api/staff-profile/:id -> Get staff profile by id
         this.router.get(
             `${this.path}/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             this.staffProfileController.getStaffProfileById
         );
 
