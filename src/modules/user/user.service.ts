@@ -17,6 +17,7 @@ import UpdateUserDto from './dtos/updateUser.dto';
 import { UserReviewStatusEnum, UserRoleEnum } from './user.enum';
 import { IUser } from './user.interface';
 import UserSchema from './user.model';
+import { StaffProfileSchema } from '../staff_profile';
 // import { SubscriptionSchema } from '../subscription';
 import { DataStoredInToken, UserInfoInTokenDefault } from '../auth';
 import UserRepository from './user.repository';
@@ -147,7 +148,7 @@ export default class UserService {
             query.status = status;
         }
 
-        const resultQuery = await this.userRepository.getUsers(query, pageNum, pageSize);
+        const resultQuery = await this.userRepository.getUsersWithStaffProfile(query, pageNum, pageSize);
         const rowCount = await this.userRepository.countUsers(query);
 
         const result = new SearchPaginationResponseModel<IUser>();
@@ -167,7 +168,7 @@ export default class UserService {
         is_deletedPassword = true,
         userData: DataStoredInToken = UserInfoInTokenDefault,
     ): Promise<IUser> {
-        const user = await this.userRepository.findUserById(userId);
+        const user = await this.userRepository.findUserByIdWithStaffProfile(userId);
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `Item is not exists.`);
         }

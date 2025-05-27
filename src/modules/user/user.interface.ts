@@ -24,7 +24,6 @@ export interface IUser extends Document {
     avatar_url?: string; // url
     address?: string; // address
 
-
     // bank account info
     balance: number; // default 0
     balance_total: number; // default 0

@@ -64,4 +64,34 @@ export default class UserRepository {
         );
         return result.acknowledged;
     }
+
+    public async findUserByIdWithStaffProfile(userId: string): Promise<IUser | null> {
+        return UserSchema.findOne({ _id: userId, is_deleted: false })
+            .populate({
+                path: 'staff_profile',
+                select: '-__v',
+                populate: {
+                    path: 'department_id',
+                    select: 'name'
+                }
+            })
+            .lean();
+    }
+
+    public async getUsersWithStaffProfile(query: any, pageNum: number, pageSize: number): Promise<IUser[]> {
+        return UserSchema.find(query)
+            .sort({ updated_at: -1 })
+            .select('-password')
+            .populate({
+                path: 'staff_profile',
+                select: '-__v',
+                populate: {
+                    path: 'department_id',
+                    select: 'name'
+                }
+            })
+            .skip((pageNum - 1) * pageSize)
+            .limit(pageSize)
+            .lean();
+    }
 }

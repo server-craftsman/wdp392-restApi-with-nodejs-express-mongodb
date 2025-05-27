@@ -47,5 +47,17 @@ const UserSchemaEntity: Schema<IUser> = new Schema({
     is_deleted: { type: Boolean, default: false },
 });
 
+// Thêm virtual field vào UserSchema
+UserSchemaEntity.virtual('staff_profile', {
+    ref: 'StaffProfile',
+    localField: '_id',
+    foreignField: 'user_id',
+    justOne: true
+});
+
+// Đảm bảo virtuals được bao gồm khi chuyển đổi sang JSON
+UserSchemaEntity.set('toJSON', { virtuals: true });
+UserSchemaEntity.set('toObject', { virtuals: true });
+
 const UserSchema = mongoose.model<IUser & mongoose.Document>(COLLECTION_NAME.USER, UserSchemaEntity);
 export default UserSchema;
