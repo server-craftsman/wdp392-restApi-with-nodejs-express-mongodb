@@ -28,14 +28,14 @@ export default class KitRoute implements IRoute {
         // GET: domain:/api/kit/available -> Get available kits
         this.router.get(
             `${API_PATH.GET_AVAILABLE_KITS}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
             this.kitController.getAvailableKits
         );
 
         // GET: domain:/api/kit/:id -> Get kit by ID
         this.router.get(
             `${API_PATH.GET_KIT_BY_ID}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
             this.kitController.getKitById
         );
 
@@ -57,7 +57,7 @@ export default class KitRoute implements IRoute {
         // PATCH: domain:/api/kit/:id/status -> Change kit status
         this.router.patch(
             `${API_PATH.CHANGE_KIT_STATUS}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
             this.kitController.changeKitStatus
         );
 
@@ -71,7 +71,7 @@ export default class KitRoute implements IRoute {
         // POST: domain:/api/kit/:id/return -> Return a kit
         this.router.post(
             `${API_PATH.RETURN_KIT}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
             this.kitController.returnKit
         );
     }
