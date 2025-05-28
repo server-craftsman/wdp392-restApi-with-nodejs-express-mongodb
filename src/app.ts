@@ -82,7 +82,6 @@ export default class App {
         // config ejs
         this.app.set('view engine', 'ejs');
         this.app.set('views', [
-            path.join(__dirname, 'modules'),
             path.join(__dirname, 'modules/index')
         ]);
         // config for swagger
