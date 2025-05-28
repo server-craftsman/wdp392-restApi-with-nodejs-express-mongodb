@@ -79,15 +79,20 @@ export default class App {
             this.app.use('/', route.router);
         });
 
-        // config ejs
+        // config ejs - simplified for faster startup
         this.app.set('view engine', 'ejs');
-        this.app.set('views', [
-            path.join(__dirname, 'modules/index')
-        ]);
+        this.app.set('views', path.join(__dirname, 'modules/index'));
+
+        // Serve static files efficiently
+        const staticOptions = {
+            maxAge: '1d',
+            etag: true
+        };
+
         // config for swagger
-        this.app.use('/swagger', express.static(path.join(__dirname, '../node_modules/swagger-ui-dist')));
+        this.app.use('/swagger', express.static(path.join(__dirname, '../node_modules/swagger-ui-dist'), staticOptions));
         // config for images
-        this.app.use('/images', express.static(path.join(__dirname, '../public/images')));
+        this.app.use('/images', express.static(path.join(__dirname, '../public/images'), staticOptions));
     }
 
     // initialize Swagger documentation
