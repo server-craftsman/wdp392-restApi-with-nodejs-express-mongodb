@@ -9,6 +9,9 @@ import { ServiceRoute } from './modules/service';
 import { DepartmentRoute } from './modules/department';
 import { StaffProfileRoute } from './modules/staff_profile';
 import { SlotRoute } from './modules/slot';
+import { AppointmentRoute } from './modules/appointment';
+import { AppointmentLogRoute } from './modules/appointment_log';
+import { KitRoute } from './modules/kit';
 
 dotenv.config();
 
@@ -23,6 +26,9 @@ const routes = [
     new DepartmentRoute(),
     new StaffProfileRoute(),
     new SlotRoute(),
+    new AppointmentRoute(),
+    new AppointmentLogRoute(),
+    new KitRoute()
 ];
 
 const app = new App(routes);

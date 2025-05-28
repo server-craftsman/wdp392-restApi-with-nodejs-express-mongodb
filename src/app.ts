@@ -78,6 +78,9 @@ export default class App {
             this.app.use('/', route.router);
         });
 
+        // config ejs
+        this.app.set('view engine', 'ejs');
+        this.app.set('views', path.join(__dirname, 'modules'));
         // config for swagger
         this.app.use('/swagger', express.static(path.join(__dirname, '../node_modules/swagger-ui-dist')));
         // config for images

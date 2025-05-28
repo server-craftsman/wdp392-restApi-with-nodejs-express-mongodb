@@ -5,7 +5,6 @@ import { authMiddleWare, validationMiddleware } from '../../core/middleware';
 import { UserRoleEnum } from '../user/user.enum';
 import SlotController from './slot.controller';
 import { CreateSlotDto } from './dtos/createSlot.dto';
-import { CreateMultipleSlotsDto } from './dtos/createMultipleSlots.dto';
 import { UpdateSlotDto } from './dtos/updateSlot.dto';
 
 export default class SlotRoute implements IRoute {
@@ -41,11 +40,18 @@ export default class SlotRoute implements IRoute {
             this.slotController.getSlots
         );
 
+        // GET: domain:/api/slot/available -> Get available slots for booking
+        this.router.get(
+            `${API_PATH.AVAILABLE_SLOT}`,
+            authMiddleWare([], true),
+            this.slotController.getAvailableSlots
+        );
+
         // GET: domain:/api/slot/staff/:staffProfileId -> Get slots by staff
         this.router.get(
             `${API_PATH.GET_SLOT_BY_STAFF}`,
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
-            this.slotController.getSlotsByStaff
+            this.slotController.getSlotsByUser
         );
 
         // GET: domain:/api/slot/department/:departmentId -> Get slots by department
@@ -63,11 +69,11 @@ export default class SlotRoute implements IRoute {
         );
 
         // GET: domain:/api/slot/service/:serviceId -> Get slots by service
-        this.router.get(
-            `${API_PATH.GET_SLOT_BY_SERVICE}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
-            this.slotController.getSlotsByService
-        );
+        // this.router.get(
+        //     `${API_PATH.GET_SLOT_BY_SERVICE}`,
+        //     authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
+        //     this.slotController.getSlotsByService
+        // );
 
         // PUT: domain:/api/slot/:id -> Update slot
         this.router.put(

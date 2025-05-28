@@ -19,6 +19,14 @@ tags:
   description: 'Service management APIs'
 - name: 'departments'
   description: 'Department management APIs'
+- name: 'slots'
+  description: 'Slot management APIs'
+- name: 'kits'
+  description: 'Kit management APIs'
+- name: 'appointments'
+  description: 'Appointment management APIs'
+- name: 'appointment_logs'
+  description: 'Appointment log APIs'
 
 schemes:
 - 'https'
@@ -1382,7 +1390,7 @@ paths:
   /slot/create:
     post:
       tags:
-        - 'slots'
+        - slots
       summary: 'Create a new slot (Admin, Manager only)'
       description: 'Create a new slot for staff profiles'
       operationId: 'createSlot'
@@ -1404,15 +1412,15 @@ paths:
           description: 'Slot created successfully'
           schema:
             $ref: '#/definitions/SlotResponse'
-        '400':
-          description: 'Invalid input'
-        '401':
-          description: 'Unauthorized'
+      '400':
+        description: 'Invalid input'
+      '401':
+        description: 'Unauthorized'
 
   /slot/search:
     get:
       tags:
-        - 'slots'
+        - slots
       summary: 'Search slots with filters (Admin, Manager, Laboratory Technician, Staff only)'
       description: 'Search for slots with pagination and filtering'
       operationId: 'getSlots'
@@ -1423,43 +1431,52 @@ paths:
       parameters:
         - in: 'query'
           name: 'pageNum'
-          description: 'Page number'
-          required: false
           type: 'integer'
           default: 1
+          description: 'Page number for pagination'
         - in: 'query'
           name: 'pageSize'
-          description: 'Items per page'
-          required: false
           type: 'integer'
           default: 10
+          description: 'Number of items per page'
         - in: 'query'
           name: 'staff_profile_ids'
-          description: 'Filter by staff profile IDs'
-          required: false
           type: 'string'
+          description: 'Filter by staff profile IDs (comma-separated or single value)'
         - in: 'query'
           name: 'department_id'
-          description: 'Filter by department ID'
-          required: false
           type: 'string'
+          description: 'Filter by department ID'
+        - in: 'query'
+          name: 'appointment_id'
+          type: 'string'
+          description: 'Filter by appointment ID'
         - in: 'query'
           name: 'status'
-          description: 'Filter by slot status'
-          required: false
           type: 'string'
+          enum: ['available', 'booked', 'unavailable']
+          description: 'Filter by slot status'
         - in: 'query'
           name: 'date_from'
-          description: 'Filter by start date'
-          required: false
           type: 'string'
           format: 'date'
+          description: 'Filter by start date (inclusive)'
         - in: 'query'
           name: 'date_to'
-          description: 'Filter by end date'
-          required: false
           type: 'string'
           format: 'date'
+          description: 'Filter by end date (inclusive)'
+        - in: 'query'
+          name: 'sort_by'
+          type: 'string'
+          default: 'start_time'
+          description: 'Field to sort by'
+        - in: 'query'
+          name: 'sort_order'
+          type: 'integer'
+          default: 1
+          enum: [1, -1]
+          description: 'Sort order (1: ascending, -1: descending)'
       responses:
         '200':
           description: 'Slot list with pagination'
@@ -1468,10 +1485,44 @@ paths:
         '401':
           description: 'Unauthorized'
 
+  /slot/available:
+    get:
+      tags:
+        - slots
+      summary: 'Get available slots for booking (Public)'
+      description: 'Retrieve available slots for booking with optional filters'
+      operationId: 'getAvailableSlots'
+      produces:
+        - 'application/json'
+      parameters:
+        - in: 'query'
+          name: 'start_date'
+          type: 'string'
+          format: 'date'
+          required: true
+          description: 'Start date to search for available slots'
+        - in: 'query'
+          name: 'end_date'
+          type: 'string'
+          format: 'date'
+          description: 'End date to search for available slots (defaults to 7 days from start_date if not provided)'
+        - in: 'query'
+          name: 'type'
+          type: 'string'
+          enum: ['self_collected', 'facility_collected', 'home_collected']
+          description: 'Filter by sample collection method'
+      responses:
+        '200':
+          description: 'Available slots with pagination'
+          schema:
+            $ref: '#/definitions/SlotPaginationResponse'
+        '400':
+          description: 'Invalid input (e.g., missing required parameters)'
+
   /slot/{id}:
     get:
       tags:
-        - 'slots'
+        - slots
       summary: 'Get slot by ID (Admin, Manager, Laboratory Technician, Staff only)'
       description: 'Retrieve slot details by ID'
       operationId: 'getSlotById'
@@ -1482,9 +1533,8 @@ paths:
       parameters:
         - in: 'path'
           name: 'id'
-          description: 'Slot ID'
-          required: true
           type: 'string'
+          required: true
       responses:
         '200':
           description: 'Slot details'
@@ -1498,7 +1548,7 @@ paths:
           description: 'Slot not found'
     put:
       tags:
-        - 'slots'
+        - slots
       summary: 'Update slot (Admin, Manager only)'
       description: 'Update slot information'
       operationId: 'updateSlot'
@@ -1535,7 +1585,7 @@ paths:
   /slot/{id}/status:
     patch:
       tags:
-        - 'slots'
+        - slots
       summary: 'Change slot status (Admin, Manager only)'
       description: 'Change the status of a slot'
       operationId: 'changeSlotStatus'
@@ -1562,6 +1612,8 @@ paths:
                 type: 'string'
                 description: 'New status'
                 enum: ['available', 'booked', 'unavailable']
+            required:
+              - status
       responses:
         '200':
           description: 'Slot status changed successfully'
@@ -1577,7 +1629,7 @@ paths:
   /slot/staff/{staffProfileId}:
     get:
       tags:
-        - 'slots'
+        - slots
       summary: 'Get slots by staff profile ID (Admin, Manager, Laboratory Technician, Staff only)'
       description: 'Retrieve slots associated with a specific staff profile'
       operationId: 'getSlotsByStaff'
@@ -1606,7 +1658,7 @@ paths:
   /slot/department/{departmentId}:
     get:
       tags:
-        - 'slots'
+        - slots
       summary: 'Get slots by department ID (Admin, Manager only)'
       description: 'Retrieve slots associated with a specific department'
       operationId: 'getSlotsByDepartment'
@@ -1635,7 +1687,7 @@ paths:
   /slot/service/{serviceId}:
     get:
       tags:
-        - 'slots'
+        - slots
       summary: 'Get slots by service ID (Admin, Manager, Laboratory Technician, Staff only)'
       description: 'Retrieve slots associated with a specific service'
       operationId: 'getSlotsByService'
@@ -1665,9 +1717,9 @@ paths:
     get:
       tags:
         - 'departments'
-      summary: 'Get department capacity statistics (Admin, Manager only)'
-      description: 'Retrieve capacity statistics for a department, including staff count, slot count, and booking rate'
-      operationId: 'getDepartmentCapacity'
+      summary: 'Get department performance statistics (Admin, Manager only)'
+      description: 'Retrieve performance statistics for a department, including staff count, slot count, and booking rate'
+      operationId: 'getDepartmentPerformance'
       produces:
         - 'application/json'
       security:
@@ -1692,13 +1744,13 @@ paths:
           format: 'date'
       responses:
         '200':
-          description: 'Department capacity statistics'
+          description: 'Department performance statistics'
           schema:
             type: 'object'
             properties:
               totalStaff:
                 type: 'integer'
-                description: 'Total number of staff'
+                description: 'Total number of active staff in the department'
               totalSlots:
                 type: 'integer'
                 description: 'Total number of slots'
@@ -1716,7 +1768,494 @@ paths:
         '404':
           description: 'Department not found'
 
+  # Kit APIs
+  /kit/create:
+    post:
+      tags:
+        - 'kits'
+      summary: 'Create a new kit (Admin, Manager only)'
+      description: 'Create a new kit with auto-generated code'
+      operationId: 'createKit'
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      responses:
+        '201':
+          description: 'Kit created successfully'
+          schema:
+            $ref: '#/definitions/KitResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+        '409':
+          description: 'Kit code already exists'
 
+  /kit/search:
+    get:
+      tags:
+        - 'kits'
+      summary: 'Search kits (Admin, Manager, Staff only)'
+      description: 'Search for kits with pagination and filtering'
+      operationId: 'searchKits'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'query'
+          name: 'pageNum'
+          description: 'Page number'
+          required: false
+          type: 'integer'
+          default: 1
+        - in: 'query'
+          name: 'pageSize'
+          description: 'Items per page'
+          required: false
+          type: 'integer'
+          default: 10
+        - in: 'query'
+          name: 'code'
+          description: 'Filter by kit code'
+          required: false
+          type: 'string'
+        - in: 'query'
+          name: 'status'
+          description: 'Filter by kit status'
+          required: false
+          type: 'string'
+          enum: ['available', 'assigned', 'used', 'returned', 'damaged']
+        - in: 'query'
+          name: 'appointment_id'
+          description: 'Filter by appointment ID'
+          required: false
+          type: 'string'
+        - in: 'query'
+          name: 'assigned_to_user_id'
+          description: 'Filter by assigned user ID'
+          required: false
+          type: 'string'
+      responses:
+        '200':
+          description: 'Kit list with pagination'
+          schema:
+            $ref: '#/definitions/KitPaginationResponse'
+        '401':
+          description: 'Unauthorized'
+
+  /kit/available:
+    get:
+      tags:
+        - 'kits'
+      summary: 'Get available kits (Admin, Manager, Staff only)'
+      description: 'Retrieve all available kits'
+      operationId: 'getAvailableKits'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          description: 'List of available kits'
+          schema:
+            type: 'array'
+            items:
+              $ref: '#/definitions/KitResponse'
+        '401':
+          description: 'Unauthorized'
+
+  /kit/{id}:
+    get:
+      tags:
+        - 'kits'
+      summary: 'Get kit by ID (Admin, Manager, Staff only)'
+      description: 'Retrieve kit details by ID'
+      operationId: 'getKitById'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'path'
+          name: 'id'
+          description: 'Kit ID'
+          required: true
+          type: 'string'
+      responses:
+        '200':
+          description: 'Kit details'
+          schema:
+            $ref: '#/definitions/KitResponse'
+        '400':
+          description: 'Invalid kit ID'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Kit not found'
+    put:
+      tags:
+        - 'kits'
+      summary: 'Update kit (Admin, Manager only)'
+      description: 'Update kit information'
+      operationId: 'updateKit'
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'path'
+          name: 'id'
+          description: 'Kit ID'
+          required: true
+          type: 'string'
+        - in: 'body'
+          name: 'body'
+          description: 'Updated kit data'
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateKitDto'
+      responses:
+        '200':
+          description: 'Kit updated successfully'
+          schema:
+            $ref: '#/definitions/KitResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Kit not found'
+    delete:
+      tags:
+        - 'kits'
+      summary: 'Delete kit (Admin, Manager only)'
+      description: 'Mark a kit as damaged'
+      operationId: 'deleteKit'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'path'
+          name: 'id'
+          description: 'Kit ID'
+          required: true
+          type: 'string'
+      responses:
+        '200':
+          description: 'Kit deleted successfully'
+          schema:
+            $ref: '#/definitions/SuccessResponse'
+        '400':
+          description: 'Invalid kit ID or kit is currently assigned/in use'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Kit not found'
+
+  /kit/{id}/status:
+    patch:
+      tags:
+        - 'kits'
+      summary: 'Change kit status (Admin, Manager, Staff only)'
+      description: 'Change the status of a kit'
+      operationId: 'changeKitStatus'
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'path'
+          name: 'id'
+          description: 'Kit ID'
+          required: true
+          type: 'string'
+        - in: 'body'
+          name: 'body'
+          description: 'Status change data'
+          required: true
+          schema:
+            type: 'object'
+            properties:
+              status:
+                type: 'string'
+                description: 'New status'
+                enum: ['available', 'assigned', 'used', 'returned', 'damaged']
+            required:
+              - status
+      responses:
+        '200':
+          description: 'Kit status changed successfully'
+          schema:
+            $ref: '#/definitions/KitResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Kit not found'
+
+  /kit/{id}/return:
+    post:
+      tags:
+        - 'kits'
+      summary: 'Return a kit (Admin, Manager, Staff only)'
+      description: 'Return a previously assigned or used kit'
+      operationId: 'returnKit'
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'path'
+          name: 'id'
+          description: 'Kit ID'
+          required: true
+          type: 'string'
+        - in: 'body'
+          name: 'body'
+          description: 'Return notes (optional)'
+          required: false
+          schema:
+            type: 'object'
+            properties:
+              notes:
+                type: string
+                description: 'Notes about the returned kit'
+      responses:
+        '200':
+          description: 'Kit returned successfully'
+          schema:
+            $ref: '#/definitions/KitResponse'
+        '400':
+          description: 'Invalid input or kit is not in assigned/used status'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Kit not found'
+
+  # Appointment APIs
+  /appointment/create:
+    post:
+      tags:
+        - 'appointments'
+      summary: 'Create a new appointment (Customer only)'
+      description: 'Create a new appointment for a service'
+      operationId: 'createAppointment'
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'body'
+          name: 'body'
+          description: 'Appointment data'
+          required: true
+          schema:
+            $ref: '#/definitions/CreateAppointmentDto'
+      responses:
+        '201':
+          description: 'Appointment created successfully'
+          schema:
+            $ref: '#/definitions/AppointmentResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+
+  /appointment/search:
+    get:
+      tags:
+        - 'appointments'
+      summary: 'Search appointments'
+      description: 'Search for appointments with pagination and filtering'
+      operationId: 'searchAppointments'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'query'
+          name: 'pageNum'
+          type: 'integer'
+          default: 1
+        - in: 'query'
+          name: 'pageSize'
+          type: 'integer'
+          default: 10
+        - in: 'query'
+          name: 'status'
+          type: 'string'
+      - in: 'query'
+        name: 'customer_id'
+        type: 'string'
+      - in: 'query'
+        name: 'service_id'
+        type: 'string'
+      - in: 'query'
+        name: 'staff_id'
+        type: 'string'
+      - in: 'query'
+        name: 'date_from'
+        type: 'string'
+        format: 'date'
+      - in: 'query'
+        name: 'date_to'
+        type: 'string'
+        format: 'date'
+    responses:
+      '200':
+        description: 'Appointment list with pagination'
+        schema:
+          $ref: '#/definitions/AppointmentPaginationResponse'
+      '401':
+        description: 'Unauthorized'
+
+  /appointment/{id}:
+    get:
+      tags:
+        - 'appointments'
+      summary: 'Get appointment by ID'
+      description: 'Retrieve appointment details by ID'
+      operationId: 'getAppointmentById'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'path'
+          name: 'id'
+          type: 'string'
+          required: true
+      responses:
+        '200':
+          description: 'Appointment details'
+          schema:
+            $ref: '#/definitions/AppointmentResponse'
+        '400':
+          description: 'Invalid appointment ID'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Appointment not found'
+
+  /appointment/{id}/assign-staff:
+    put:
+      tags:
+        - 'appointments'
+      summary: 'Assign staff to appointment (Manager only)'
+      description: 'Assign staff to an existing appointment'
+      operationId: 'assignStaffToAppointment'
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'path'
+          name: 'id'
+          description: 'Appointment ID'
+          required: true
+          type: 'string'
+        - in: 'body'
+          name: 'body'
+          description: 'Staff assignment data'
+          required: true
+          schema:
+            $ref: '#/definitions/AssignStaffDto'
+      responses:
+        '200':
+          description: 'Staff assigned successfully'
+          schema:
+            $ref: '#/definitions/AppointmentResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Appointment not found'
+
+  /appointment/{id}/confirm:
+    put:
+      tags:
+        - 'appointments'
+      summary: 'Confirm appointment and assign kit (Staff only)'
+      description: 'Confirm an appointment, assign a kit, and update its status'
+      operationId: 'confirmAppointment'
+      consumes:
+        - 'application/json'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'path'
+          name: 'id'
+          description: 'Appointment ID'
+          required: true
+          type: 'string'
+        - in: 'body'
+          name: 'body'
+          description: 'Confirmation data with kit assignment'
+          required: true
+          schema:
+            $ref: '#/definitions/ConfirmAppointmentDto'
+      responses:
+        '200':
+          description: 'Appointment confirmed successfully'
+          schema:
+            $ref: '#/definitions/AppointmentResponse'
+        '400':
+          description: 'Invalid input'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Appointment not found'
+
+  # Appointment Log APIs
+  /appointment-logs/appointment/{appointmentId}:
+    get:
+      tags:
+        - 'appointment_logs'
+      summary: 'Get logs by appointment ID'
+      description: 'Retrieve all logs for a specific appointment'
+      operationId: 'getLogsByAppointment'
+      produces:
+        - 'application/json'
+      security:
+        - Bearer: []
+      parameters:
+        - in: 'path'
+          name: 'appointmentId'
+          description: 'Appointment ID'
+          required: true
+          type: 'string'
+      responses:
+        '200':
+          description: 'List of appointment logs'
+          schema:
+            type: 'array'
+            items:
+              $ref: '#/definitions/AppointmentLogResponse'
+        '400':
+          description: 'Invalid appointment ID'
+        '401':
+          description: 'Unauthorized'
+        '404':
+          description: 'Appointment not found'
 
 definitions:
   LoginDto:
@@ -2405,32 +2944,59 @@ definitions:
       service_id:
         type: string
         description: "Service ID"
-      start_time:
-        type: string
-        format: date-time
-        description: "Start time"
-      end_time:
-        type: string
-        format: date-time
-        description: "End time"
-      appointment_limit:
-        type: integer
-        description: "Appointment limit"
-      pattern:
-        type: string
-        description: "Slot pattern"
-        enum: ["daily", "weekly", "monthly"]
-      days_of_week:
+      time_slots:
         type: array
         items:
-          type: integer
-        description: "Days of the week"
+          $ref: '#/definitions/TimeSlotDto'
+        description: "Array of time slots"
+      appointment_limit:
+        type: integer
+        description: "Maximum number of appointments allowed per slot"
     required:
       - staff_profile_ids
       - service_id
+      - time_slots
+      - appointment_limit
+
+  TimeSlotDto:
+    type: object
+    properties:
+      year:
+        type: integer
+        description: "Year"
+      month:
+        type: integer
+        description: "Month (1-12)"
+      day:
+        type: integer
+        description: "Day of month"
+      start_time:
+        $ref: '#/definitions/TimePointDto'
+      end_time:
+        $ref: '#/definitions/TimePointDto'
+    required:
+      - year
+      - month
+      - day
       - start_time
       - end_time
-      - appointment_limit
+
+  TimePointDto:
+    type: object
+    properties:
+      hour:
+        type: integer
+        minimum: 0
+        maximum: 23
+        description: "Hour (0-23)"
+      minute:
+        type: integer
+        minimum: 0
+        maximum: 59
+        description: "Minute (0-59)"
+    required:
+      - hour
+      - minute
 
   UpdateSlotDto:
     type: object
@@ -2443,35 +3009,22 @@ definitions:
       service_id:
         type: string
         description: "Service ID"
-      start_time:
-        type: string
-        format: date-time
-        description: "Start time"
-      end_time:
-        type: string
-        format: date-time
-        description: "End time"
-      appointment_limit:
-        type: integer
-        description: "Appointment limit"
-      pattern:
-        type: string
-        description: "Slot pattern"
-        enum: ["daily", "weekly", "monthly"]
-      days_of_week:
+      time_slots:
         type: array
         items:
-          type: integer
-        description: "Days of the week"
+          $ref: '#/definitions/TimeSlotDto'
+        description: "Array of time slots"
+      appointment_limit:
+        type: integer
+        description: "Maximum number of appointments allowed per slot"
       status:
         type: string
-        description: "Slot status"
         enum: ["available", "booked", "unavailable"]
+        description: "Slot status"
     required:
       - staff_profile_ids
       - service_id
-      - start_time
-      - end_time
+      - time_slots
       - appointment_limit
 
   SlotResponse:
@@ -2483,32 +3036,50 @@ definitions:
       staff_profile_ids:
         type: array
         items:
-          type: string
-        description: "Array of staff profile IDs"
+          type: object
+          properties:
+            _id:
+              type: string
+            employee_id:
+              type: string
+            job_title:
+              type: string
+            user_id:
+              type: object
+              properties:
+                _id:
+                  type: string
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                email:
+                  type: string
+        description: "Array of staff profiles assigned to this slot"
       service_id:
         type: string
         description: "Service ID"
-      start_time:
-        type: string
-        format: date-time
-        description: "Start time"
-      end_time:
-        type: string
-        format: date-time
-        description: "End time"
-      appointment_limit:
-        type: integer
-        description: "Appointment limit"
-      pattern:
-        type: string
-        description: "Slot pattern"
-      days_of_week:
+      appointment_id:
+        type: object
+        properties:
+          _id:
+            type: string
+          code:
+            type: string
+          status:
+            type: string
+        description: "Associated appointment (if any)"
+      time_slots:
         type: array
         items:
-          type: integer
-        description: "Days of the week"
+          $ref: '#/definitions/TimeSlotDto'
+        description: "Array of time slots"
+      appointment_limit:
+        type: integer
+        description: "Maximum number of appointments allowed per slot"
       status:
         type: string
+        enum: ["available", "booked", "unavailable"]
         description: "Slot status"
       created_at:
         type: string
@@ -2541,3 +3112,238 @@ definitions:
           pageSize:
             type: integer
             description: "Number of items per page"
+
+  CreateKitDto:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Kit code (optional, will be auto-generated if not provided)"
+        pattern: "^KIT-\\d{8}-\\d{3}$"
+        example: "KIT-20230101-001"
+
+  UpdateKitDto:
+    type: object
+    properties:
+      notes:
+        type: string
+        description: "Notes about the kit"
+
+  KitResponse:
+    type: object
+    properties:
+      _id:
+        type: string
+        description: "Kit ID"
+      code:
+        type: string
+        description: "Kit code"
+        example: "KIT-20230101-001"
+      status:
+        type: string
+        description: "Kit status"
+        enum: ["available", "assigned", "used", "returned", "damaged"]
+      appointment_id:
+        type: object
+        description: "Associated appointment (if any)"
+      assigned_to_user_id:
+        type: object
+        description: "User assigned to the kit (if any)"
+      assigned_date:
+        type: string
+        format: date-time
+        description: "Date when kit was assigned"
+      return_date:
+        type: string
+        format: date-time
+        description: "Date when kit was returned"
+      notes:
+        type: string
+        description: "Notes about the kit"
+      created_at:
+        type: string
+        format: date-time
+        description: "Creation date"
+      updated_at:
+        type: string
+        format: date-time
+        description: "Last update date"
+
+  KitPaginationResponse:
+    type: object
+    properties:
+      pageData:
+        type: array
+        items:
+          $ref: '#/definitions/KitResponse'
+      pageInfo:
+        type: object
+        properties:
+          totalItems:
+            type: integer
+            description: "Total number of items"
+          totalPages:
+            type: integer
+            description: "Total number of pages"
+          pageNum:
+            type: integer
+            description: "Current page number"
+          pageSize:
+            type: integer
+            description: "Number of items per page"
+
+  CreateAppointmentDto:
+    type: object
+    properties:
+      service_id:
+        type: string
+        description: "Service ID"
+        example: "60d0fe4f5311236168a109ca"
+      slot_id:
+        type: string
+        description: "Slot ID (optional)"
+        example: "60d0fe4f5311236168a109cb"
+      appointment_date:
+        type: string
+        format: date-time
+        description: "Appointment date and time (optional if slot_id is provided)"
+        example: "2023-10-15T14:30:00Z"
+      type:
+        type: string
+        enum: ["self", "facility", "home"]
+        description: "Type of appointment"
+        example: "facility"
+      collection_address:
+        type: string
+        description: "Address for home collection (required for home type)"
+        example: "123 Main St, City, Country"
+    required:
+      - service_id
+      - type
+
+  AssignStaffDto:
+    type: object
+    properties:
+      staff_id:
+        type: string
+        description: "Staff ID to assign to the appointment"
+        example: "60d0fe4f5311236168a109cc"
+    required:
+      - staff_id
+
+  ConfirmAppointmentDto:
+    type: object
+    properties:
+      kit_id:
+        type: string
+        description: "Kit ID to assign to the appointment"
+        example: "60d0fe4f5311236168a109cd"
+    required:
+      - kit_id
+
+  AppointmentResponse:
+    type: object
+    properties:
+      _id:
+        type: string
+        description: "Appointment ID"
+      user_id:
+        type: object
+        description: "Customer information"
+      service_id:
+        type: object
+        description: "Service information"
+      staff_id:
+        type: object
+        description: "Staff information (if assigned)"
+      slot_id:
+        type: string
+        description: "Associated slot ID (if any)"
+      appointment_date:
+        type: string
+        format: date-time
+        description: "Appointment date and time"
+      type:
+        type: string
+        enum: ["self", "facility", "home"]
+        description: "Type of appointment"
+      collection_address:
+        type: string
+        description: "Address for home collection"
+      status:
+        type: string
+        description: "Appointment status"
+        enum: ["pending", "confirmed", "sample_collected", "sample_received", "testing", "completed", "cancelled"]
+      created_at:
+        type: string
+        format: date-time
+        description: "Creation date"
+      updated_at:
+        type: string
+        format: date-time
+        description: "Last update date"
+
+  AppointmentPaginationResponse:
+    type: object
+    properties:
+      pageData:
+        type: array
+        items:
+          $ref: '#/definitions/AppointmentResponse'
+      pageInfo:
+        type: object
+        properties:
+          totalItems:
+            type: integer
+            description: "Total number of items"
+          totalPages:
+            type: integer
+            description: "Total number of pages"
+          pageNum:
+            type: integer
+            description: "Current page number"
+          pageSize:
+            type: integer
+            description: "Number of items per page"
+
+  AppointmentLogResponse:
+    type: object
+    properties:
+      _id:
+        type: string
+        description: "Log ID"
+      appointment_id:
+        type: string
+        description: "Appointment ID"
+      action:
+        type: string
+        description: "Action performed"
+        enum: ["created", "updated", "status_changed", "staff_assigned", "feedback_added"]
+      previous_state:
+        type: object
+        description: "Previous state of the appointment"
+      new_state:
+        type: object
+        description: "New state of the appointment"
+      performed_by:
+        type: string
+        description: "User ID who performed the action"
+      notes:
+        type: string
+        description: "Additional notes"
+      created_at:
+        type: string
+        format: date-time
+        description: "Log creation date"
+
+  SuccessResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: "Success status"
+        example: true
+      message:
+        type: string
+        description: "Success message"
+        example: "Operation completed successfully"

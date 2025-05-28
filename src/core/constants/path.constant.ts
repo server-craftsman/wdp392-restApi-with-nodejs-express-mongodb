@@ -41,12 +41,27 @@ export const API_PATH = {
     APPOINTMENT: '/api/appointment',
     SEARCH_APPOINTMENT: '/api/appointment/search',
     APPOINTMENT_FEEDBACK: '/api/appointment/feedback',
+    CREATE_APPOINTMENT: '/api/appointment/create',
+    GET_APPOINTMENT_BY_ID: '/api/appointment/:id',
+    ASSIGN_STAFF_TO_APPOINTMENT: '/api/appointment/:id/assign-staff',
+    CONFIRM_APPOINTMENT: '/api/appointment/:id/confirm',
+
+    // Appointment Log
+    APPOINTMENT_LOG: '/api/appointment-logs',
+    GET_LOGS_BY_APPOINTMENT: '/api/appointment-logs/appointment/:appointmentId',
 
     // Kit
     KIT: '/api/kit',
     SEARCH_KIT: '/api/kit/search',
+    CREATE_KIT: '/api/kit/create',
+    CREATE_MULTIPLE_KITS: '/api/kit/create-multiple',
+    GET_KIT_BY_ID: '/api/kit/:id',
+    UPDATE_KIT: '/api/kit/:id',
+    DELETE_KIT: '/api/kit/:id',
+    CHANGE_KIT_STATUS: '/api/kit/:id/status',
+    GET_AVAILABLE_KITS: '/api/kit/available',
     ASSIGN_KIT: '/api/kit/assign',
-    RETURN_KIT: '/api/kit/return',
+    RETURN_KIT: '/api/kit/:id/return',
 
     // Sample
     SAMPLE: '/api/sample',
@@ -98,10 +113,11 @@ export const API_PATH = {
     DELETE_SLOT: '/api/slot/:id',
     CHANGE_SLOT_STATUS: '/api/slot/:id/status',
     GET_SLOT_BY_SERVICE: '/api/slot/service/:serviceId',
-    GET_SLOT_BY_STAFF: '/api/slot/staff/:staffProfileId',
+    GET_SLOT_BY_STAFF: '/api/slot/staff/:id',
     GET_SLOT_BY_DEPARTMENT: '/api/slot/department/:departmentId',
     GET_SLOT_BY_ID: '/api/slot/:id',
-    
+    AVAILABLE_SLOT: '/api/slot/available',
+
 
     // Attendance
     ATTENDANCE: '/api/attendance',

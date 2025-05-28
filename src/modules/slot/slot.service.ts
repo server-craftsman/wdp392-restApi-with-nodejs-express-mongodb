@@ -7,20 +7,21 @@ import SlotSchema from "./slot.model";
 import StaffProfileSchema from "../staff_profile/staff_profile.model";
 import { StaffStatusEnum } from "../staff_profile/staff_profile.enum";
 import { SlotStatusEnum } from "./slot.enum";
-import { ISlot, SlotPattern } from "./slot.interface";
-import { CreateMultipleSlotsDto } from "./dtos/createMultipleSlots.dto";
+import { ISlot } from "./slot.interface";
 import { UpdateSlotDto } from "./dtos/updateSlot.dto";
 import { CreateSlotDto } from "./dtos/createSlot.dto";
 import { UserRoleEnum } from "../user/user.enum";
 import ServiceSchema from "../service/service.model";
 import { ServiceTypeEnum, SampleMethodEnum } from "../service/service.enum";
 import SlotRepository from "./slot.repository";
+import UserSchema from "../user/user.model";
 
 export default class SlotService {
     private slotSchema = SlotSchema;
     private staffProfileSchema = StaffProfileSchema;
     private serviceSchema = ServiceSchema;
     private slotRepository = new SlotRepository();
+    private userSchema = UserSchema;
     // private errorResults: IError[] = [];
 
     /**
@@ -248,21 +249,48 @@ export default class SlotService {
             throw new HttpException(HttpStatus.NotFound, 'Slot not found');
         }
 
-        // Validate time range
-        if (new Date(model.start_time) >= new Date(model.end_time)) {
-            throw new HttpException(HttpStatus.BadRequest, 'Start time must be before end time');
+        if (!model.time_slots || model.time_slots.length === 0) {
+            throw new HttpException(HttpStatus.BadRequest, 'time_slots are required');
         }
 
-        // Validate staff profiles
+        for (const timeSlot of model.time_slots) {
+            // kiểm tra xem time_slots có hợp lệ hay không
+            if (!timeSlot.year || !timeSlot.month || !timeSlot.day ||
+                !timeSlot.start_time || !timeSlot.end_time ||
+                timeSlot.start_time.hour === undefined || timeSlot.start_time.minute === undefined ||
+                timeSlot.end_time.hour === undefined || timeSlot.end_time.minute === undefined) {
+                throw new HttpException(HttpStatus.BadRequest, 'All time slot fields are required');
+            }
+
+            // kiểm tra xem hour và minute có hợp lệ hay không
+            if (timeSlot.start_time.hour < 0 || timeSlot.start_time.hour > 23 ||
+                timeSlot.end_time.hour < 0 || timeSlot.end_time.hour > 23 ||
+                timeSlot.start_time.minute < 0 || timeSlot.start_time.minute > 59 ||
+                timeSlot.end_time.minute < 0 || timeSlot.end_time.minute > 59) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid hour or minute values');
+            }
+
+            // chuyển đổi sang phút để dễ so sánh
+            const startTimeInMinutes = timeSlot.start_time.hour * 60 + timeSlot.start_time.minute;
+            const endTimeInMinutes = timeSlot.end_time.hour * 60 + timeSlot.end_time.minute;
+
+            // kiểm tra xem thời gian kết thúc có sau thời gian bắt đầu hay không
+            if (endTimeInMinutes <= startTimeInMinutes) {
+                throw new HttpException(HttpStatus.BadRequest, 'End time must be after start time');
+            }
+
+            // kiểm tra xem ngày có hợp lệ hay không
+            const date = new Date(timeSlot.year, timeSlot.month - 1, timeSlot.day);
+            if (isNaN(date.getTime()) || date.getDate() !== timeSlot.day) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid date');
+            }
+        }
+
+        // kiểm tra xem staff_profile_ids có hợp lệ hay không
         const staffProfiles = await this.staffProfileSchema.find({
             _id: { $in: model.staff_profile_ids }, // $in is used in array to filter the some of the values
             status: StaffStatusEnum.ACTIVE
         });
-
-        // kiểm tra pattern có hợp lệ hay không
-        if (model.pattern && model.pattern !== SlotPattern.DAILY && model.pattern !== SlotPattern.WEEKLY) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid pattern');
-        }
 
         if (staffProfiles.length === 0) {
             throw new HttpException(HttpStatus.NotFound, 'No active staff profiles found');
@@ -270,21 +298,41 @@ export default class SlotService {
 
         const staffProfileIds = staffProfiles.map(profile => profile._id);
 
-        // Check for overlapping slots (excluding the current slot)
-        const overlappingSlots = await this.slotRepository.findOne({
-            _id: { $ne: id }, // không tính chính nó - $ne is not equal to
-            staff_profile_ids: { $in: model.staff_profile_ids },
-            $or: [
-                {
-                    start_time: { $lt: model.end_time, $gte: model.start_time }, // start_time nhỏ hơn end_time và lớn hơn start_time
-                    end_time: { $gt: model.start_time, $lte: model.end_time } // end_time lớn hơn start_time và nhỏ hơn end_time
-                }
-            ]
-        });
-
         // kiểm tra xem slot có bị trùng lặp với slot khác hay không, BỎ QUA NẾU TRÙNG VỚI CHÍNH NÓ
-        if (overlappingSlots) {
-            throw new HttpException(HttpStatus.Conflict, 'Slot overlaps with an existing slot');
+        for (const timeSlot of model.time_slots) {
+            const overlappingSlots = await this.slotRepository.findOne({
+                _id: { $ne: id }, // không tính chính nó - $ne is not equal to
+                staff_profile_ids: { $in: model.staff_profile_ids },
+                time_slots: {
+                    $elemMatch: { // $elemMatch được sử dụng để tìm kiếm phần tử trong mảng
+                        year: timeSlot.year,
+                        month: timeSlot.month,
+                        day: timeSlot.day,
+                        $or: [
+                            {
+                                // thời gian bắt đầu nằm trong slot hiện tại
+                                "start_time.hour": { $lt: timeSlot.end_time.hour }, // start_time.hour < end_time.hour
+                                "end_time.hour": { $gt: timeSlot.start_time.hour } // end_time.hour > start_time.hour
+                            },
+                            {
+                                // cùng giờ, kiểm tra phút
+                                "start_time.hour": timeSlot.start_time.hour,
+                                "start_time.minute": { $lt: timeSlot.end_time.minute }
+                            },
+                            {
+                                // Same hour, check minutes
+                                "end_time.hour": timeSlot.end_time.hour,
+                                "end_time.minute": { $gt: timeSlot.start_time.minute }
+                            }
+                        ]
+                    }
+                }
+            });
+
+            // kiểm tra xem slot có bị trùng lặp với slot khác hay không, BỎ QUA NẾU TRÙNG VỚI CHÍNH NÓ
+            if (overlappingSlots) {
+                throw new HttpException(HttpStatus.Conflict, 'Slot overlaps with an existing slot');
+            }
         }
 
         // kiểm tra xem staff_profile_ids có hợp lệ hay không
@@ -292,17 +340,14 @@ export default class SlotService {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid staff profile IDs');
         }
 
-        // Update the slot
+        // cập nhật slot
         const updatedSlot = await this.slotRepository.findByIdAndUpdate(
             id,
             {
                 staff_profile_ids: staffProfileIds,
                 service_id: new Schema.Types.ObjectId(model.service_id),
-                start_time: model.start_time,
-                end_time: model.end_time,
+                time_slots: model.time_slots as any, // ép kiểu sang any để khắc phục lỗi kiểu dữ liệu
                 appointment_limit: model.appointment_limit,
-                pattern: model.pattern,
-                days_of_week: model.days_of_week,
                 status: model.status,
                 updated_at: new Date()
             },
@@ -329,10 +374,45 @@ export default class SlotService {
      * Tạo một slot mới
      */
     public async createSlot(model: CreateSlotDto): Promise<ISlot> {
-        if (!model.start_time || !model.end_time || model.start_time >= model.end_time) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid slot time range');
+        if (!model.time_slots || model.time_slots.length === 0) {
+            throw new HttpException(HttpStatus.BadRequest, 'time_slots are required');
         }
 
+        // Validate time slots
+        for (const timeSlot of model.time_slots) {
+            // kiểm tra xem tất cả các trường bắt buộc có tồn tại hay không
+            if (!timeSlot.year || !timeSlot.month || !timeSlot.day ||
+                !timeSlot.start_time || !timeSlot.end_time ||
+                timeSlot.start_time.hour === undefined || timeSlot.start_time.minute === undefined ||
+                timeSlot.end_time.hour === undefined || timeSlot.end_time.minute === undefined) {
+                throw new HttpException(HttpStatus.BadRequest, 'All time slot fields are required');
+            }
+
+            // kiểm tra xem hour và minute có hợp lệ hay không
+            if (timeSlot.start_time.hour < 0 || timeSlot.start_time.hour > 23 ||
+                timeSlot.end_time.hour < 0 || timeSlot.end_time.hour > 23 ||
+                timeSlot.start_time.minute < 0 || timeSlot.start_time.minute > 59 ||
+                timeSlot.end_time.minute < 0 || timeSlot.end_time.minute > 59) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid hour or minute values');
+            }
+
+            // chuyển đổi sang phút để dễ so sánh
+            const startTimeInMinutes = timeSlot.start_time.hour * 60 + timeSlot.start_time.minute;
+            const endTimeInMinutes = timeSlot.end_time.hour * 60 + timeSlot.end_time.minute;
+
+            // kiểm tra xem thời gian kết thúc có sau thời gian bắt đầu hay không
+            if (endTimeInMinutes <= startTimeInMinutes) {
+                throw new HttpException(HttpStatus.BadRequest, 'End time must be after start time');
+            }
+
+            // kiểm tra xem ngày có hợp lệ hay không
+            const date = new Date(timeSlot.year, timeSlot.month - 1, timeSlot.day);
+            if (isNaN(date.getTime()) || date.getDate() !== timeSlot.day) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid date');
+            }
+        }
+
+        // kiểm tra xem staff_profile_ids có hợp lệ hay không
         const staffProfiles = await this.staffProfileSchema.find({
             _id: { $in: model.staff_profile_ids || [] },
             status: StaffStatusEnum.ACTIVE
@@ -344,25 +424,56 @@ export default class SlotService {
 
         const staffProfileIds = staffProfiles.map(profile => profile._id);
 
-        // Check for overlapping slots for the given staff profiles
-        const overlappingSlots = await this.slotSchema.find({
-            staff_profile_ids: { $in: staffProfileIds },
-            $or: [
-                {
-                    start_time: { $lt: model.end_time }, // start_time nhỏ hơn end_time
-                    end_time: { $gt: model.start_time } // end_time lớn hơn start_time
-                }
-            ]
-        });
+        // kiểm tra xem slot có bị trùng lặp với slot khác hay không, BỎ QUA NẾU TRÙNG VỚI CHÍNH NÓ
+        for (const timeSlot of model.time_slots) {
+            // tạo ngày bắt đầu
+            const startDate = new Date(timeSlot.year, timeSlot.month - 1, timeSlot.day);
+            startDate.setHours(timeSlot.start_time.hour, timeSlot.start_time.minute, 0, 0);
 
-        if (overlappingSlots.length > 0) {
-            throw new HttpException(HttpStatus.Conflict, 'Slot overlaps with an existing slot');
+            // tạo ngày kết thúc
+            const endDate = new Date(timeSlot.year, timeSlot.month - 1, timeSlot.day);
+            endDate.setHours(timeSlot.end_time.hour, timeSlot.end_time.minute, 0, 0);
+
+            // kiểm tra xem slot có bị trùng lặp với slot khác hay không, BỎ QUA NẾU TRÙNG VỚI CHÍNH NÓ
+            const overlappingSlots = await this.slotSchema.find({
+                staff_profile_ids: { $in: staffProfileIds }, // $in is used in array to filter the some of the values
+                time_slots: {
+                    $elemMatch: { // $elemMatch được sử dụng để tìm kiếm phần tử trong mảng
+                        year: timeSlot.year,
+                        month: timeSlot.month,
+                        day: timeSlot.day,
+                        $or: [
+                            {
+                                // thời gian bắt đầu nằm trong slot hiện tại
+                                "start_time.hour": { $lt: timeSlot.end_time.hour }, // start_time.hour < end_time.hour
+                                "end_time.hour": { $gt: timeSlot.start_time.hour } // end_time.hour > start_time.hour
+                            },
+                            {
+                                // cùng giờ, kiểm tra phút
+                                "start_time.hour": timeSlot.start_time.hour,
+                                "start_time.minute": { $lt: timeSlot.end_time.minute } // start_time.minute < end_time.minute
+                            },
+                            {
+                                // cùng giờ, kiểm tra phút
+                                "end_time.hour": timeSlot.end_time.hour,
+                                "end_time.minute": { $gt: timeSlot.start_time.minute } // end_time.minute > start_time.minute
+                            }
+                        ]
+                    }
+                }
+            });
+
+            if (overlappingSlots.length > 0) {
+                throw new HttpException(HttpStatus.Conflict, 'Slot overlaps with an existing slot');
+            }
         }
 
-        // Create a new slot for the first active staff profile
+        // tạo slot mới
         const newSlot = await this.slotSchema.create({
-            ...model,
             staff_profile_ids: staffProfileIds,
+            service_id: model.service_id,
+            time_slots: model.time_slots,
+            appointment_limit: model.appointment_limit,
             status: SlotStatusEnum.AVAILABLE,
             created_at: new Date(),
             updated_at: new Date()
@@ -372,92 +483,101 @@ export default class SlotService {
     }
 
     /**
-     * Lấy danh sách slot với các bộ lọc
+     * Lấy danh sách slot với các bộ lọc động (params mới)
      */
     public async getSlots(queryParams: any = {}): Promise<SearchPaginationResponseModel<ISlot>> {
         try {
-            // Xử lý tham số truy vấn
             const {
-                pageNum,
-                pageSize,
+                pageNum = 1,
+                pageSize = 10,
                 staff_profile_ids,
                 department_id,
+                appointment_id,
                 status,
                 date_from,
-                date_to
-            } = this.processQueryParams(queryParams);
+                date_to,
+                sort_by = 'start_time',
+                sort_order = 1,
+            } = queryParams;
 
+            // tính toán số lượng skip
             const skip = (pageNum - 1) * pageSize;
 
-            // Xây dựng truy vấn
+            // tạo query
             const query: any = {};
 
-            // Lọc theo staff_profile_ids
             if (staff_profile_ids) {
-                query.staff_profile_ids = staff_profile_ids;
+                query.staff_profile_ids = Array.isArray(staff_profile_ids)
+                    ? { $in: staff_profile_ids } // $in is used in array to filter the some of the values
+                    : { $in: [staff_profile_ids] }; // $in is used in array to filter the some of the values        
             }
 
-            // Lọc theo phòng ban của nhân viên
+            // lọc theo department_id
             if (department_id) {
-                // Tìm tất cả nhân viên thuộc phòng ban & trạng thái ACTIVE
                 const staffProfiles = await this.staffProfileSchema.find({
                     department_id,
                     status: StaffStatusEnum.ACTIVE
                 });
-
-                const staffProfileIds = staffProfiles.map(profile => profile._id); // lấy danh sách id của nhân viên thuộc phòng ban
-                query.staff_profile_ids = { $in: staffProfileIds }; // $in is used in array to filter the some of the values
+                const staffProfileIds = staffProfiles.map(profile => profile._id);
+                query.staff_profile_ids = { $in: staffProfileIds };
             }
 
-            // Lọc theo trạng thái
+            // lọc theo appointment_id
+            if (appointment_id) {
+                query.appointment_id = appointment_id;
+            }
+
             if (status) {
                 query.status = status;
             }
 
-            // Lọc theo khoảng thời gian
+            // lọc theo khoảng thời gian
             if (date_from || date_to) {
+                query.start_time = {};
+
+                // lọc theo ngày bắt đầu
                 if (date_from) {
-                    const startDate = new Date(date_from); // tạo ngày bắt đầu
-                    query.start_time = { $gte: startDate }; // start_time >= date_from
+                    query.start_time.$gte = new Date(date_from); // start_time >= date_from
                 }
+
+                // lọc theo ngày kết thúc
                 if (date_to) {
-                    const endDate = new Date(date_to); // tạo ngày kết thúc
-                    endDate.setHours(23, 59, 59, 999); // set the end time of the slot
-                    if (query.start_time) {
-                        query.start_time.$lte = endDate; // start_time <= end_time
-                    } else {
-                        query.start_time = { $lte: endDate }; // start_time <= end_time
-                    }
+                    const endDate = new Date(date_to);
+                    endDate.setHours(23, 59, 59, 999);
+                    query.start_time.$lte = endDate; // start_time <= end_time
                 }
             }
 
-            // Đếm tổng số slot
             const totalItems = await this.slotSchema.countDocuments(query);
 
-            // Lấy dữ liệu với phân trang
+            // lấy danh sách slot
             const slots = await this.slotSchema
-                .find(query) // tìm kiếm slot theo query
-                .sort({ start_time: 1 })
+                .find(query)
+                .sort({ [sort_by]: sort_order }) // sắp xếp theo trường sort_by và sort_order
                 .skip(skip)
-                .limit(pageSize)
+                .limit(Number(pageSize)) // giới hạn số lượng slot trả về
                 .populate({
                     path: 'staff_profile_ids',
-                    select: 'employee_id job_title',
+                    select: 'employee_id job_title department_id',
                     populate: {
                         path: 'user_id',
-                        select: 'first_name last_name'
+                        select: 'first_name last_name email'
                     }
-                });
+                })
+                .populate({
+                    path: 'appointment_id',
+                    select: 'code status'
+                })
 
-            const totalPages = Math.ceil(totalItems / pageSize); // tính toán số lượng trang
+            const totalPages = Math.ceil(totalItems / pageSize);
 
             return {
                 pageData: slots,
                 pageInfo: {
                     totalItems,
                     totalPages,
-                    pageNum,
-                    pageSize
+                    pageNum: Number(pageNum),
+                    pageSize: Number(pageSize)
                 }
             };
         } catch (error) {
@@ -474,16 +594,7 @@ export default class SlotService {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid slot ID');
         }
 
-        const slot = await this.slotSchema.findById(id)
-            .populate({
-                path: 'staff_profile_ids',
-                select: 'employee_id job_title',
-                populate: {
-                    path: 'user_id',
-                    select: 'first_name last_name'
-                }
-            })
-            .exec();
+        const slot = await this.slotRepository.findByIdWithPopulate(id);
 
         if (slot && Array.isArray(slot.staff_profile_ids)) {
             slot.staff_profile_ids = slot.staff_profile_ids.map((staffProfile: any) => staffProfile.toString());
@@ -504,7 +615,7 @@ export default class SlotService {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid slot ID');
         }
 
-        const slot = await this.slotSchema.findById(id);
+        const slot = await this.slotRepository.findById(id);
         if (!slot) {
             throw new HttpException(HttpStatus.NotFound, 'Slot not found');
         }
@@ -543,43 +654,92 @@ export default class SlotService {
     }
 
     /**
-     * Lấy slots theo nhân viên
+     * Lấy slots theo nhân viên (user)
      */
-    public async getSlotsByStaff(staffProfileId: string, queryParams: any = {}): Promise<SearchPaginationResponseModel<ISlot>> {
-        if (!mongoose.Types.ObjectId.isValid(staffProfileId)) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid staff profile ID');
+    public async getSlotsByUser(userId: string, queryParams: any = {}): Promise<SearchPaginationResponseModel<ISlot>> {
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            throw new HttpException(HttpStatus.BadRequest, 'Invalid user ID');
         }
 
-        const staffProfile = await this.staffProfileSchema.findById(staffProfileId);
+        // tìm user theo id
+        const user = await this.userSchema.findById(userId);
+
+        // nếu không tìm thấy user thì throw lỗi
+        if (!user) {
+            throw new HttpException(HttpStatus.NotFound, 'User not found');
+        }
+
+        // nếu user không active thì throw lỗi
+        if (user.status !== true) {
+            throw new HttpException(HttpStatus.BadRequest, 'User is not active');
+        }
+
+        // tìm staff profile theo user_id
+        const staffProfile = await this.staffProfileSchema.findOne({ user_id: userId });
+
         if (!staffProfile) {
-            throw new HttpException(HttpStatus.NotFound, 'Staff profile not found');
+            throw new HttpException(HttpStatus.NotFound, 'Staff profile not found for this user');
         }
 
-        if (staffProfile && staffProfile.status !== StaffStatusEnum.ACTIVE) {
-            throw new HttpException(HttpStatus.BadRequest, 'Staff is not active');
+        // Process query parameters
+        const {
+            pageNum,
+            pageSize,
+            date_from,
+            date_to,
+            status
+        } = this.processQueryParams(queryParams);
+
+        const skip = (pageNum - 1) * pageSize;
+
+        // Build query
+        const query: any = {
+            staff_profile_ids: { $in: [staffProfile._id] }
+        };
+
+        // Filter by status
+        if (status) {
+            query.status = status;
         }
 
-        // Thêm staff_profile_id vào query params và gọi lại hàm getSlots
-        const newQueryParams = { ...queryParams, staff_profile_id: staffProfileId };
-        return await this.getSlots(newQueryParams);
-    }
-
-    /**
-     * Lấy slots theo dịch vụ
-     */
-    public async getSlotsByService(serviceId: string, queryParams: any = {}): Promise<SearchPaginationResponseModel<ISlot>> {
-        if (!mongoose.Types.ObjectId.isValid(serviceId)) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid service ID');
+        // Filter by date range
+        if (date_from || date_to) {
+            query.start_time = {};
+            if (date_from) {
+                query.start_time.$gte = new Date(date_from);
+            }
+            if (date_to) {
+                const endDate = new Date(date_to);
+                endDate.setHours(23, 59, 59, 999);
+                query.start_time.$lte = endDate;
+            }
         }
 
-        const service = await this.serviceSchema.findById(serviceId);
-        if (!service) {
-            throw new HttpException(HttpStatus.NotFound, 'Service not found');
-        }
+        const totalItems = await this.slotSchema.countDocuments(query);
 
-        // Thêm service_id vào query params và gọi lại hàm getSlots
-        const newQueryParams = { ...queryParams, service_id: serviceId };
-        return await this.getSlots(newQueryParams);
+        // Lấy slot với phân trang và populate thông tin nhân viên
+        const slots = await this.slotSchema
+            .find(query)
+            .sort({ start_time: 1 })
+            .skip(skip)
+            .limit(pageSize)
+            .populate({
+                path: 'staff_profile_ids',
+                select: 'employee_id job_title department_id',
+                populate: {
+                    path: 'user_id',
+                    select: 'first_name last_name email'
+                }
+            })
+
+        const totalPages = Math.ceil(totalItems / pageSize);
+
+        return new SearchPaginationResponseModel<ISlot>(slots, {
+            pageNum,
+            pageSize,
+            totalItems,
+            totalPages
+        });
     }
 
     /**
@@ -590,7 +750,7 @@ export default class SlotService {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid department ID');
         }
 
-        // Find all active staff profiles in the department
+        // Lấy tất cả nhân viên thuộc phòng ban và trạng thái ACTIVE
         const staffProfiles = await this.staffProfileSchema.find({
             department_id: departmentId,
             status: StaffStatusEnum.ACTIVE
@@ -633,5 +793,85 @@ export default class SlotService {
             bookedSlots,
             bookingRate
         };
+    }
+
+    /**
+     * Lấy danh sách slots có sẵn để đặt lịch
+     * 
+     *
+     */
+    public async getAvailableSlots(params: {
+        start_date: string;
+        end_date?: string;
+        type?: string;
+    }): Promise<SearchPaginationResponseModel<ISlot>> {
+        const { start_date, end_date, type } = params;
+
+        // Validate start_date
+        if (!start_date) {
+            throw new HttpException(HttpStatus.BadRequest, 'start_date is required');
+        }
+
+        const startDate = new Date(start_date);
+        if (isNaN(startDate.getTime())) { // Kiểm tra xem startDate có phải là ngày hợp lệ không
+            throw new HttpException(HttpStatus.BadRequest, 'Invalid start_date format');
+        }
+
+        // Nếu không có end_date, set default end_date là 7 ngày từ start_date
+        let endDate: Date;
+        if (end_date) {
+            endDate = new Date(end_date);
+            if (isNaN(endDate.getTime())) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid end_date format');
+            }
+        } else {
+            endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 7); // Default to 7 days from start date
+        }
+
+        // Build query
+        const query: any = {
+            status: SlotStatusEnum.AVAILABLE
+        };
+
+        // Filter slots by date range using time_slots
+        query.time_slots = {
+            $elemMatch: {
+                year: { $gte: startDate.getFullYear(), $lte: endDate.getFullYear() },
+                month: { $gte: startDate.getMonth() + 1, $lte: endDate.getMonth() + 1 },
+                day: { $gte: startDate.getDate(), $lte: endDate.getDate() }
+            }
+        };
+
+        // Nếu type được cung cấp, lọc theo kiểu dịch vụ
+        if (type) {
+            // Kiểm tra xem type có phải là một trong các giá trị hợp lệ của SampleMethodEnum không
+            const validTypes = Object.values(SampleMethodEnum);
+            if (!validTypes.includes(type as SampleMethodEnum)) {
+                throw new HttpException(HttpStatus.BadRequest, `Invalid type. Must be one of: ${validTypes.join(', ')}`);
+            }
+        }
+
+        // Count total slots matching the query
+        const totalItems = await this.slotRepository.countDocuments(query);
+
+        // Get slots with pagination (default page 1, limit 10)
+        const pageNum = 1;
+        const pageSize = 10;
+        const skip = (pageNum - 1) * pageSize;
+
+        // Calculate total pages
+        const totalPages = Math.ceil(totalItems / pageSize);
+
+        // Get slots with populated data
+        const slots = await this.slotRepository.findWithPopulate(query, { "time_slots.year": 1, "time_slots.month": 1, "time_slots.day": 1 }, skip, pageSize);
+
+        // Return formatted response
+        return new SearchPaginationResponseModel<ISlot>(slots, {
+            pageNum,
+            pageSize,
+            totalItems,
+            totalPages
+        });
     }
 }

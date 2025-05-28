@@ -3,5 +3,5 @@ export enum KitStatusEnum {
     ASSIGNED = 'assigned',
     USED = 'used',
     RETURNED = 'returned',
-    DAMAGED = 'damaged'
+    DAMAGED = 'damaged' // đã hư hỏng
 } 

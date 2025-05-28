@@ -47,12 +47,12 @@ const UserSchemaEntity: Schema<IUser> = new Schema({
     is_deleted: { type: Boolean, default: false },
 });
 
-// Thêm virtual field vào UserSchema
+// Thêm virtual field vào UserSchema - virtual field là một trường ảo, không được lưu trữ trong database
 UserSchemaEntity.virtual('staff_profile', {
-    ref: 'StaffProfile',
+    ref: COLLECTION_NAME.STAFF_PROFILE,
     localField: '_id',
     foreignField: 'user_id',
-    justOne: true
+    justOne: true,
 });
 
 // Đảm bảo virtuals được bao gồm khi chuyển đổi sang JSON

@@ -12,10 +12,11 @@ export interface IKit extends Document {
     _id: string;
     code: string;
     status: KitStatus;
-    appointment_id: Schema.Types.ObjectId;
+    appointment_id?: Schema.Types.ObjectId;
     assigned_date?: Date;
-    assigned_to_user_id: Schema.Types.ObjectId;
+    assigned_to_user_id?: Schema.Types.ObjectId;
     return_date?: Date;
+    notes?: string;
     created_at: Date;
     updated_at: Date;
 } 

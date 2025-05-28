@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from 'express';
 import { HttpStatus } from '../../core/enums';
 import { HttpException } from '../../core/exceptions';
 import { formatResponse } from '../../core/utils';
-import { CreateMultipleSlotsDto } from './dtos/createMultipleSlots.dto';
 import { UpdateSlotDto } from './dtos/updateSlot.dto';
 import SlotService from './slot.service';
 import { CreateSlotDto } from './dtos/createSlot.dto';
@@ -102,10 +101,15 @@ export default class SlotController {
     /**
      * Lấy slots của một nhân viên
      */
-    public getSlotsByStaff = async (req: Request, res: Response, next: NextFunction) => {
+    public getSlotsByUser = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const staffProfileId = req.params.staffProfileId;
-            const slots = await this.slotService.getSlotsByStaff(staffProfileId, req.query);
+            const userId = req.params.id;
+
+            if (!userId) {
+                throw new HttpException(HttpStatus.BadRequest, 'User ID is required');
+            }
+
+            const slots = await this.slotService.getSlotsByUser(userId, req.query);
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<ISlot>>(slots));
         } catch (error) {
             next(error);
@@ -128,15 +132,15 @@ export default class SlotController {
     /**
      * Lấy slots theo dịch vụ
      */
-    public getSlotsByService = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const serviceId = req.params.serviceId;
-            const slots = await this.slotService.getSlotsByService(serviceId, req.query);
-            res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<ISlot>>(slots));
-        } catch (error) {
-            next(error);
-        }
-    };
+    // public getSlotsByService = async (req: Request, res: Response, next: NextFunction) => {
+    //     try {
+    //         const serviceId = req.params.serviceId;
+    //         const slots = await this.slotService.getSlotsByService(serviceId, req.query);
+    //         res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<ISlot>>(slots));
+    //     } catch (error) {
+    //         next(error);
+    //     }
+    // };
 
 
     /**
@@ -148,6 +152,29 @@ export default class SlotController {
             const { date_from, date_to } = req.query;
             const performanceStats = await this.slotService.getDepartmentPerformance(departmentId, { date_from, date_to });
             res.status(HttpStatus.Success).json(formatResponse(performanceStats));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Lấy danh sách slots có sẵn để đặt lịch
+     */
+    public getAvailableSlots = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { start_date, end_date, type } = req.query;
+
+            if (!start_date) {
+                throw new HttpException(HttpStatus.BadRequest, 'start_date is required');
+            }
+
+            const availableSlots = await this.slotService.getAvailableSlots({
+                start_date: start_date as string,
+                end_date: end_date as string,
+                type: type as string
+            });
+
+            res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<ISlot>>(availableSlots));
         } catch (error) {
             next(error);
         }

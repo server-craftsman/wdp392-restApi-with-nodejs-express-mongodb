@@ -37,25 +37,23 @@ export default class SlotRepository {
             .limit(limit)
             .populate({
                 path: 'staff_profile_ids',
-                select: 'employee_id job_title',
+                select: 'employee_id job_title _id',
                 populate: {
                     path: 'user_id',
-                    select: 'first_name last_name'
+                    select: '_id first_name last_name'
                 }
             })
-            .populate('service_id', 'name');
     }
 
     public async findByIdWithPopulate(id: string): Promise<ISlot | null> {
         return SlotSchema.findById(id)
             .populate({
                 path: 'staff_profile_ids',
-                select: 'employee_id job_title',
+                select: 'employee_id job_title id',
                 populate: {
                     path: 'user_id',
-                    select: 'first_name last_name'
+                    select: 'first_name last_name id'
                 }
             })
-            .populate('service_id', 'name');
     }
 }

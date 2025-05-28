@@ -6,17 +6,17 @@ export type SlotStatus =
     SlotStatusEnum.BOOKED |
     SlotStatusEnum.UNAVAILABLE;
 
-export enum SlotPattern {
-    DAILY = 'daily',
-    WEEKLY = 'weekly',
-    MONTHLY = 'monthly'
+export interface TimePoint {
+    hour: number;
+    minute: number;
 }
 
 export interface ITimeSlot {
-    start_hour: number;
-    start_minute: number;
-    end_hour: number;
-    end_minute: number;
+    year: number;
+    month: number;
+    day: number;
+    start_time: TimePoint;
+    end_time: TimePoint;
 }
 
 export interface ISlot extends Document {
@@ -25,11 +25,7 @@ export interface ISlot extends Document {
     staff_profile_ids: Schema.Types.ObjectId[] | string[];
     appointment_id?: Schema.Types.ObjectId;
     appointment_limit: number; //max appointment per slot
-    pattern: SlotPattern | string;
-    start_time: Date;
-    end_time: Date;
-    time_slots?: ITimeSlot;
-    days_of_week: number[];
+    time_slots?: ITimeSlot[];
     status: SlotStatus | string;
     created_at: Date;
     updated_at: Date;
