@@ -81,7 +81,13 @@ export default class App {
 
         // config ejs - simplified for faster startup
         this.app.set('view engine', 'ejs');
-        this.app.set('views', path.join(__dirname, 'modules/index'));
+
+        // Make sure the view path is correctly set for both local and Azure environments
+        this.app.set('views', [
+            path.join(__dirname, 'modules/index/view'),
+            path.join(__dirname, 'modules/index'),
+            path.join(__dirname, 'modules')
+        ]);
 
         // Serve static files efficiently
         const staticOptions = {

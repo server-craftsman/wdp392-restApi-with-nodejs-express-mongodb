@@ -18,11 +18,7 @@ export default class IndexController {
                 }
             };
 
-            try {
-                res.render('index/index', data);
-            } catch (renderError) {
-                res.render('index', data);
-            }
+            res.render('index', data);
         } catch (error) {
             next(error);
         }
