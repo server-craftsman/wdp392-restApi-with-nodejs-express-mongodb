@@ -6,9 +6,11 @@ import { IAppointment } from './appointment.interface';
 import { CreateAppointmentDto } from './dtos/createAppointment.dto';
 import { AssignStaffDto } from './dtos/assign-staff.dto';
 import { ConfirmAppointmentDto } from './dtos/confirm-appointment.dto';
+import { SearchAppointmentDto } from './dtos/search-appointment.dto';
 import AppointmentService from './appointment.service';
 import { SearchPaginationResponseModel } from '../../core/models/searchPagination.model';
 import { UserRoleEnum } from '../user/user.enum';
+import { ISample } from '../sample/sample.interface';
 
 export default class AppointmentController {
     private appointmentService = new AppointmentService();
@@ -42,6 +44,44 @@ export default class AppointmentController {
             const appointment = await this.appointmentService.getAppointmentById(appointmentId);
 
             res.status(HttpStatus.Success).json(formatResponse<IAppointment>(appointment));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Search appointments with filters
+     */
+    public searchAppointments = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.user.id;
+            const userRole = req.user.role;
+
+            if (!userId) {
+                throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
+            }
+
+            // Convert query parameters to SearchAppointmentDto
+            const searchParams: SearchAppointmentDto = {
+                pageNum: req.query.pageNum ? parseInt(req.query.pageNum as string) : 1,
+                pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,
+                user_id: req.query.user_id as string,
+                service_id: req.query.service_id as string,
+                status: req.query.status as any,
+                type: req.query.type as any,
+                staff_id: req.query.staff_id as string,
+                start_date: req.query.start_date as string,
+                end_date: req.query.end_date as string,
+                search_term: req.query.search_term as string
+            };
+
+            const result = await this.appointmentService.searchAppointments(
+                searchParams,
+                userRole,
+                userId
+            );
+
+            res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IAppointment>>(result));
         } catch (error) {
             next(error);
         }
@@ -100,6 +140,20 @@ export default class AppointmentController {
             );
 
             res.status(HttpStatus.Success).json(formatResponse<IAppointment>(updatedAppointment));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Get samples for an appointment
+     */
+    public getAppointmentSamples = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const appointmentId = req.params.id;
+            const samples = await this.appointmentService.getAppointmentSamples(appointmentId);
+
+            res.status(HttpStatus.Success).json(formatResponse<ISample[]>(samples));
         } catch (error) {
             next(error);
         }

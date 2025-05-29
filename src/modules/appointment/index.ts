@@ -8,6 +8,7 @@ import AppointmentController from './appointment.controller';
 import AppointmentService from './appointment.service';
 import AppointmentRepository from './appointment.repository';
 import { CreateAppointmentDto } from './dtos/createAppointment.dto';
+import './swagger';
 
 export {
     AppointmentSchema,

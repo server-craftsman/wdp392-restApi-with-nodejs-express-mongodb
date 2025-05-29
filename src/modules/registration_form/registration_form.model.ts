@@ -2,7 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 import { COLLECTION_NAME } from '../../core/constants';
 import { UserGenders } from '../user/user.constant';
 import { SampleTypes } from '../sample/sample.constant';
-import { IRegistrationForm } from './registration-form.interface';
+import { IRegistrationForm } from './registration_form.interface';
 
 const RegistrationFormSchemaEntity: Schema<IRegistrationForm> = new Schema({
     sample_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.SAMPLE },

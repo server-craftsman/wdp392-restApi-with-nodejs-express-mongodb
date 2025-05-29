@@ -1,5 +1,6 @@
 import AppointmentSchema from './appointment.model';
 import { IAppointment } from './appointment.interface';
+import SampleSchema from '../sample/sample.model';
 
 export default class AppointmentRepository {
     public async create(data: Partial<IAppointment>): Promise<IAppointment> {
@@ -31,7 +32,7 @@ export default class AppointmentRepository {
     }
 
     public async findWithPopulate(query: any, sort: any = {}, skip = 0, limit = 10): Promise<IAppointment[]> {
-        return AppointmentSchema.find(query)
+        const appointments = await AppointmentSchema.find(query)
             .sort(sort)
             .skip(skip)
             .limit(limit)
@@ -50,10 +51,38 @@ export default class AppointmentRepository {
                     }
                 }
             });
+
+        // Find samples for all appointments in one query
+        if (appointments && appointments.length > 0) {
+            const appointmentIds = appointments.map(app => app._id);
+            const allSamples = await SampleSchema.find({ appointment_id: { $in: appointmentIds } })
+                .select('_id type status kit_id appointment_id')
+                .populate('kit_id', '_id code');
+
+            // Group samples by appointment ID
+            const samplesByAppointment: Record<string, any[]> = {};
+            allSamples.forEach(sample => {
+                const appointmentId = sample.appointment_id.toString();
+                if (!samplesByAppointment[appointmentId]) {
+                    samplesByAppointment[appointmentId] = [];
+                }
+                samplesByAppointment[appointmentId].push(sample);
+            });
+
+            // Add samples to each appointment
+            appointments.forEach(appointment => {
+                const appointmentId = appointment._id.toString();
+                if (samplesByAppointment[appointmentId]) {
+                    (appointment as any).samples = samplesByAppointment[appointmentId];
+                }
+            });
+        }
+
+        return appointments;
     }
 
     public async findByIdWithPopulate(id: string): Promise<IAppointment | null> {
-        return AppointmentSchema.findById(id)
+        const appointment = await AppointmentSchema.findById(id)
             .populate('user_id', '_id first_name last_name')
             .populate('service_id', '_id name')
             .populate('staff_id', '_id first_name last_name')
@@ -69,5 +98,19 @@ export default class AppointmentRepository {
                     }
                 }
             });
+
+        if (appointment) {
+            // Find samples associated with this appointment
+            const samples = await SampleSchema.find({ appointment_id: appointment._id })
+                .select('_id type status kit_id')
+                .populate('kit_id', '_id code');
+
+            // Add samples to the appointment object
+            if (samples && samples.length > 0) {
+                (appointment as any).samples = samples;
+            }
+        }
+
+        return appointment;
     }
 }

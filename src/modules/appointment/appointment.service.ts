@@ -7,6 +7,7 @@ import { AppointmentStatusEnum, TypeEnum } from './appointment.enum';
 import { CreateAppointmentDto } from './dtos/createAppointment.dto';
 import { AssignStaffDto } from './dtos/assign-staff.dto';
 import { ConfirmAppointmentDto } from './dtos/confirm-appointment.dto';
+import { SearchAppointmentDto } from './dtos/search-appointment.dto';
 import AppointmentRepository from './appointment.repository';
 import SlotSchema from '../slot/slot.model';
 import { SlotStatusEnum } from '../slot/slot.enum';
@@ -19,12 +20,29 @@ import StaffProfileSchema from '../staff_profile/staff_profile.model';
 import { StaffStatusEnum } from '../staff_profile/staff_profile.enum';
 import UserSchema from '../user/user.model';
 import { UserRoleEnum } from '../user/user.enum';
+import SampleService from '../sample/sample.service';
+import { ISample } from '../sample/sample.interface';
 
 export default class AppointmentService {
-    private appointmentRepository = new AppointmentRepository();
-    private appointmentLogService = new AppointmentLogService();
-    private kitService = new KitService();
-    private staffProfileSchema = new StaffProfileSchema();
+    private readonly appointmentRepository: AppointmentRepository;
+    private readonly appointmentLogService: AppointmentLogService;
+    private readonly kitService: KitService;
+    private readonly staffProfileSchema: typeof StaffProfileSchema;
+    private sampleService?: SampleService;
+
+    constructor() {
+        this.appointmentRepository = new AppointmentRepository();
+        this.appointmentLogService = new AppointmentLogService();
+        this.kitService = new KitService();
+        this.staffProfileSchema = StaffProfileSchema;
+    }
+
+    private getSampleService(): SampleService {
+        if (!this.sampleService) {
+            this.sampleService = new SampleService();
+        }
+        return this.sampleService;
+    }
 
     /**
      * Create a new appointment
@@ -56,13 +74,14 @@ export default class AppointmentService {
 
                 // Nếu không có ngày appointment, sử dụng ngày từ slot entity
                 if (!appointmentData.appointment_date) {
+                    // set the appointment date to the slot's date
                     appointmentData.appointment_date = new Date(
                         slot?.time_slots?.[0]?.year ?? new Date().getFullYear(),
                         (slot?.time_slots?.[0]?.month ?? new Date().getMonth() + 1) - 1,
                         slot?.time_slots?.[0]?.day ?? new Date().getDate()
                     );
 
-                    // Set the appointment time to the slot's start time
+                    // set the appointment time to the slot's start time
                     if (slot?.time_slots?.[0]?.start_time) {
                         appointmentData.appointment_date.setHours(
                             slot.time_slots[0].start_time.hour,
@@ -129,6 +148,16 @@ export default class AppointmentService {
                     { status: SlotStatusEnum.BOOKED },
                     { new: true }
                 );
+            }
+
+            // tạo mẫu cho appointment nếu có mẫu được cung cấp
+            if (appointmentData.samples && appointmentData.samples.length > 0) {
+                console.log(`Sample types provided with appointment creation. These will be ignored.`);
+                console.log(`Please use the /api/sample/add-to-appointment endpoint to add samples to this appointment.`);
+
+                // Thêm thông tin hướng dẫn vào response
+                (appointment as any).sampleInstructions =
+                    "Please use the /api/sample/add-to-appointment endpoint to add samples to this appointment.";
             }
 
             // Log sự kiện tạo appointment
@@ -371,6 +400,127 @@ export default class AppointmentService {
     }
 
     /**
+     * Search appointments with filters
+     */
+    public async searchAppointments(
+        searchParams: SearchAppointmentDto,
+        userRole: UserRoleEnum,
+        userId?: string
+    ): Promise<SearchPaginationResponseModel<IAppointment>> {
+        try {
+            // Process pagination parameters
+            const pageNum = searchParams.pageNum || 1;
+            const pageSize = searchParams.pageSize || 10;
+            const skip = (pageNum - 1) * pageSize;
+
+            // Build the query based on filters
+            const query: any = {};
+
+            // If user is a customer, they can only see their own appointments
+            if (userRole === UserRoleEnum.CUSTOMER && userId) {
+                query.user_id = new mongoose.Types.ObjectId(userId);
+            }
+            // If user is a staff, they can only see appointments assigned to them
+            else if (userRole === UserRoleEnum.STAFF && userId) {
+                query.staff_id = new mongoose.Types.ObjectId(userId);
+            }
+            // For other roles, apply filters if provided
+            else {
+                if (searchParams.user_id) {
+                    query.user_id = new mongoose.Types.ObjectId(searchParams.user_id);
+                }
+
+                if (searchParams.staff_id) {
+                    query.staff_id = new mongoose.Types.ObjectId(searchParams.staff_id);
+                }
+            }
+
+            // Apply common filters
+            if (searchParams.service_id) {
+                query.service_id = new mongoose.Types.ObjectId(searchParams.service_id);
+            }
+
+            if (searchParams.status) {
+                query.status = searchParams.status;
+            }
+
+            if (searchParams.type) {
+                query.type = searchParams.type;
+            }
+
+            // Date range filter
+            if (searchParams.start_date || searchParams.end_date) {
+                query.appointment_date = {};
+
+                if (searchParams.start_date) {
+                    query.appointment_date.$gte = new Date(searchParams.start_date);
+                }
+
+                if (searchParams.end_date) {
+                    query.appointment_date.$lte = new Date(searchParams.end_date);
+                }
+            }
+
+            // Search term for address (if it's a home collection)
+            if (searchParams.search_term) {
+                const searchRegex = new RegExp(searchParams.search_term, 'i');
+
+                // If there's a search term, we'll search in collection_address if type is HOME
+                if (searchParams.type === TypeEnum.HOME) {
+                    query.collection_address = { $regex: searchRegex };
+                } else {
+                    // For other cases, we'll need to join with the user collection to search in name
+                    // This is handled by the populate in findWithPopulate
+                }
+            }
+
+            // Count total documents matching the query
+            const totalCount = await this.appointmentRepository.countDocuments(query);
+
+            // Sort by appointment date (newest first)
+            const sort = { appointment_date: -1 };
+
+            // Fetch appointments with pagination
+            const appointments = await this.appointmentRepository.findWithPopulate(
+                query,
+                sort,
+                skip,
+                pageSize
+            );
+
+            // If there's a search term and we're not specifically searching in collection_address,
+            // filter the results that match the search term in user name
+            let filteredAppointments = appointments;
+            if (searchParams.search_term && searchParams.type !== TypeEnum.HOME) {
+                const searchRegex = new RegExp(searchParams.search_term, 'i');
+                filteredAppointments = appointments.filter(appointment => {
+                    const user = appointment.user_id as any;
+                    if (user && (user.first_name || user.last_name)) {
+                        const fullName = `${user.first_name || ''} ${user.last_name || ''}`;
+                        return searchRegex.test(fullName);
+                    }
+                    return false;
+                });
+            }
+
+            return {
+                pageData: filteredAppointments,
+                pageInfo: {
+                    totalItems: totalCount,
+                    pageNum,
+                    pageSize,
+                    totalPages: Math.ceil(totalCount / pageSize)
+                }
+            };
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error searching appointments');
+        }
+    }
+
+    /**
      * Process query parameters
      */
     private processQueryParams(queryParams: any): any {
@@ -380,5 +530,57 @@ export default class AppointmentService {
             pageSize: parseInt(pageSize),
             ...rest
         };
+    }
+
+    /**
+     * Update appointment status
+     */
+    public async updateAppointmentStatus(appointmentId: string, status: AppointmentStatusEnum): Promise<IAppointment> {
+        // Validate appointmentId
+        if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+            throw new HttpException(HttpStatus.BadRequest, 'Invalid appointment ID');
+        }
+
+        // Find the appointment
+        const appointment = await this.getAppointmentById(appointmentId);
+
+        // Update appointment status
+        const oldStatus = appointment.status;
+        const updatedAppointment = await this.appointmentRepository.findByIdAndUpdate(
+            appointmentId,
+            {
+                status: status,
+                updated_at: new Date()
+            },
+            { new: true }
+        );
+
+        if (!updatedAppointment) {
+            throw new HttpException(HttpStatus.InternalServerError, 'Failed to update appointment status');
+        }
+
+        // Log the status change
+        try {
+            await this.appointmentLogService.logStatusChange(
+                updatedAppointment,
+                oldStatus as unknown as AppointmentLogTypeEnum
+            );
+        } catch (logError) {
+            console.error('Failed to create appointment log for status change:', logError);
+        }
+
+        return updatedAppointment;
+    }
+
+    /**
+     * Get samples for an appointment
+     */
+    public async getAppointmentSamples(appointmentId: string): Promise<ISample[]> {
+        // Validate appointment exists
+        await this.getAppointmentById(appointmentId);
+
+        // Get samples for the appointment
+        const samples = await this.getSampleService().getSamplesByAppointmentId(appointmentId);
+        return samples;
     }
 }

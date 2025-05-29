@@ -12,13 +12,17 @@ import { SlotRoute } from './modules/slot';
 import { AppointmentRoute } from './modules/appointment';
 import { AppointmentLogRoute } from './modules/appointment_log';
 import { KitRoute } from './modules/kit';
-
+import { SampleRoute } from './modules/sample';
+import { ResultRoute } from './modules/result';
+import { RegistrationFormRoute } from './modules/registration_form';
+import { DocsRoute } from './modules/docs';
 dotenv.config();
 
 validateEnv();
 
 const routes = [
     new IndexRoute(),
+    new DocsRoute(),
     new AuthRoute(),
     new UserRoute(),
     new PaymentRoute(),
@@ -28,7 +32,10 @@ const routes = [
     new SlotRoute(),
     new AppointmentRoute(),
     new AppointmentLogRoute(),
-    new KitRoute()
+    new KitRoute(),
+    new SampleRoute(),
+    new ResultRoute(),
+    new RegistrationFormRoute()
 ];
 
 const app = new App(routes);

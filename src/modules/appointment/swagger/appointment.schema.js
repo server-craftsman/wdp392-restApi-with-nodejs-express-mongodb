@@ -30,6 +30,19 @@
  *           type: string
  *           description: Address for home collection (required when type is 'home')
  *           example: "123 Main St, City, Country"
+ *         samples:
+ *           type: array
+ *           description: Sample types to be collected for this appointment
+ *           items:
+ *             type: object
+ *             properties:
+ *               type:
+ *                 type: string
+ *                 enum: [saliva, blood, hair, other]
+ *                 description: Type of sample
+ *                 example: "saliva"
+ *           example: [{ "type": "saliva" }, { "type": "blood" }]
+ *           deprecated: true
  *
  *     AssignStaffDto:
  *       type: object
@@ -256,9 +269,9 @@
  *           enum: [pending, confirmed, sample_collected, sample_received, testing, completed, cancelled]
  *           description: Filter by appointment status
  *           example: "confirmed"
- *         customer_id:
+ *         user_id:
  *           type: string
- *           description: Filter appointments by customer ID
+ *           description: Filter appointments by user ID
  *           example: "60d0fe4f5311236168a109cf"
  *         service_id:
  *           type: string
@@ -268,12 +281,12 @@
  *           type: string
  *           description: Filter appointments by staff ID
  *           example: "60d0fe4f5311236168a109cc"
- *         date_from:
+ *         start_date:
  *           type: string
  *           format: date
  *           description: Filter appointments from this date
  *           example: "2023-10-01"
- *         date_to:
+ *         end_date:
  *           type: string
  *           format: date
  *           description: Filter appointments until this date
@@ -283,6 +296,10 @@
  *           enum: [self, facility, home]
  *           description: Filter by appointment type
  *           example: "facility"
+ *         search_term:
+ *           type: string
+ *           description: Search term for customer name or address
+ *           example: "John Doe"
  *
  *     AppointmentStatusUpdateResponse:
  *       type: object

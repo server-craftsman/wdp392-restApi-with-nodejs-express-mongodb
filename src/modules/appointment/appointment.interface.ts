@@ -1,5 +1,6 @@
 import { Document, Schema } from 'mongoose';
 import { AppointmentStatusEnum, TypeEnum } from './appointment.enum';
+import { ISample } from '../sample/sample.interface';
 
 export type AppointmentStatus =
     AppointmentStatusEnum.PENDING |
@@ -15,6 +16,13 @@ export type CollectionType =
     TypeEnum.FACILITY |
     TypeEnum.HOME;
 
+// Interface for sample information in appointment response
+export interface ISampleInfo {
+    _id: string;
+    type: string;
+    status: string;
+    kit_id: Schema.Types.ObjectId;
+}
 
 export interface IAppointment extends Document {
     _id: string;
@@ -26,6 +34,7 @@ export interface IAppointment extends Document {
     collection_address?: string;
     staff_id?: Schema.Types.ObjectId;
     slot_id?: Schema.Types.ObjectId;
+    samples?: ISampleInfo[];
     created_at: Date;
     updated_at: Date;
 }

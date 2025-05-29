@@ -24,9 +24,9 @@ export default class App {
 
         this.connectToDatabase();
         this.initializeMiddleware();
+        this.initializeSwagger();
         this.initializeRoute(routes);
         this.initializeErrorMiddleware();
-        this.initializeSwagger();
     }
 
     public listen() {
@@ -101,7 +101,7 @@ export default class App {
 
     // initialize Swagger documentation
     private initializeSwagger() {
-        // Sử dụng swagger.ts thay vì swagger.yaml
+        // Use swagger.ts to initialize Swagger documentation
         swaggerDocs(this.app, this.port);
 
         // Giữ lại cách cũ 

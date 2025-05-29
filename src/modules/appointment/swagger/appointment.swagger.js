@@ -43,11 +43,8 @@
  * @swagger
  * /api/appointment/search:
  *   get:
- *     tags:
- *       - appointments
- *     summary: Search appointments (All authenticated users)
- *     description: Search for appointments with pagination and filtering options
- *     operationId: searchAppointments
+ *     summary: Search appointments with filters
+ *     tags: [appointments]
  *     security:
  *       - Bearer: []
  *     parameters:
@@ -57,71 +54,146 @@
  *           type: integer
  *           default: 1
  *         description: Page number for pagination
- *         example: 1
  *       - in: query
  *         name: pageSize
  *         schema:
  *           type: integer
  *           default: 10
  *         description: Number of items per page
- *         example: 10
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: string
+ *         description: Filter by user ID (MongoDB ObjectId)
+ *       - in: query
+ *         name: service_id
+ *         schema:
+ *           type: string
+ *         description: Filter by service ID (MongoDB ObjectId)
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
  *           enum: [pending, confirmed, sample_collected, sample_received, testing, completed, cancelled]
  *         description: Filter by appointment status
- *         example: "confirmed"
- *       - in: query
- *         name: customer_id
- *         schema:
- *           type: string
- *         description: Filter appointments by customer ID
- *         example: "60d0fe4f5311236168a109cf"
- *       - in: query
- *         name: service_id
- *         schema:
- *           type: string
- *         description: Filter appointments by service ID
- *         example: "60d0fe4f5311236168a109ca"
- *       - in: query
- *         name: staff_id
- *         schema:
- *           type: string
- *         description: Filter appointments by staff ID
- *         example: "60d0fe4f5311236168a109cc"
- *       - in: query
- *         name: date_from
- *         schema:
- *           type: string
- *           format: date
- *         description: Filter appointments from this date
- *         example: "2023-10-01"
- *       - in: query
- *         name: date_to
- *         schema:
- *           type: string
- *           format: date
- *         description: Filter appointments until this date
- *         example: "2023-10-31"
  *       - in: query
  *         name: type
  *         schema:
  *           type: string
  *           enum: [self, facility, home]
  *         description: Filter by appointment type
- *         example: "facility"
+ *       - in: query
+ *         name: staff_id
+ *         schema:
+ *           type: string
+ *         description: Filter by assigned staff ID (MongoDB ObjectId)
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter appointments from this date (ISO format)
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter appointments until this date (ISO format)
+ *       - in: query
+ *         name: search_term
+ *         schema:
+ *           type: string
+ *         description: Search term for customer name or address
  *     responses:
  *       200:
- *         description: List of appointments with pagination
+ *         description: Successful operation
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AppointmentPaginationResponse'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     pageData:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Appointment'
+ *                     pageInfo:
+ *                       type: object
+ *                       properties:
+ *                         totalItems:
+ *                           type: integer
+ *                           example: 50
+ *                         pageNum:
+ *                           type: integer
+ *                           example: 1
+ *                         pageSize:
+ *                           type: integer
+ *                           example: 10
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 5
  *       401:
- *         description: Unauthorized - Authentication required
- *       403:
- *         description: Forbidden - Insufficient permissions
+ *         description: Unauthorized - User not authenticated
+ *       500:
+ *         description: Internal server error
+ * 
+ * components:
+ *   schemas:
+ *     Appointment:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Appointment ID
+ *         user_id:
+ *           type: object
+ *           properties:
+ *             _id:
+ *               type: string
+ *             first_name:
+ *               type: string
+ *             last_name:
+ *               type: string
+ *         service_id:
+ *           type: object
+ *           properties:
+ *             _id:
+ *               type: string
+ *             name:
+ *               type: string
+ *         status:
+ *           type: string
+ *           enum: [pending, confirmed, sample_collected, sample_received, testing, completed, cancelled]
+ *         appointment_date:
+ *           type: string
+ *           format: date-time
+ *         type:
+ *           type: string
+ *           enum: [self, facility, home]
+ *         collection_address:
+ *           type: string
+ *         staff_id:
+ *           type: object
+ *           properties:
+ *             _id:
+ *               type: string
+ *             first_name:
+ *               type: string
+ *             last_name:
+ *               type: string
+ *         slot_id:
+ *           type: object
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *         updated_at:
+ *           type: string
+ *           format: date-time
  */
 
 /**
@@ -248,4 +320,48 @@
  *         description: Kit already assigned to another appointment
  *       422:
  *         description: Invalid operation - Appointment status must be 'pending' with assigned staff
+ */
+
+/**
+ * @swagger
+ * /api/appointment/{id}/samples:
+ *   get:
+ *     tags:
+ *       - appointments
+ *     summary: Get samples for an appointment
+ *     description: Retrieve all samples associated with a specific appointment
+ *     operationId: getAppointmentSamples
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Appointment ID
+ *         example: "60d0fe4f5311236168a109ce"
+ *     responses:
+ *       200:
+ *         description: Samples retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/SampleResponse'
+ *       400:
+ *         description: Invalid appointment ID format
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       404:
+ *         description: Appointment not found
+ *       500:
+ *         description: Internal server error
  */

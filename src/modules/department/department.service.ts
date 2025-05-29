@@ -44,7 +44,7 @@ export default class DepartmentService {
         // Tạo phòng ban mới
         const department = await this.departmentRepository.createDepartment({
             ...model,
-            manager_id: new Schema.Types.ObjectId(model.manager_id),
+            manager_id: model.manager_id as any,
             created_at: new Date(),
             updated_at: new Date()
         }) as IDepartment;
@@ -175,7 +175,7 @@ export default class DepartmentService {
             id,
             {
                 ...model,
-                manager_id: model.manager_id ? new Schema.Types.ObjectId(model.manager_id) as any : department.manager_id,
+                manager_id: model.manager_id ? (model.manager_id as any) : department.manager_id,
                 updated_at: new Date()
             },
             { new: true }

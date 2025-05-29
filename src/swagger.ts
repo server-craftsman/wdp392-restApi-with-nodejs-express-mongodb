@@ -35,7 +35,12 @@ const options = {
                     bearerFormat: "JWT"
                 }
             }
-        }
+        },
+        security: [
+            {
+                Bearer: []
+            }
+        ]
     },
     // Paths to files containing OpenAPI definitions
     apis: [
@@ -48,7 +53,24 @@ const swaggerSpec = swaggerJsdoc(options)
 
 function swaggerDocs(app: any, port: any) {
     // Swagger Page
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+    app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+        swaggerOptions: {
+            persistAuthorization: true,
+            displayRequestDuration: true,
+            docExpansion: 'none',
+            filter: true,
+            showExtensions: true,
+            tryItOutEnabled: true,
+            tagsSorter: 'alpha'
+        },
+        customCss: '.swagger-ui .topbar { background-color: #2C3E50; }'
+    }))
+
+    // Documentation in JSON format
+    app.get('/docs.json', (req: any, res: any) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.send(swaggerSpec);
+    });
 }
 
 export default swaggerDocs

@@ -11,6 +11,7 @@ export interface IAppointmentLog extends Document {
     old_status: AppointmentLogTypeEnum;
     new_status: AppointmentLogTypeEnum;
     type: CollectionType;
+    notes?: string;
     created_at: Date;
     updated_at: Date;
 }

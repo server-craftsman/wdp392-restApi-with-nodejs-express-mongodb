@@ -22,7 +22,7 @@ export default class KitRoute implements IRoute {
         // GET: domain:/api/kit/search -> Search kits
         this.router.get(
             `${API_PATH.SEARCH_KIT}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
             this.kitController.searchKits
         );
 
@@ -44,6 +44,7 @@ export default class KitRoute implements IRoute {
         this.router.post(
             `${API_PATH.CREATE_KIT}`,
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
+            validationMiddleware(CreateKitDto),
             this.kitController.createKit
         );
 

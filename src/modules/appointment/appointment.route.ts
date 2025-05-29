@@ -18,6 +18,13 @@ export default class AppointmentRoute implements IRoute {
     }
 
     private initializeRoutes() {
+        // GET: domain:/api/appointment/search -> Search appointments with filters
+        this.router.get(
+            `${this.path}/search`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]),
+            this.appointmentController.searchAppointments
+        );
+
         // POST: domain:/api/appointment/create -> Create a new appointment
         this.router.post(
             `${API_PATH.CREATE_APPOINTMENT}`,
@@ -31,6 +38,13 @@ export default class AppointmentRoute implements IRoute {
             `${API_PATH.GET_APPOINTMENT_BY_ID}`,
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]),
             this.appointmentController.getAppointmentById
+        );
+
+        // GET: domain:/api/appointment/:id/samples -> Get samples for an appointment
+        this.router.get(
+            `${this.path}/:id/samples`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]),
+            this.appointmentController.getAppointmentSamples
         );
 
         // PUT: domain:/api/appointment/:id/assign-staff -> Assign staff to appointment

@@ -6,6 +6,7 @@ import AppointmentLogRepository from './appointment_log.repository';
 import { IAppointment } from '../appointment/appointment.interface';
 import { SearchPaginationResponseModel } from '../../core/models';
 import mongoose from 'mongoose';
+import { ISample } from '../sample/sample.interface';
 
 export default class AppointmentLogService {
     private appointmentLogRepository = new AppointmentLogRepository();
@@ -120,5 +121,37 @@ export default class AppointmentLogService {
             pageSize: parseInt(pageSize),
             ...rest
         };
+    }
+
+    /**
+     * Log sample creation for an appointment
+     * @param appointmentData The appointment data
+     * @param samples The created samples
+     */
+    public async logSampleCreation(
+        appointmentData: IAppointment,
+        samples: ISample[]
+    ): Promise<IAppointmentLog> {
+        try {
+            const sampleTypes = samples.map(sample => sample.type).join(', ');
+            const notes = `Created ${samples.length} sample(s): ${sampleTypes}`;
+
+            const appointmentLog = await this.appointmentLogRepository.create({
+                appointment_id: appointmentData._id as any,
+                customer_id: appointmentData.user_id,
+                staff_id: appointmentData.staff_id,
+                old_status: appointmentData.status as unknown as AppointmentLogTypeEnum,
+                new_status: AppointmentLogTypeEnum.SAMPLE_CREATED,
+                type: appointmentData.type,
+                notes: notes,
+                created_at: new Date(),
+                updated_at: new Date()
+            });
+
+            return appointmentLog;
+        } catch (error) {
+            console.error('Error creating sample creation log:', error);
+            throw new HttpException(HttpStatus.InternalServerError, 'Error creating sample creation log');
+        }
     }
 } 

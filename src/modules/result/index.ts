@@ -1,13 +1,23 @@
 import ResultSchema from './result.model';
-import { IResult, IResultData, ResultMatch } from './result.interface';
+import { IResult, ResultMatch, IResultData } from './result.interface';
 import { ResultMatchEnum } from './result.enum';
-import { ResultMatches } from './result.constant';
+import ResultController from './result.controller';
+import ResultService from './result.service';
+import ResultRepository from './result.repository';
+import ResultRoute from './result.route';
+import { CreateResultDto, UpdateResultDto, StartTestingDto } from './dtos';
 
 export {
     ResultSchema,
     IResult,
-    IResultData,
     ResultMatch,
+    IResultData,
     ResultMatchEnum,
-    ResultMatches
+    ResultController,
+    ResultService,
+    ResultRepository,
+    ResultRoute,
+    CreateResultDto,
+    UpdateResultDto,
+    StartTestingDto
 }; 
