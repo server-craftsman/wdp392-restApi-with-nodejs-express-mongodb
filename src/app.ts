@@ -7,8 +7,6 @@ import morgan from 'morgan';
 import path from 'path';
 import compression from 'compression';
 import 'reflect-metadata'; // for class-transformer
-import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
 import { IRoute } from './core/interfaces';
 import { errorMiddleware } from './core/middleware';
 import { logger } from './core/utils';
