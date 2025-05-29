@@ -45,11 +45,16 @@
  *       type: object
  *       required:
  *         - kit_id
+ *         - laboratory_technician_id
  *       properties:
  *         kit_id:
  *           type: string
  *           description: ID of the testing kit to assign to the appointment
  *           example: "60d0fe4f5311236168a109cd"
+ *         laboratory_technician_id:
+ *           type: string
+ *           description: ID of the laboratory technician to assign the kit to
+ *           example: "60d0fe4f5311236168a109dd"
  *
  *     AppointmentResponse:
  *       type: object
@@ -159,6 +164,42 @@
  *           description: Current appointment status
  *           enum: [pending, confirmed, sample_collected, sample_received, testing, completed, cancelled]
  *           example: "pending"
+ *         kit:
+ *           type: object
+ *           description: Kit information (if assigned)
+ *           properties:
+ *             _id:
+ *               type: string
+ *               description: Kit ID
+ *               example: "60d0fe4f5311236168a109cd"
+ *             code:
+ *               type: string
+ *               description: Kit code
+ *               example: "KIT-20230915-001"
+ *             status:
+ *               type: string
+ *               description: Kit status
+ *               example: "assigned"
+ *             assigned_to_user_id:
+ *               type: object
+ *               description: Laboratory technician information
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                   description: Laboratory technician ID
+ *                   example: "60d0fe4f5311236168a109dd"
+ *                 first_name:
+ *                   type: string
+ *                   description: Laboratory technician's first name
+ *                   example: "Alex"
+ *                 last_name:
+ *                   type: string
+ *                   description: Laboratory technician's last name
+ *                   example: "Johnson"
+ *                 role:
+ *                   type: string
+ *                   description: User role
+ *                   example: "laboratory_technician"
  *         created_at:
  *           type: string
  *           format: date-time

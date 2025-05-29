@@ -44,4 +44,19 @@ export default class KitRepository {
             .populate('appointment_id')
             .populate('assigned_to_user_id', '_id first_name last_name');
     }
+
+    public async findWithDetailedPopulate(query: any): Promise<IKit[]> {
+        return KitSchema.find(query)
+            .populate({
+                path: 'appointment_id',
+                populate: {
+                    path: 'service_id',
+                    select: '_id name description price'
+                }
+            })
+            .populate({
+                path: 'assigned_to_user_id',
+                select: '_id first_name last_name email role'
+            });
+    }
 } 

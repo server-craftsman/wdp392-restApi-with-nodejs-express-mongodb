@@ -283,17 +283,25 @@ export default class KitService {
     }
 
     /**
-     * Assign a kit to an appointment and user
+     * Assign a kit to an appointment and laboratory technician
+     * @param kitId - The ID of the kit to assign
+     * @param appointmentId - The ID of the appointment
+     * @param technicianId - The ID of the laboratory technician
      */
-    public async assignKit(kitId: string, appointmentId: string, userId: string): Promise<IKit> {
+    public async assignKit(kitId: string, appointmentId: string, technicianId: string): Promise<IKit> {
         const kit = await this.findAvailableKitById(kitId);
+
+        // Validate userId is a valid ObjectId
+        if (!mongoose.Types.ObjectId.isValid(technicianId)) {
+            throw new HttpException(HttpStatus.BadRequest, 'Invalid laboratory technician ID');
+        }
 
         const updatedKit = await this.kitRepository.findByIdAndUpdate(
             kitId,
             {
                 status: KitStatusEnum.ASSIGNED,
                 appointment_id: appointmentId as any,
-                assigned_to_user_id: userId as any,
+                assigned_to_user_id: technicianId as any,
                 assigned_date: new Date(),
                 updated_at: new Date()
             },
@@ -355,5 +363,5 @@ export default class KitService {
             pageSize: parseInt(pageSize),
             ...rest
         };
-    }
+    }    
 } 

@@ -7,6 +7,7 @@ import KitController from './kit.controller';
 import { CreateKitDto } from './dtos/createKit.dto';
 import { UpdateKitDto } from './dtos/updateKit.dto';
 import { ReturnKitDto } from './dtos/returnKit.dto';
+import { AssignKitDto } from './dtos/assignKit.dto';
 
 export default class KitRoute implements IRoute {
     public path = API_PATH.KIT;
@@ -52,6 +53,14 @@ export default class KitRoute implements IRoute {
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             validationMiddleware(UpdateKitDto),
             this.kitController.updateKit
+        );
+
+        // POST: domain:/api/kit/:id/assign -> Assign a kit to a laboratory technician
+        this.router.post(
+            `${API_PATH.ASSIGN_KIT}`,
+            authMiddleWare([UserRoleEnum.STAFF]),
+            validationMiddleware(AssignKitDto),
+            this.kitController.assignKit
         );
 
         // PATCH: domain:/api/kit/:id/status -> Change kit status

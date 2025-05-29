@@ -80,7 +80,7 @@
  *         name: assigned_to_user_id
  *         schema:
  *           type: string
- *         description: Filter by assigned user ID
+ *         description: Filter by assigned laboratory technician ID
  *         example: "60d5ec9af682fbd12a0f4a1a"
  *     responses:
  *       200:

@@ -79,29 +79,24 @@ export default class AppointmentController {
     };
 
     /**
-     * Confirm appointment and assign kit (by staff)
+     * Confirm appointment and assign kit to laboratory technician (by staff)
      */
     public confirmAppointment = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const userId = req.user.id;
-            const userRole = req.user.role;
-
-            if (!userId) {
+            const staffId = req.user.id;
+            if (!staffId) {
                 throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
-            }
-
-            // Only staff can confirm appointments
-            if (userRole !== UserRoleEnum.STAFF) {
-                throw new HttpException(HttpStatus.Forbidden, 'Only staff can confirm appointments');
             }
 
             const appointmentId = req.params.id;
             const confirmData: ConfirmAppointmentDto = req.body;
+            const userRole = req.user.role;
 
             const updatedAppointment = await this.appointmentService.confirmAppointment(
                 appointmentId,
                 confirmData,
-                userId
+                staffId,
+                userRole
             );
 
             res.status(HttpStatus.Success).json(formatResponse<IAppointment>(updatedAppointment));

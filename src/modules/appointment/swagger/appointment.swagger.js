@@ -210,8 +210,8 @@
  *   put:
  *     tags:
  *       - appointments
- *     summary: Confirm appointment and assign kit (Staff only)
- *     description: Confirm an appointment, assign a testing kit, and update its status to 'confirmed'
+ *     summary: Confirm appointment and assign kit to laboratory technician (Staff only)
+ *     description: Confirm an appointment, assign a testing kit to a laboratory technician, and update appointment status to 'confirmed'
  *     operationId: confirmAppointment
  *     security:
  *       - Bearer: []
@@ -237,13 +237,13 @@
  *             schema:
  *               $ref: '#/components/schemas/AppointmentResponse'
  *       400:
- *         description: Invalid input data or appointment ID format
+ *         description: Invalid input data, appointment ID format, or laboratory technician role
  *       401:
  *         description: Unauthorized - Authentication required
  *       403:
- *         description: Forbidden - Staff access required
+ *         description: Forbidden - Staff access required or staff not assigned to this appointment
  *       404:
- *         description: Appointment or kit not found
+ *         description: Appointment, kit, or laboratory technician not found
  *       409:
  *         description: Kit already assigned to another appointment
  *       422:

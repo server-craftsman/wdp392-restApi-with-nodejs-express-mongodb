@@ -125,4 +125,24 @@ export default class KitController {
             next(error);
         }
     };
+
+    /**
+     * Assign a kit to a laboratory technician
+     */
+    public assignKit = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const kitId = req.params.id;
+            const { appointment_id, laboratory_technician_id } = req.body;
+
+            const kit = await this.kitService.assignKit(
+                kitId,
+                appointment_id,
+                laboratory_technician_id
+            );
+
+            res.status(HttpStatus.Success).json(formatResponse<IKit>(kit));
+        } catch (error) {
+            next(error);
+        }
+    };
 } 

@@ -18,6 +18,7 @@ import KitService from '../kit/kit.service';
 import StaffProfileSchema from '../staff_profile/staff_profile.model';
 import { StaffStatusEnum } from '../staff_profile/staff_profile.enum';
 import UserSchema from '../user/user.model';
+import { UserRoleEnum } from '../user/user.enum';
 
 export default class AppointmentService {
     private appointmentRepository = new AppointmentRepository();
@@ -239,9 +240,14 @@ export default class AppointmentService {
     public async confirmAppointment(
         appointmentId: string,
         confirmData: ConfirmAppointmentDto,
-        staffId: string
+        staffId: string,
+        userRole: UserRoleEnum
     ): Promise<IAppointment> {
         const appointment = await this.getAppointmentById(appointmentId);
+        // Only staff can confirm appointments
+        if (userRole !== UserRoleEnum.STAFF) {
+            throw new HttpException(HttpStatus.Forbidden, 'Only staff can confirm appointments');
+        }
 
         // Kiểm tra appointment có nhân viên được gán và nó khớp với nhân viên hiện tại
         if (!appointment.staff_id) {
@@ -273,18 +279,67 @@ export default class AppointmentService {
             throw new HttpException(HttpStatus.NotFound, 'Staff profile not found');
         }
 
-        if (appointment.staff_id.toString() !== staffProfile._id.toString()) {
+        // Lấy thông tin user được gán cho appointment
+        const appointmentStaff = await UserSchema.findById(appointment.staff_id);
+        if (!appointmentStaff) {
+            throw new HttpException(HttpStatus.NotFound, 'Assigned staff not found');
+        }
+
+        // Kiểm tra xem staffId (từ token) có khớp với staff_id trong appointment không
+        if (appointmentStaff._id.toString() !== staffId) {
             throw new HttpException(
                 HttpStatus.Forbidden,
                 'You are not assigned to this appointment'
             );
         }
 
-        // Gán kit cho appointment và khách hàng
+        // Kiểm tra laboratory technician ID có hợp lệ không
+        if (!mongoose.Types.ObjectId.isValid(confirmData.laboratory_technician_id)) {
+            throw new HttpException(HttpStatus.BadRequest, 'Invalid laboratory technician ID');
+        }
+
+        // Kiểm tra laboratory technician có tồn tại không
+        const labTechnician = await UserSchema.findById(confirmData.laboratory_technician_id);
+        if (!labTechnician) {
+            throw new HttpException(HttpStatus.NotFound, 'Laboratory technician not found');
+        }
+
+        // Kiểm tra xem user có phải là laboratory technician không
+        if (labTechnician.role !== UserRoleEnum.LABORATORY_TECHNICIAN) {
+            throw new HttpException(
+                HttpStatus.BadRequest,
+                'The selected user is not a laboratory technician'
+            );
+        }
+
+        // get user_id từ appointment
+        let userId: string;
+
+        // xử lí user_id từ appointment convert  from object to string
+        if (appointment.user_id) { // kiểm tra xem user_id có tồn tại trong bảng appointment không
+            if (typeof appointment.user_id === 'object') { // kiểm tra xem user_id có phải là object không
+                // convert user_id từ object sang string
+                const userObj = appointment.user_id as any; // convert user_id từ object sang any
+                if (userObj._id) { // kiểm tra xem user_id có phải là _id không
+                    userId = userObj._id.toString(); // convert _id từ object sang string
+                } else if (userObj.id) { // kiểm tra xem user_id có phải là id không
+                    userId = userObj.id.toString();
+                } else {
+                    throw new HttpException(HttpStatus.BadRequest, 'Invalid user object in appointment');
+                }
+            } else {
+                // convert user_id từ string sang string
+                userId = (appointment.user_id as any).toString();
+            }
+        } else {
+            throw new HttpException(HttpStatus.BadRequest, 'User ID not found in appointment');
+        }
+
+        // Gán kit cho appointment và laboratory technician thay vì khách hàng
         await this.kitService.assignKit(
             confirmData.kit_id,
             appointmentId,
-            appointment.user_id.toString()
+            confirmData.laboratory_technician_id // Sử dụng laboratory technician ID thay vì user ID
         );
 
         // Cập nhật trạng thái appointment thành CONFIRMED

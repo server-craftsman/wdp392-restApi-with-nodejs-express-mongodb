@@ -11,6 +11,21 @@
  *           pattern: "^KIT-\\d{8}-\\d{3}$"
  *           example: "KIT-20230615-001"
  *
+ *     AssignKitDto:
+ *       type: object
+ *       required:
+ *         - appointment_id
+ *         - laboratory_technician_id
+ *       properties:
+ *         appointment_id:
+ *           type: string
+ *           description: ID of the appointment to assign the kit to
+ *           example: "60d5ec9af682fbd12a0f4d4d"
+ *         laboratory_technician_id:
+ *           type: string
+ *           description: ID of the laboratory technician to assign the kit to
+ *           example: "60d5ec9af682fbd12a0f4a1a"
+ *
  *     UpdateKitDto:
  *       type: object
  *       properties:
@@ -72,20 +87,23 @@
  *               example: "APP-20230615-001"
  *         assigned_to_user_id:
  *           type: object
- *           description: User assigned to the kit (if any)
+ *           description: Laboratory technician assigned to the kit (if any)
  *           properties:
  *             _id:
  *               type: string
  *               example: "60d5ec9af682fbd12a0f4a1a"
  *             first_name:
  *               type: string
- *               example: "John"
+ *               example: "Alex"
  *             last_name:
  *               type: string
- *               example: "Doe"
+ *               example: "Johnson"
  *             email:
  *               type: string
- *               example: "john.doe@example.com"
+ *               example: "alex.johnson@example.com"
+ *             role:
+ *               type: string
+ *               example: "laboratory_technician"
  *         assigned_date:
  *           type: string
  *           format: date-time
@@ -156,7 +174,7 @@
  *           example: "60d5ec9af682fbd12a0f4d4d"
  *         assigned_to_user_id:
  *           type: string
- *           description: Filter by assigned user ID
+ *           description: Filter by assigned laboratory technician ID
  *           example: "60d5ec9af682fbd12a0f4a1a"
  *         pageNum:
  *           type: integer
@@ -180,4 +198,56 @@
  *           type: string
  *           description: Success message
  *           example: "Operation completed successfully"
+ *
+ *     KitDetailedResponse:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Kit ID
+ *           example: "60d5ec9af682fbd12a0f4c3c"
+ *         code:
+ *           type: string
+ *           description: Kit unique identifier code
+ *           example: "KIT-20230615-001"
+ *         status:
+ *           type: string
+ *           description: Current kit status
+ *           enum: [available, assigned, used, returned, damaged]
+ *           example: "available"
+ *         appointment_id:
+ *           type: object
+ *           description: Associated appointment (if any)
+ *           properties:
+ *             _id:
+ *               type: string
+ *               example: "60d5ec9af682fbd12a0f4d4d"
+ *             appointment_code:
+ *               type: string
+ *               example: "APP-20230615-001"
+ *             service_id:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                   example: "60d5ec9af682fbd12a0f4d4e"
+ *                 name:
+ *                   type: string
+ *                   example: "DNA Paternity Test"
+ *                 description:
+ *                   type: string
+ *                   example: "Standard paternity test with 99.99% accuracy"
+ *                 price:
+ *                   type: number
+ *                   example: 1500
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           description: Creation date
+ *           example: "2023-06-01T09:30:00.000Z"
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           description: Last update date
+ *           example: "2023-06-01T09:30:00.000Z"
  */
