@@ -3,14 +3,7 @@ import { IKit } from './kit.interface';
 
 export default class KitRepository {
     public async create(data: Partial<IKit>): Promise<IKit> {
-        try {
-            // Ensure data is a plain object before passing to create
-            const cleanData = Object.assign({}, data);
-            return await KitSchema.create(cleanData);
-        } catch (error) {
-            console.error('Error in KitRepository.create:', error);
-            throw error;
-        }
+        return await KitSchema.create(data);
     }
 
     public async findOne(query: any): Promise<IKit | null> {

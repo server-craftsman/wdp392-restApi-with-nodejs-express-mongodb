@@ -1,0 +1,40 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# DNA Testing Service API Documentation
+
+This project implements a RESTful API for a Bloodline DNA Testing Service using Node.js, Express, MongoDB, and TypeScript. The API provides endpoints for user authentication, test management, laboratory processing, and result reporting.
+
+## Key Features
+
+- **User Authentication**: Complete authentication system with email/password and Google OAuth
+- **Test Ordering**: API endpoints for ordering various types of DNA tests
+- **Sample Collection**: Tracking of sample collection kits and status
+- **Laboratory Processing**: Backend integration with lab processes 
+- **Result Reporting**: Secure delivery of test results to authorized users
+- **Admin Dashboard**: Administrative interfaces for managing tests and users
+
+## API Structure
+
+The API follows a modular architecture with clear separation of concerns:
+- **Auth Module**: User registration, login, verification
+- **Tests Module**: Test ordering, status tracking
+- **Samples Module**: Sample collection, tracking
+- **Results Module**: Test results and reporting
+- **Admin Module**: Administrative functions
+
+## Documentation
+
+API documentation is available through Swagger UI at the `/api-docs` endpoint.
+
+## Security Features
+
+- JWT authentication
+- Role-based access control
+- Input validation
+- Data encryption
+- Secure password storage
+
+

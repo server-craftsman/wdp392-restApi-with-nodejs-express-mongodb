@@ -18,19 +18,10 @@ export default class KitController {
      */
     public createKit = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            // Clone the request body to avoid reference issues
-            const kitData: CreateKitDto = req.body ? { ...req.body } : undefined;
-
-            // Call service method with explicit error handling
+            const kitData: CreateKitDto = req.body;
             const kit = await this.kitService.createKit(kitData);
-
-            if (!kit) {
-                throw new HttpException(HttpStatus.InternalServerError, 'Failed to create kit');
-            }
-
             res.status(HttpStatus.Created).json(formatResponse<IKit>(kit));
         } catch (error) {
-            console.error('Error in createKit controller:', error);
             next(error);
         }
     };

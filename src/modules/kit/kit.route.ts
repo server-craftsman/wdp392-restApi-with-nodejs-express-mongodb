@@ -44,7 +44,6 @@ export default class KitRoute implements IRoute {
         this.router.post(
             `${API_PATH.CREATE_KIT}`,
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            validationMiddleware(CreateKitDto),
             this.kitController.createKit
         );
 

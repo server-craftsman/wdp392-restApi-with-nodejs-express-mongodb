@@ -59,10 +59,10 @@ export default class KitService {
      * Create a new kit with auto-generated code
      */
     public async createKit(kitData?: CreateKitDto): Promise<IKit> {
-        try {
-            // Generate or validate kit code
-            let code: string;
+        let code: string;
 
+        try {
+            // Handle code generation or validation
             if (!kitData || !kitData.code) {
                 code = await this.generateKitCode();
             } else {
@@ -70,13 +70,13 @@ export default class KitService {
                 this.validateKitCode(code);
             }
 
-            // Check for duplicate kit code
+            // Check if kit already exists
             const existingKit = await this.kitRepository.findOne({ code });
             if (existingKit) {
                 throw new HttpException(HttpStatus.Conflict, 'Kit code already exists');
             }
 
-            // Create new kit with explicit object structure
+            // Create kit object
             const kitObject = {
                 code,
                 status: KitStatusEnum.AVAILABLE,
@@ -84,16 +84,16 @@ export default class KitService {
                 updated_at: new Date()
             };
 
+            // Create kit in database
             const kit = await this.kitRepository.create(kitObject);
             return kit;
         } catch (error) {
-            console.error('Error in KitService.createKit:', error);
+            // Handle errors
             if (error instanceof HttpException) {
                 throw error;
             }
-            if (error instanceof Error) {
-                throw new HttpException(HttpStatus.InternalServerError, `Error creating kit: ${error.message}`);
-            }
+
+            console.error('Error creating kit:', error);
             throw new HttpException(HttpStatus.InternalServerError, 'Error creating kit');
         }
     }
@@ -144,7 +144,7 @@ export default class KitService {
             const query: any = {};
 
             if (filters.code) {
-                query.code = { $regex: filters.code, $options: 'i' };
+                query.code = { $regex: filters.code, $options: 'i' }; // $regex: dùng để tìm kiếm theo mã kit
             }
 
             if (filters.status) {
@@ -159,22 +159,22 @@ export default class KitService {
                 query.assigned_to_user_id = filters.assigned_to_user_id;
             }
 
-            const skip = (pageNum - 1) * pageSize;
-            const limit = pageSize;
+            const skip = (pageNum - 1) * pageSize; // skip: bỏ qua bao nhiêu dòng
+            const limit = pageSize; // limit: lấy bao nhiêu dòng
 
-            const [kits, totalCount] = await Promise.all([
-                this.kitRepository.findWithPopulate(query, { created_at: -1 }, skip, limit),
-                this.kitRepository.countDocuments(query)
+            const [kits, totalCount] = await Promise.all([ // Promise.all: chạy song song các promise
+                this.kitRepository.findWithPopulate(query, { created_at: -1 }, skip, limit), // findWithPopulate: lấy dữ liệu và populate dữ liệu
+                this.kitRepository.countDocuments(query) // countDocuments: đếm số dòng
             ]);
 
             const paginationInfo = new PaginationResponseModel(
                 pageNum,
                 pageSize,
                 totalCount,
-                Math.ceil(totalCount / pageSize)
+                Math.ceil(totalCount / pageSize) // Math.ceil: làm tròn lên
             );
 
-            return new SearchPaginationResponseModel<IKit>(kits, paginationInfo);
+            return new SearchPaginationResponseModel<IKit>(kits, paginationInfo); // trả về dữ liệu và phân trang
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error;
