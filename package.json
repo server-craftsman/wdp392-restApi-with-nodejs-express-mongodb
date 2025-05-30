@@ -7,7 +7,12 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "postinstall": "npm run build"
+    "postinstall": "npm run build",
+    "lint": "eslint --ext .ts src/",
+    "lint:fix": "eslint --ext .ts src/ --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "lint-staged": "lint-staged"
   },
   "keywords": [],
   "author": "Nguyen Dan Huy",

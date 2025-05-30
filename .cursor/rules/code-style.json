@@ -1,0 +1,56 @@
+{
+    "name": "Code Style Rules",
+    "description": "Code style and formatting rules for the project",
+    "language": "typescript",
+    "rules": [
+        {
+            "name": "consistent-indentation",
+            "description": "Use 4 spaces for indentation",
+            "severity": "warning",
+            "pattern": "^(\\t+)",
+            "message": "Use 4 spaces instead of tabs for indentation"
+        },
+        {
+            "name": "trailing-semicolon",
+            "description": "Always use semicolons",
+            "severity": "warning",
+            "pattern": "\\}\\s*$|\\w\\s*$",
+            "message": "Missing semicolon at the end of statement"
+        },
+        {
+            "name": "trailing-whitespace",
+            "description": "No trailing whitespace",
+            "severity": "warning",
+            "pattern": "[ \\t]+$",
+            "message": "Remove trailing whitespace"
+        },
+        {
+            "name": "single-quotes",
+            "description": "Use single quotes instead of double quotes",
+            "severity": "warning",
+            "pattern": "\"(?!\\{)(?!\\.\\*)(?!\\\\')(?!\\$\\{)(?!\\\\\")(?:\\\\[^']|[^\\\\\"])*\"",
+            "message": "Use single quotes instead of double quotes"
+        },
+        {
+            "name": "import-spacing",
+            "description": "Group imports with newlines between different types",
+            "severity": "warning",
+            "pattern": "import.*from.*\\nimport",
+            "message": "Group imports with newlines between different types"
+        },
+        {
+            "name": "max-line-length",
+            "description": "Maximum line length should be 240 characters",
+            "severity": "warning",
+            "pattern": "^.{241,}$",
+            "message": "Line is too long (>240 characters)"
+        },
+        {
+            "name": "no-multiple-empty-lines",
+            "description": "No more than 2 consecutive empty lines",
+            "severity": "warning",
+            "pattern": "\\n\\s*\\n\\s*\\n\\s*\\n",
+            "message": "Too many consecutive empty lines"
+        }
+    ]
+}

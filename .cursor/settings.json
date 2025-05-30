@@ -1,0 +1,47 @@
+{
+    "editor": {
+        "formatOnSave": true,
+        "tabSize": 4,
+        "insertSpaces": true,
+        "detectIndentation": true,
+        "rulers": [
+            240
+        ],
+        "wordWrap": "off",
+        "trimTrailingWhitespace": true,
+        "insertFinalNewline": true
+    },
+    "typescript": {
+        "suggest.completeFunctionCalls": true,
+        "preferences.importModuleSpecifier": "relative",
+        "preferences.quoteStyle": "single",
+        "updateImportsOnFileMove.enabled": "always",
+        "suggest.autoImports": true
+    },
+    "linting": {
+        "enable": true,
+        "mode": "background"
+    },
+    "files": {
+        "exclude": {
+            "**/.git": true,
+            "**/node_modules": true,
+            "**/dist": true,
+            "**/.DS_Store": true
+        },
+        "associations": {
+            "*.route.ts": "typescript",
+            "*.controller.ts": "typescript",
+            "*.service.ts": "typescript",
+            "*.model.ts": "typescript",
+            "*.middleware.ts": "typescript",
+            "*.dto.ts": "typescript"
+        }
+    },
+    "cursor": {
+        "rules": {
+            "enableCustomRules": true,
+            "rulesFile": ".cursor/rules.json"
+        }
+    }
+}

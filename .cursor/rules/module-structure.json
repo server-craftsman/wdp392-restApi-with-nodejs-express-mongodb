@@ -1,0 +1,48 @@
+{
+    "name": "Module Structure Rules",
+    "description": "Rules to enforce module structure and organization patterns",
+    "language": "typescript",
+    "rules": [
+        {
+            "name": "service-class-naming",
+            "description": "Service classes should follow the [Name]Service pattern",
+            "severity": "warning",
+            "pattern": "class\\s+(?!.*Service)[A-Z][A-Za-z0-9_]*\\s+(?:implements|extends).*\\{",
+            "filePattern": "src/modules/.*/services/.*\\.ts"
+        },
+        {
+            "name": "controller-class-naming",
+            "description": "Controller classes should follow the [Name]Controller pattern",
+            "severity": "warning",
+            "pattern": "class\\s+(?!.*Controller)[A-Z][A-Za-z0-9_]*\\s+(?:implements|extends).*\\{",
+            "filePattern": "src/modules/.*/controllers/.*\\.ts"
+        },
+        {
+            "name": "model-class-naming",
+            "description": "Model schema should follow the [Name]Schema pattern",
+            "severity": "warning",
+            "pattern": "const\\s+(?!.*Schema)[a-zA-Z0-9_]*\\s*=\\s*new\\s+mongoose\\.Schema",
+            "filePattern": "src/modules/.*/models/.*\\.ts"
+        },
+        {
+            "name": "internal-module-import",
+            "description": "Do not import from internal module folders",
+            "severity": "error",
+            "pattern": "import\\s+.*from\\s+['\"]modules/.*/internal/[^'\"]+['\"]"
+        },
+        {
+            "name": "circular-imports-prevention",
+            "description": "Prevent circular dependencies in routes",
+            "severity": "error",
+            "pattern": "import\\s+.*from\\s+['\"]\\.\\./(controllers|services)/[^'\"]+['\"]",
+            "filePattern": "src/modules/.*/routes/.*\\.ts"
+        },
+        {
+            "name": "module-export-pattern",
+            "description": "Modules should have a proper export pattern",
+            "severity": "warning",
+            "pattern": "export\\s+default\\s+router",
+            "filePattern": "src/modules/.*/routes/.*\\.ts"
+        }
+    ]
+}

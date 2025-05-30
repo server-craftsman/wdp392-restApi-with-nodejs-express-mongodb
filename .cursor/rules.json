@@ -1,0 +1,20 @@
+{
+    "name": "RestAPI Project Rules",
+    "description": "A comprehensive set of rules for the Node.js Express MongoDB TypeScript project",
+    "rulesets": [
+        "rules/eslint-typescript.json",
+        "rules/module-structure.json",
+        "rules/code-style.json",
+        "rules/security.json",
+        "rules/performance.json"
+    ],
+    "settings": {
+        "enabledByDefault": true,
+        "ignorePatterns": [
+            "node_modules/**",
+            "dist/**",
+            "**/*.test.ts",
+            "**/*.spec.ts"
+        ]
+    }
+}

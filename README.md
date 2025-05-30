@@ -1,4 +1,3 @@
-
 # Node.js API Starter with TypeScript, PNPM, MongoDB
 
 ![Node.js](https://img.shields.io/badge/Node.js-20.x-brightgreen?logo=node.js)
@@ -72,5 +71,39 @@ The backend API runs on:
 - [Winston Logger](https://github.com/winstonjs/winston)
 
 ---
+
+## Code Quality Tools
+
+### ESLint Rules
+
+This project uses ESLint to enforce code quality and maintain consistent coding standards. The rules are specifically configured for the `src` directory with special configurations for different module types.
+
+To run the linter:
+```bash
+npm run lint        # Check for linting errors
+npm run lint:fix    # Fix linting errors automatically
+```
+
+### Key Linting Rules
+
+- **TypeScript Safety**: Strict type checking with no `any` type allowed
+- **Module Structure**: Enforced import ordering and module boundaries
+- **Naming Conventions**: 
+  - Interfaces must start with `I` and use PascalCase
+  - Models must follow PascalCase
+  - Type aliases must use PascalCase
+- **Code Organization**: Different rules for controllers, services, routes, and models
+
+### Prettier
+
+Code formatting is handled by Prettier. To format your code:
+```bash
+npm run format       # Format all TypeScript files
+npm run format:check # Check formatting without changing files
+```
+
+### Pre-commit Hooks
+
+This project uses Husky and lint-staged to run linters and formatters before each commit, ensuring that only quality code is committed to the repository.
 
 ### © 2025 Bản quyền thuộc về Nguyễn Đan Huy | [fb/danhuyspm](https://facebook.com/danhuyspm)

@@ -1,0 +1,52 @@
+{
+    "name": "Security Rules",
+    "description": "Rules for identifying security issues in the codebase",
+    "language": "typescript",
+    "rules": [
+        {
+            "name": "hardcoded-secrets",
+            "description": "No hardcoded secrets or credentials",
+            "severity": "error",
+            "pattern": "(password|secret|key|token|auth)\\s*[:=]\\s*['\"][^'\"]+['\"]",
+            "excludePattern": "process\\.env\\."
+        },
+        {
+            "name": "sql-injection",
+            "description": "Potential SQL injection vulnerability",
+            "severity": "error",
+            "pattern": "(?:exec|execute|query|where)\\(`[^`]*\\$\\{(?!.*\\?\\s*\\[).*\\}`\\)"
+        },
+        {
+            "name": "insecure-jwt",
+            "description": "Insecure JWT implementation",
+            "severity": "error",
+            "pattern": "jwt\\.sign\\(.*,\\s*['\"][^'\"]+['\"]\\s*,\\s*\\{\\s*expiresIn"
+        },
+        {
+            "name": "missing-input-validation",
+            "description": "Missing input validation for user data",
+            "severity": "warning",
+            "pattern": "req\\.body\\.[a-zA-Z0-9_]+",
+            "filePattern": "src/modules/.*/controllers/.*\\.ts",
+            "excludePattern": "validate|check|sanitize|escape"
+        },
+        {
+            "name": "cors-all-origins",
+            "description": "CORS configured to allow all origins",
+            "severity": "warning",
+            "pattern": "cors\\(\\{\\s*origin:\\s*['\"]\\*['\"]"
+        },
+        {
+            "name": "insecure-cookies",
+            "description": "Cookies without secure or httpOnly flags",
+            "severity": "warning",
+            "pattern": "\\.cookie\\(['\"][^'\"]+['\"]\\s*,\\s*[^,]+\\s*,\\s*\\{(?!.*secure: true)(?!.*httpOnly: true)"
+        },
+        {
+            "name": "eval-usage",
+            "description": "Using eval which can lead to code injection",
+            "severity": "error",
+            "pattern": "eval\\([^)]*\\)"
+        }
+    ]
+}

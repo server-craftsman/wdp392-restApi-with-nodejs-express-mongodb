@@ -1,0 +1,51 @@
+{
+    "name": "Performance Rules",
+    "description": "Rules for identifying performance issues in the codebase",
+    "language": "typescript",
+    "rules": [
+        {
+            "name": "nested-promises",
+            "description": "Avoid nesting promises, use async/await or chain them",
+            "severity": "warning",
+            "pattern": "\\.(then|catch)\\([^)]*\\)\\.(then|catch)"
+        },
+        {
+            "name": "mongoose-lean",
+            "description": "Use .lean() for read-only operations with Mongoose",
+            "severity": "warning",
+            "pattern": "\\.(find|findOne|findById)\\([^)]*\\)(?!\\.lean\\(\\))",
+            "excludePattern": "\\.(populate|exec|sort|limit|skip)"
+        },
+        {
+            "name": "unused-async-await",
+            "description": "Unnecessary async/await usage",
+            "severity": "warning",
+            "pattern": "async\\s+[^(]*\\([^)]*\\)\\s*{[^}]*return\\s+[^;]*;[^}]*}"
+        },
+        {
+            "name": "array-foreach",
+            "description": "Consider using for...of instead of forEach for better performance",
+            "severity": "info",
+            "pattern": "\\.forEach\\("
+        },
+        {
+            "name": "heavy-computation-in-loop",
+            "description": "Avoid heavy computations inside loops",
+            "severity": "warning",
+            "pattern": "(for|while)\\s*\\([^)]*\\)\\s*\\{[^}]*\\.(map|filter|reduce|find|some|every)\\("
+        },
+        {
+            "name": "inefficient-db-query",
+            "description": "Potentially inefficient database query",
+            "severity": "warning",
+            "pattern": "\\.(find|findOne)\\(\\{\\s*\\$or:\\s*\\["
+        },
+        {
+            "name": "large-response",
+            "description": "Returning potentially large responses without pagination",
+            "severity": "warning",
+            "pattern": "res\\.(?:json|send)\\([^)]*\\.find\\([^)]*\\)(?!\\.limit)",
+            "filePattern": "src/modules/.*/controllers/.*\\.ts"
+        }
+    ]
+}

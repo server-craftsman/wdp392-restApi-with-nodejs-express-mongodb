@@ -1,0 +1,49 @@
+{
+    "name": "TypeScript ESLint Rules",
+    "description": "ESLint rules for TypeScript files in the project",
+    "language": "typescript",
+    "rules": [
+        {
+            "name": "no-explicit-any",
+            "description": "Disallow usage of the any type",
+            "severity": "error",
+            "pattern": "any(?!where|thing|one|more|\\w)"
+        },
+        {
+            "name": "no-console",
+            "description": "Disallow console.log statements",
+            "severity": "warning",
+            "pattern": "console\\.(log|info|warn|error)\\("
+        },
+        {
+            "name": "interface-naming",
+            "description": "Interface names must start with 'I' and use PascalCase",
+            "severity": "error",
+            "pattern": "interface\\s+(?!I[A-Z])[A-Za-z]+"
+        },
+        {
+            "name": "explicit-function-return-type",
+            "description": "Functions should have explicit return types",
+            "severity": "warning",
+            "pattern": "function\\s+[a-zA-Z0-9_]+\\s*\\([^\\)]*\\)\\s*\\{"
+        },
+        {
+            "name": "require-await",
+            "description": "Async functions should use await",
+            "severity": "warning",
+            "pattern": "async\\s+function[^{]*\\{(?!\\s*[^}]*await)[^}]*\\}"
+        },
+        {
+            "name": "model-naming",
+            "description": "Model variables should use PascalCase",
+            "severity": "warning",
+            "pattern": "const\\s+([a-z][a-zA-Z0-9_]*(Model|Schema))\\s*="
+        },
+        {
+            "name": "no-unused-imports",
+            "description": "Detect unused imports",
+            "severity": "warning",
+            "pattern": "import\\s+\\{[^\\}]*\\}\\s+from\\s+['\"][^'\"]+['\"];"
+        }
+    ]
+}
