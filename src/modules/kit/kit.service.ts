@@ -65,10 +65,8 @@ export default class KitService {
 
             if (!kitData || !kitData.code) {
                 code = await this.generateKitCode();
-                console.log("Generated kit code:", code);
             } else {
                 code = kitData.code;
-                console.log("Using provided kit code:", code);
                 this.validateKitCode(code);
             }
 
@@ -78,20 +76,23 @@ export default class KitService {
                 throw new HttpException(HttpStatus.Conflict, 'Kit code already exists');
             }
 
-            // Create new kit
-            const kit = await this.kitRepository.create({
+            // Create new kit with explicit object structure
+            const kitObject = {
                 code,
                 status: KitStatusEnum.AVAILABLE,
                 created_at: new Date(),
                 updated_at: new Date()
-            });
+            };
 
-            console.log("Kit created successfully:", kit);
+            const kit = await this.kitRepository.create(kitObject);
             return kit;
         } catch (error) {
-            console.error("Error in createKit:", error);
+            console.error('Error in KitService.createKit:', error);
             if (error instanceof HttpException) {
                 throw error;
+            }
+            if (error instanceof Error) {
+                throw new HttpException(HttpStatus.InternalServerError, `Error creating kit: ${error.message}`);
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error creating kit');
         }
@@ -363,5 +364,5 @@ export default class KitService {
             pageSize: parseInt(pageSize),
             ...rest
         };
-    }    
+    }
 } 
