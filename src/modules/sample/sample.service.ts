@@ -600,17 +600,10 @@ export default class SampleService {
 
             // Get appointment data
             const appointment = await this.getAppointmentService().getAppointmentById(addSampleData.appointment_id);
-            console.log('Appointment:', JSON.stringify(appointment, null, 2));
-            console.log('User ID passed to service:', userId);
-            console.log('User ID type:', typeof userId);
 
             try {
                 // Extract user_id using the helper function
                 const appointmentUserId = extractUserIdFromAppointment(appointment);
-
-                console.log(`Comparing appointment user ID: ${appointmentUserId} with current user ID: ${userId}`);
-                console.log('Equal using === ?', appointmentUserId === userId);
-                console.log('Equal using areIdsEqual?', areIdsEqual(appointmentUserId, userId));
 
                 if (!areIdsEqual(appointmentUserId, userId)) {
                     throw new HttpException(HttpStatus.Forbidden, 'You are not authorized to add samples to this appointment');
@@ -629,14 +622,16 @@ export default class SampleService {
                 );
             }
 
-            // Ensure sample_types is not empty
-            if (!addSampleData.sample_types || addSampleData.sample_types.length === 0) {
-                throw new HttpException(HttpStatus.BadRequest, 'No sample types provided');
+            if (!addSampleData.sample_types || addSampleData.sample_types.length < 2) {
+                throw new HttpException(HttpStatus.BadRequest, 'At least two sample types must be provided');
             }
 
             // Get available kits for the samples
             const numSamplesNeeded = addSampleData.sample_types.length;
             let availableKits = [];
+
+            // Get all available kits first
+            const allAvailableKits = await this.kitService.getAvailableKits();
 
             if (addSampleData.kit_id) {
                 // If specific kit_id is provided, validate and use it for the first sample
@@ -644,20 +639,18 @@ export default class SampleService {
                     throw new HttpException(HttpStatus.BadRequest, 'Invalid kit ID');
                 }
 
-                // Check if kit exists and is available
                 const kit = await this.kitService.getKitById(addSampleData.kit_id);
                 if (kit.status !== KitStatusEnum.AVAILABLE) {
                     throw new HttpException(HttpStatus.BadRequest, `Kit is not available (status: ${kit.status})`);
                 }
 
-                // Only use this kit for the first sample
+                // thêm kit vào danh sách các kit có sẵn
                 availableKits.push(kit);
 
-                // If more than one sample type, get additional kits
+                // nếu có nhiều hơn 1 sample type, lấy thêm kit
                 if (numSamplesNeeded > 1) {
-                    const additionalKits = await this.kitService.getAvailableKits();
-                    // Exclude the specific kit if it's already in the list
-                    const filteredKits = additionalKits.filter(k => k._id.toString() !== addSampleData.kit_id);
+                    // loại bỏ kit đã chọn
+                    const filteredKits = allAvailableKits.filter(k => k._id.toString() !== addSampleData.kit_id);
 
                     if (filteredKits.length < numSamplesNeeded - 1) {
                         throw new HttpException(
@@ -669,20 +662,19 @@ export default class SampleService {
                     availableKits = [...availableKits, ...filteredKits.slice(0, numSamplesNeeded - 1)];
                 }
             } else {
-                // If no kit_id provided, find available kits
-                availableKits = await this.kitService.getAvailableKits();
-                if (availableKits.length < numSamplesNeeded) {
+                // nếu không có kit_id, tự động gán kit có sẵn
+                if (allAvailableKits.length < numSamplesNeeded) {
                     throw new HttpException(
                         HttpStatus.BadRequest,
-                        `Not enough available kits. Need ${numSamplesNeeded} but only ${availableKits.length} available.`
+                        `Not enough available kits. Need ${numSamplesNeeded} but only ${allAvailableKits.length} available.`
                     );
                 }
 
-                // Use only the number of kits needed
-                availableKits = availableKits.slice(0, numSamplesNeeded);
+                // chỉ sử dụng số lượng kit cần thiết
+                availableKits = allAvailableKits.slice(0, numSamplesNeeded);
             }
 
-            // Create samples with assigned kits
+            // tạo samples với các kit được gán
             const samples: ISample[] = [];
             const assignedKits: string[] = [];
 
@@ -690,14 +682,13 @@ export default class SampleService {
                 const kit = availableKits[i];
                 const kitId = kit._id.toString();
 
-                // First, assign the kit to the appointment
+                // thứ tự 1: gán kit cho appointment
                 try {
                     await this.kitService.changeKitStatus(kitId, KitStatusEnum.ASSIGNED);
                     assignedKits.push(kitId);
-                    console.log(`Kit ${kit.code || kitId} assigned to appointment ${addSampleData.appointment_id}`);
                 } catch (kitError) {
                     console.error(`Failed to assign kit ${kitId} to appointment:`, kitError);
-                    // If kit assignment fails, try to revert any previously assigned kits
+                    // nếu gán kit thất bại, thử lại gán lại kit có sẵn
                     for (const assignedKitId of assignedKits) {
                         try {
                             await this.kitService.changeKitStatus(assignedKitId, KitStatusEnum.AVAILABLE);
@@ -708,7 +699,7 @@ export default class SampleService {
                     throw new HttpException(HttpStatus.InternalServerError, 'Failed to assign kits to appointment');
                 }
 
-                // Then create the sample with the assigned kit
+                // thứ tự 2: tạo sample với kit được gán
                 try {
                     const sample = await this.sampleRepository.create({
                         appointment_id: addSampleData.appointment_id as any,

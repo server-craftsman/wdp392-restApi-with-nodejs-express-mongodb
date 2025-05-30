@@ -105,17 +105,18 @@ export default class SampleController {
     public addSampleToAppointment = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
-            console.log('User from request:', req.user);
-            console.log('User ID from request:', userId);
 
             if (!userId) {
                 throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
             }
 
+            // Tạo DTO từ request body
             const addSampleData: AddSampleDto = req.body;
-            const sample = await this.sampleService.addSampleToAppointment(userId, addSampleData);
 
-            res.status(HttpStatus.Created).json(formatResponse<ISample[]>(sample));
+            // Nếu không có kit_id, hệ thống sẽ tự động gán kit có sẵn
+            const samples = await this.sampleService.addSampleToAppointment(userId, addSampleData);
+
+            res.status(HttpStatus.Created).json(formatResponse<ISample[]>(samples));
         } catch (error) {
             next(error);
         }

@@ -10,7 +10,6 @@ import 'reflect-metadata'; // for class-transformer
 import { IRoute } from './core/interfaces';
 import { errorMiddleware } from './core/middleware';
 import { logger } from './core/utils';
-import swaggerDocs from './swagger';
 
 export default class App {
     public app: express.Application;
@@ -24,7 +23,6 @@ export default class App {
 
         this.connectToDatabase();
         this.initializeMiddleware();
-        this.initializeSwagger();
         this.initializeRoute(routes);
         this.initializeErrorMiddleware();
     }
@@ -97,59 +95,5 @@ export default class App {
         this.app.use('/swagger', express.static(path.join(__dirname, '../node_modules/swagger-ui-dist'), staticOptions));
         // config for images
         this.app.use('/images', express.static(path.join(__dirname, '../public/images'), staticOptions));
-    }
-
-    // initialize Swagger documentation
-    private initializeSwagger() {
-        // Use swagger.ts to initialize Swagger documentation
-        swaggerDocs(this.app, this.port);
-
-        // Giữ lại cách cũ 
-        // try {
-        //     const swaggerPath = path.join(__dirname, '../swagger.yaml');
-        //     const swaggerDocument = YAML.load(swaggerPath);
-        //     swaggerDocument.host = process.env.DOMAIN_API;
-        //     this.app.use(
-        //         '/api-docs',
-        //         swaggerUi.serve,
-        //         swaggerUi.setup(swaggerDocument, {
-        //             swaggerOptions: {
-        //                 url: '/swagger/swagger.yaml',
-        //             },
-        //             customCss: `
-        //               .swagger-ui .topbar {
-        //                 padding: 10px 0;
-        //                 background-color:rgb(27, 27, 27);
-        //               }
-
-        //               .topbar-wrapper img {
-        //                 display: none;
-        //               }
-
-        //               .topbar-wrapper:after {
-        //                 content: '';
-        //                 background-image: url('/images/logo.jpg');
-        //                 background-size: contain;
-        //                 background-repeat: no-repeat;
-        //                 background-position: left center;
-        //                 display: inline-block;
-        //                 height: 200px;
-        //                 width: 200px;
-        //                 margin-left: 20px;
-        //                 vertical-align: middle;
-        //               }
-
-        //               .swagger-ui .topbar .download-url-wrapper {
-        //                 display: flex;
-        //                 align-items: center;
-        //                 margin: 0;
-        //               }
-        //             `,
-        //             customSiteTitle: 'Bloodline DNA Testing Service API',
-        //         }),
-        //     );
-        // } catch (error) {
-        //     logger.warn('Could not load swagger.yaml file. Using swagger-jsdoc instead.');
-        // }
     }
 }

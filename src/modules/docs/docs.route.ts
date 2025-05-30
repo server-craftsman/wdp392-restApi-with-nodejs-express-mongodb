@@ -64,13 +64,20 @@ export default class DocsRoute implements IRoute {
             swaggerOptions: {
                 persistAuthorization: true,
                 displayRequestDuration: true,
-                docExpansion: 'none',
+                docExpansion: 'list',
                 filter: true,
                 showExtensions: true,
                 tryItOutEnabled: true,
-                tagsSorter: 'alpha'
+                tagsSorter: 'alpha',
+                defaultModelsExpandDepth: 1,
+                operationsSorter: 'alpha'
             },
-            customCss: '.swagger-ui .topbar { background-color:rgb(0, 43, 2); }'
+            customCss: `
+                .swagger-ui .topbar { background-color: rgb(0, 43, 2); }
+                .swagger-ui .opblock-tag { font-size: 16px; margin: 10px 0 5px 0; }
+                .swagger-ui .opblock .opblock-summary-description { font-size: 13px; }
+                .swagger-ui .opblock-tag:hover { background-color: rgba(0, 43, 2, 0.1); }
+            `
         }));
 
         // Serve swagger spec as JSON
