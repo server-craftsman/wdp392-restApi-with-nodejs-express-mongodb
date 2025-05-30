@@ -15,5 +15,6 @@ export default class IndexRoute implements IRoute {
     private initializeRoutes() {
         this.router.get(this.path, this.indexController.index);
         this.router.get('/api', this.indexController.apiDocs);
+        this.router.get('/welcome', this.indexController.welcomePage);
     }
 }

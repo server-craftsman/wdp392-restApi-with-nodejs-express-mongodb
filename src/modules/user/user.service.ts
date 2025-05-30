@@ -4,8 +4,14 @@ import { HttpStatus } from '../../core/enums';
 import { HttpException } from '../../core/exceptions';
 import { IError } from '../../core/interfaces';
 import { SearchPaginationResponseModel } from '../../core/models';
-import { checkValidUrl, createTokenVerifiedUser, encodePasswordUserNormal, isEmptyObject } from '../../core/utils';
-import { sendMail } from '../../core/utils/sendMail';
+import {
+    checkValidUrl,
+    createTokenVerifiedUser,
+    encodePasswordUserNormal,
+    isEmptyObject,
+    sendMail,
+    createVerificationEmailTemplate
+} from '../../core/utils';
 import ChangePasswordDto from './dtos/changePassword.dto';
 import ChangeRoleDto from './dtos/changeRole.dto';
 import ChangeStatusDto from './dtos/changeStatus.dto';
@@ -80,6 +86,7 @@ export default class UserService {
         if (!newUser.is_verified && newUser.role !== UserRoleEnum.ADMIN) {
             let subject: string = 'Verify your email address';
             let content: string = `Hello, ${newUser.first_name} ${newUser.last_name}.`;
+            let htmlContent: string = '';
 
             // for customer, manager, staff
             if (newUser.role === UserRoleEnum.CUSTOMER || newUser.role === UserRoleEnum.MANAGER || newUser.role === UserRoleEnum.STAFF || newUser.role === UserRoleEnum.LABORATORY_TECHNICIAN) {
@@ -88,19 +95,19 @@ export default class UserService {
                 newUser.verification_token = tokenData.verification_token;
                 newUser.verification_token_expires = tokenData.verification_token_expires;
                 const domain = process.env.DOMAIN_FE;
-                content = `${content}\nPlease click the following link to verify your email address:\n${domain}/verify-email/${tokenData.verification_token}`;
-            }
+                const verificationLink = `${domain}/verify-email/${tokenData.verification_token}`;
+                content = `${content}\nPlease click the following link to verify your email address:\n${verificationLink}`;
 
-            // // role MANAGER
-            // if (newUser.role === UserRoleEnum.MANAGER) {
-            //     subject = 'Register profile manager success';
-            //     content = `${content}\nYou have successfully registered your profile for the manager role. Please wait for admin to review the application and notify you via email!`;
-            // }
+                // Generate HTML template for email
+                const userName = `${newUser.first_name} ${newUser.last_name}`;
+                htmlContent = createVerificationEmailTemplate(userName, verificationLink);
+            }
 
             const sendMailResult = await sendMail({
                 toMail: newUser.email,
                 subject: subject,
                 content: content,
+                html: htmlContent
             });
 
             if (!sendMailResult) {
