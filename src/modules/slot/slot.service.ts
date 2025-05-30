@@ -345,7 +345,6 @@ export default class SlotService {
             id,
             {
                 staff_profile_ids: staffProfileIds,
-                service_id: new Schema.Types.ObjectId(model.service_id),
                 time_slots: model.time_slots as any, // ép kiểu sang any để khắc phục lỗi kiểu dữ liệu
                 appointment_limit: model.appointment_limit,
                 status: model.status,
@@ -471,7 +470,6 @@ export default class SlotService {
         // tạo slot mới
         const newSlot = await this.slotSchema.create({
             staff_profile_ids: staffProfileIds,
-            service_id: model.service_id,
             time_slots: model.time_slots,
             appointment_limit: model.appointment_limit,
             status: SlotStatusEnum.AVAILABLE,

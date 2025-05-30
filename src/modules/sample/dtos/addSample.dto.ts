@@ -9,8 +9,8 @@ export class AddSampleDto {
     @IsOptional()
     kit_id?: string;
 
-    @IsEnum(SampleTypeEnum)
-    type: SampleTypeEnum = SampleTypeEnum.SALIVA;
+    @IsEnum(SampleTypeEnum, { each: true })
+    sample_types: SampleTypeEnum[] = [SampleTypeEnum.SALIVA];
 
     @IsString()
     @IsOptional()

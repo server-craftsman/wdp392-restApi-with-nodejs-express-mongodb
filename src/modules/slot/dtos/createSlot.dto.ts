@@ -58,12 +58,10 @@ export class TimeSlotDto implements ITimeSlot {
 export class CreateSlotDto {
     constructor(
         staff_profile_ids: string[],
-        service_id: string,
         time_slots: TimeSlotDto[],
         appointment_limit: number
     ) {
         this.staff_profile_ids = staff_profile_ids;
-        this.service_id = service_id;
         this.time_slots = time_slots;
         this.appointment_limit = appointment_limit;
     }
@@ -72,10 +70,6 @@ export class CreateSlotDto {
     @IsArray()
     @IsString({ each: true })
     staff_profile_ids: string[];
-
-    @IsNotEmpty()
-    @IsString()
-    service_id: string;
 
     @IsNotEmpty()
     @IsArray()

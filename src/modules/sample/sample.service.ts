@@ -591,7 +591,7 @@ export default class SampleService {
      * @param userId ID of the user adding the sample
      * @param addSampleData Data for adding a sample
      */
-    public async addSampleToAppointment(userId: string, addSampleData: AddSampleDto): Promise<ISample> {
+    public async addSampleToAppointment(userId: string, addSampleData: AddSampleDto): Promise<ISample[]> {
         try {
             // Validate appointment ID
             if (!mongoose.Types.ObjectId.isValid(addSampleData.appointment_id)) {
@@ -629,11 +629,17 @@ export default class SampleService {
                 );
             }
 
-            // Handle kit assignment
-            let kitId: any = null;
+            // Ensure sample_types is not empty
+            if (!addSampleData.sample_types || addSampleData.sample_types.length === 0) {
+                throw new HttpException(HttpStatus.BadRequest, 'No sample types provided');
+            }
+
+            // Get available kits for the samples
+            const numSamplesNeeded = addSampleData.sample_types.length;
+            let availableKits = [];
 
             if (addSampleData.kit_id) {
-                // If kit_id is provided, validate and use it
+                // If specific kit_id is provided, validate and use it for the first sample
                 if (!mongoose.Types.ObjectId.isValid(addSampleData.kit_id)) {
                     throw new HttpException(HttpStatus.BadRequest, 'Invalid kit ID');
                 }
@@ -644,54 +650,107 @@ export default class SampleService {
                     throw new HttpException(HttpStatus.BadRequest, `Kit is not available (status: ${kit.status})`);
                 }
 
-                kitId = addSampleData.kit_id;
+                // Only use this kit for the first sample
+                availableKits.push(kit);
 
-                // Update kit status to ASSIGNED
-                await this.kitService.changeKitStatus(kitId, KitStatusEnum.ASSIGNED);
+                // If more than one sample type, get additional kits
+                if (numSamplesNeeded > 1) {
+                    const additionalKits = await this.kitService.getAvailableKits();
+                    // Exclude the specific kit if it's already in the list
+                    const filteredKits = additionalKits.filter(k => k._id.toString() !== addSampleData.kit_id);
+
+                    if (filteredKits.length < numSamplesNeeded - 1) {
+                        throw new HttpException(
+                            HttpStatus.BadRequest,
+                            `Not enough available kits. Need ${numSamplesNeeded - 1} additional kits but only ${filteredKits.length} available.`
+                        );
+                    }
+
+                    availableKits = [...availableKits, ...filteredKits.slice(0, numSamplesNeeded - 1)];
+                }
             } else {
-                // If no kit_id provided, find an available kit
-                const availableKits = await this.kitService.getAvailableKits();
-                if (availableKits.length === 0) {
-                    throw new HttpException(HttpStatus.BadRequest, 'No available kits found');
+                // If no kit_id provided, find available kits
+                availableKits = await this.kitService.getAvailableKits();
+                if (availableKits.length < numSamplesNeeded) {
+                    throw new HttpException(
+                        HttpStatus.BadRequest,
+                        `Not enough available kits. Need ${numSamplesNeeded} but only ${availableKits.length} available.`
+                    );
                 }
 
-                const kit = availableKits[0];
-                kitId = kit._id;
-
-                // Update kit status to ASSIGNED
-                await this.kitService.changeKitStatus(kitId.toString(), KitStatusEnum.ASSIGNED);
+                // Use only the number of kits needed
+                availableKits = availableKits.slice(0, numSamplesNeeded);
             }
 
-            // Create the sample - use strings with type assertion
-            const sample = await this.sampleRepository.create({
-                appointment_id: addSampleData.appointment_id as any,
-                kit_id: kitId.toString() as any,
-                type: addSampleData.type,
-                collection_method: appointment.type as unknown as CollectionMethodEnum,
-                collection_date: new Date(),
-                status: SampleStatusEnum.PENDING,
-                created_at: new Date(),
-                updated_at: new Date()
-            });
+            // Create samples with assigned kits
+            const samples: ISample[] = [];
+            const assignedKits: string[] = [];
 
-            console.log(`Sample created with ID ${sample._id}, type ${sample.type} for appointment ${addSampleData.appointment_id}`);
+            for (let i = 0; i < addSampleData.sample_types.length; i++) {
+                const kit = availableKits[i];
+                const kitId = kit._id.toString();
+
+                // First, assign the kit to the appointment
+                try {
+                    await this.kitService.changeKitStatus(kitId, KitStatusEnum.ASSIGNED);
+                    assignedKits.push(kitId);
+                    console.log(`Kit ${kit.code || kitId} assigned to appointment ${addSampleData.appointment_id}`);
+                } catch (kitError) {
+                    console.error(`Failed to assign kit ${kitId} to appointment:`, kitError);
+                    // If kit assignment fails, try to revert any previously assigned kits
+                    for (const assignedKitId of assignedKits) {
+                        try {
+                            await this.kitService.changeKitStatus(assignedKitId, KitStatusEnum.AVAILABLE);
+                        } catch (revertError) {
+                            console.error(`Failed to revert kit ${assignedKitId} status:`, revertError);
+                        }
+                    }
+                    throw new HttpException(HttpStatus.InternalServerError, 'Failed to assign kits to appointment');
+                }
+
+                // Then create the sample with the assigned kit
+                try {
+                    const sample = await this.sampleRepository.create({
+                        appointment_id: addSampleData.appointment_id as any,
+                        kit_id: kitId as any,
+                        type: addSampleData.sample_types[i],
+                        collection_method: appointment.type as unknown as CollectionMethodEnum,
+                        collection_date: new Date(),
+                        status: SampleStatusEnum.PENDING,
+                        created_at: new Date(),
+                        updated_at: new Date()
+                    });
+
+                    console.log(`Sample created with ID ${sample._id}, type ${sample.type}`);
+                    samples.push(sample);
+                } catch (sampleError) {
+                    console.error(`Failed to create sample for kit ${kitId}:`, sampleError);
+                    // If sample creation fails, try to revert kit status
+                    try {
+                        await this.kitService.changeKitStatus(kitId, KitStatusEnum.AVAILABLE);
+                    } catch (revertError) {
+                        console.error(`Failed to revert kit ${kitId} status:`, revertError);
+                    }
+                    throw new HttpException(HttpStatus.InternalServerError, 'Failed to create sample');
+                }
+            }
 
             // Log the sample creation event
             try {
-                await this.appointmentLogService.logSampleCreation(appointment, [sample]);
+                await this.appointmentLogService.logSampleCreation(appointment, samples);
                 console.log(`Successfully logged sample creation for appointment ${addSampleData.appointment_id}`);
             } catch (logError) {
                 console.error('Failed to create log for sample creation:', logError);
                 // Don't fail the sample creation if logging fails
             }
 
-            return sample;
+            return samples;
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error;
             }
             console.error('Error in addSampleToAppointment:', error);
-            throw new HttpException(HttpStatus.InternalServerError, 'Error adding sample to appointment');
+            throw new HttpException(HttpStatus.InternalServerError, 'Error adding samples to appointment');
         }
     }
 } 

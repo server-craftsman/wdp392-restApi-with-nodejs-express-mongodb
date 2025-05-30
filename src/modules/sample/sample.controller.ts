@@ -115,7 +115,7 @@ export default class SampleController {
             const addSampleData: AddSampleDto = req.body;
             const sample = await this.sampleService.addSampleToAppointment(userId, addSampleData);
 
-            res.status(HttpStatus.Created).json(formatResponse<ISample>(sample));
+            res.status(HttpStatus.Created).json(formatResponse<ISample[]>(sample));
         } catch (error) {
             next(error);
         }
