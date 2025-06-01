@@ -16,10 +16,11 @@ export const isEmptyObject = (obj: any): boolean => {
     return !Object.keys(obj).length;
 };
 
-export const formatResponse = <T>(data: T, success: boolean = true) => {
+export const formatResponse = <T>(data: T, success: boolean = true, message?: string) => {
     return {
         success,
         data,
+        message
     };
 };
 

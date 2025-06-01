@@ -1,51 +1,99 @@
-import axios from 'axios';
-import crypto from 'crypto';
+import PayOS from '@payos/node';
+import dotenv from 'dotenv';
 
-const PAYOS_API_URL = 'https://api-sandbox.payos.vn/v1/payment-requests'; // Đổi sang production khi live
-const PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID || 'YOUR_CLIENT_ID';
-const PAYOS_API_KEY = process.env.PAYOS_API_KEY || 'YOUR_API_KEY';
-const PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY || 'YOUR_CHECKSUM_KEY';
+dotenv.config();
 
+// PayOS credentials
+const clientId = process.env.PAYOS_CLIENT_ID;
+const apiKey = process.env.PAYOS_API_KEY;
+const checksumKey = process.env.PAYOS_CHECKSUM_KEY;
+
+// Validate credentials
+if (!clientId || !apiKey || !checksumKey) {
+    throw new Error('Missing PayOS configuration: CLIENT_ID, API_KEY, or CHECKSUM_KEY');
+}
+
+// Initialize PayOS client
+const payosClient = new PayOS(clientId, apiKey, checksumKey);
+
+/**
+ * Create a payment link using PayOS
+ */
 export async function createPayosPayment(
     amount: number,
-    orderCode: string,
-    description: string,
+    orderCode?: string,
+    description?: string,
     buyerName?: string,
     buyerEmail?: string,
     buyerPhone?: string
+    
 ): Promise<{ checkoutUrl: string }> {
-    const payload = {
-        amount,
-        orderCode,
-        description,
-        buyerName,
-        buyerEmail,
-        buyerPhone,
-        cancelUrl: process.env.PAYOS_CANCEL_URL || 'https://yourdomain.com/payment/cancel',
-        returnUrl: process.env.PAYOS_RETURN_URL || 'https://yourdomain.com/payment/success',
-    };
+    try {
+        // Validate input
+        if (!amount || amount < 1000) {
+            throw new Error('Amount must be a positive integer >= 1000 VND');
+        }
+        if (!orderCode) {
+            throw new Error('Order code is required');
+        }
+        if (!description) {
+            throw new Error('Description is required');
+        }
+        // Giới hạn description tối đa 25 ký tự
+        const trimmedDescription = description.length > 25 ? description.substring(0, 25) : description;
+        if (description.length > 25) {
+            console.warn(`Description truncated to 25 characters: ${trimmedDescription}`);
+        }
 
-    // Nếu PayOS yêu cầu checksum, hãy tạo ở đây (tham khảo tài liệu PayOS)
-    // const checksum = createChecksum(payload, PAYOS_CHECKSUM_KEY);
+        // Convert order code to number
+        const numericOrderCode = parseInt(orderCode.replace(/\D/g, ''), 10) || Math.floor(Date.now() / 1000);
 
-    const headers = {
-        'x-client-id': PAYOS_CLIENT_ID,
-        'x-api-key': PAYOS_API_KEY,
-        // 'x-checksum': checksum, // Nếu PayOS yêu cầu
-        'Content-Type': 'application/json',
-    };
+        // Create payment data
+        const paymentData = {
+            amount: Math.floor(amount),
+            orderCode: numericOrderCode,
+            description: trimmedDescription,
+            ...(buyerName && { buyerName }),
+            ...(buyerEmail && { buyerEmail }),
+            ...(buyerPhone && { buyerPhone }),
+            cancelUrl: process.env.PAYOS_CANCEL_URL || 'http://localhost:8080/api/payment/payos-cancel',
+            returnUrl: process.env.PAYOS_RETURN_URL || 'http://localhost:8080/api/payment/payos-return',
+            items: [
+                {
+                    name: trimmedDescription,
+                    quantity: 1,
+                    price: Math.floor(amount),
+                },
+            ],
+        };
 
-    const response = await axios.post(PAYOS_API_URL, payload, { headers });
-    if (response.data && response.data.data && response.data.data.checkoutUrl) {
-        return { checkoutUrl: response.data.data.checkoutUrl };
+        console.log('PayOS Request:', paymentData);
+
+        // Get payment link
+        const response = await payosClient.createPaymentLink(paymentData);
+
+        console.log('PayOS Response:', response);
+
+        if (response && response.checkoutUrl) {
+            return { checkoutUrl: response.checkoutUrl };
+        }
+
+        throw new Error('Invalid PayOS response: Missing checkoutUrl');
+    } catch (error: any) {
+        console.error('PayOS Error:', {
+            message: error.message,
+            response: error.response?.data,
+            code: error.code,
+        });
+        throw new Error(`Failed to create payment link: ${error.message}`);
     }
-    throw new Error('Cannot create PayOS payment');
 }
 
-// Hàm verify webhook (nếu PayOS yêu cầu xác thực signature)
+/**
+ * Verify webhook signature
+ */
 export function verifyPayosWebhook(data: any, receivedSignature: string): boolean {
-    // Tùy vào tài liệu PayOS, bạn có thể cần tạo lại signature từ data và so sánh với receivedSignature
-    // const expectedSignature = createChecksum(data, PAYOS_CHECKSUM_KEY);
-    // return expectedSignature === receivedSignature;
-    return true; // Tạm thời luôn đúng, cần sửa theo tài liệu PayOS
+    // Implement actual signature verification
+    console.warn('Webhook verification is not implemented');
+    return true;
 }

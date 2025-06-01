@@ -5,6 +5,7 @@ export interface ITransaction extends Document {
     payment_id: Schema.Types.ObjectId;
     staff_id: Schema.Types.ObjectId;
     customer_id: Schema.Types.ObjectId;
+    sample_id: Schema.Types.ObjectId;
     receipt_number: string;
     payos_transaction_id?: string;
     payos_payment_status?: TransactionStatusEnum;

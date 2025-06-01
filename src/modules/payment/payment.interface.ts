@@ -14,7 +14,9 @@ export type PaymentStatus =
 export interface IPayment extends Document {
     _id: string;
     appointment_id: Schema.Types.ObjectId;
+    sample_ids?: Schema.Types.ObjectId[];
     amount: number;
+    payment_no?: string;
     payment_method: PaymentMethod;
     status: PaymentStatus;
     balance_origin: number;
@@ -25,12 +27,12 @@ export interface IPayment extends Document {
     payos_payment_status_code?: string;
     payos_payment_status_detail?: string;
     payos_payment_status_time?: Date;
-    
+
     // demo payOs
     order_code?: string;
     order_id?: string;
     // end demo payOs
-    
+
     created_at: Date;
     updated_at: Date;
 } 

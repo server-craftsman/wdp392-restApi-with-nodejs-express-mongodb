@@ -1,21 +1,20 @@
 /**
  * @swagger
  * tags:
- *   name: results
- *   description: Test result management APIs
+ *   - name: Result
+ *     description: Test result management endpoints
  */
 
 /**
  * @swagger
- * /api/result:
+ * /api/result/create:
  *   post:
  *     tags:
- *       - results
- *     summary: Create a new test result (Laboratory Technician only)
- *     description: Create a new DNA test result for a sample
- *     operationId: createResult
+ *       - Result
+ *     summary: Create a new test result
+ *     description: Creates a new test result for a sample and updates its status. Appointment must be PAID before creating results.
  *     security:
- *       - Bearer: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -23,22 +22,57 @@
  *           schema:
  *             $ref: '#/components/schemas/CreateResultDto'
  *     responses:
- *       201:
+ *       '200':
  *         description: Result created successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ResultResponse'
- *       400:
- *         description: Invalid input data or sample/appointment status
- *       401:
- *         description: Unauthorized - Authentication required
- *       403:
- *         description: Forbidden - Laboratory technician access required
- *       404:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Result'
+ *                 message:
+ *                   type: string
+ *                   example: "Result created successfully"
+ *       '400':
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '401':
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '403':
+ *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '404':
  *         description: Sample or appointment not found
- *       409:
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '409':
  *         description: Result already exists for this sample
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '500':
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -46,72 +80,58 @@
  * /api/result/{id}:
  *   get:
  *     tags:
- *       - results
- *     summary: Get result by ID (All authenticated users)
- *     description: Retrieve detailed information about a specific test result
- *     operationId: getResultById
+ *       - Result
+ *     summary: Get result by ID
+ *     description: Retrieves a test result by its ID
  *     security:
- *       - Bearer: []
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
+ *       - name: id
+ *         in: path
  *         required: true
+ *         description: ID of the result to get
  *         schema:
  *           type: string
- *         description: Result ID
- *         example: "60c72b2f9b1e8b3b4c8d6e27"
  *     responses:
- *       200:
- *         description: Result details retrieved successfully
+ *       '200':
+ *         description: Result retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ResultResponse'
- *       400:
- *         description: Invalid result ID format
- *       401:
- *         description: Unauthorized - Authentication required
- *       403:
- *         description: Forbidden - User cannot access this result
- *       404:
- *         description: Result not found
- *   put:
- *     tags:
- *       - results
- *     summary: Update an existing test result (Laboratory Technician only)
- *     description: Update details of an existing test result
- *     operationId: updateResult
- *     security:
- *       - Bearer: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Result ID
- *         example: "60c72b2f9b1e8b3b4c8d6e27"
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateResultDto'
- *     responses:
- *       200:
- *         description: Result updated successfully
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Result'
+ *                 message:
+ *                   type: string
+ *                   example: "Result retrieved successfully"
+ *       '400':
+ *         description: Bad request
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ResultResponse'
- *       400:
- *         description: Invalid input data or result ID format
- *       401:
- *         description: Unauthorized - Authentication required
- *       403:
- *         description: Forbidden - Laboratory technician access required
- *       404:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '401':
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '404':
  *         description: Result not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '500':
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -119,92 +139,77 @@
  * /api/result/sample/{sampleId}:
  *   get:
  *     tags:
- *       - results
- *     summary: Get result by sample ID (All authenticated users)
- *     description: Retrieve test result information for a specific sample
- *     operationId: getResultBySampleId
+ *       - Result
+ *     summary: Get result by sample ID
+ *     description: Retrieves a test result by sample ID
  *     security:
- *       - Bearer: []
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: sampleId
+ *       - name: sampleId
+ *         in: path
  *         required: true
+ *         description: ID of the sample to get result for
  *         schema:
  *           type: string
- *         description: Sample ID
- *         example: "60c72b2f9b1e8b3b4c8d6e26"
  *     responses:
- *       200:
- *         description: Result details retrieved successfully
+ *       '200':
+ *         description: Result retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ResultResponse'
- *       400:
- *         description: Invalid sample ID format
- *       401:
- *         description: Unauthorized - Authentication required
- *       403:
- *         description: Forbidden - User cannot access this result
- *       404:
- *         description: Result not found for this sample
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Result'
+ *                 message:
+ *                   type: string
+ *                   example: "Result retrieved successfully"
+ *       '400':
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '401':
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '404':
+ *         description: Result not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '500':
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
  * @swagger
- * /api/result/appointment/{appointmentId}:
- *   get:
+ * /api/result/start-testing/{sampleId}:
+ *   post:
  *     tags:
- *       - results
- *     summary: Get result by appointment ID (All authenticated users)
- *     description: Retrieve test result information for a specific appointment
- *     operationId: getResultByAppointmentId
+ *       - Result
+ *     summary: Start testing process for a sample
+ *     description: Updates the sample status to TESTING and the appointment status to TESTING. Appointment must be PAID before starting testing.
  *     security:
- *       - Bearer: []
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: appointmentId
+ *       - name: sampleId
+ *         in: path
  *         required: true
+ *         description: ID of the sample to start testing for
  *         schema:
  *           type: string
- *         description: Appointment ID
- *         example: "60c72b2f9b1e8b3b4c8d6e25"
- *     responses:
- *       200:
- *         description: Result details retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ResultResponse'
- *       400:
- *         description: Invalid appointment ID format
- *       401:
- *         description: Unauthorized - Authentication required
- *       403:
- *         description: Forbidden - User cannot access this result
- *       404:
- *         description: Result not found for this appointment
- */
-
-/**
- * @swagger
- * /api/result/sample/{sampleId}/start-testing:
- *   put:
- *     tags:
- *       - results
- *     summary: Start testing process for a sample (Laboratory Technician only)
- *     description: Update sample and appointment status to TESTING
- *     operationId: startTesting
- *     security:
- *       - Bearer: []
- *     parameters:
- *       - in: path
- *         name: sampleId
- *         required: true
- *         schema:
- *           type: string
- *         description: Sample ID
- *         example: "60c72b2f9b1e8b3b4c8d6e26"
  *     requestBody:
  *       required: true
  *       content:
@@ -212,14 +217,130 @@
  *           schema:
  *             $ref: '#/components/schemas/StartTestingDto'
  *     responses:
- *       200:
- *         description: Testing process started successfully
- *       400:
- *         description: Invalid input data, sample ID format, or sample status
- *       401:
- *         description: Unauthorized - Authentication required
- *       403:
- *         description: Forbidden - Laboratory technician access required
- *       404:
+ *       '200':
+ *         description: Testing started successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Testing started successfully"
+ *       '400':
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '401':
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '403':
+ *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '404':
  *         description: Sample not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '500':
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CreateResultDto:
+ *       type: object
+ *       properties:
+ *         sample_id:
+ *           type: string
+ *           description: ID of the sample this result is for
+ *           example: "5f8d0e0e9d3b9a0017c1a7a1"
+ *         appointment_id:
+ *           type: string
+ *           description: ID of the appointment this result is for
+ *           example: "5f8d0e0e9d3b9a0017c1a7a2"
+ *         customer_id:
+ *           type: string
+ *           description: ID of the customer this result is for
+ *           example: "5f8d0e0e9d3b9a0017c1a7a3"
+ *         is_match:
+ *           type: boolean
+ *           description: Whether the test result is a match or not
+ *           example: true
+ *         result_data:
+ *           type: object
+ *           description: Additional result data specific to the test type
+ *           example: {"dna_match_percentage": 99.99, "confidence_level": "high"}
+ *         report_url:
+ *           type: string
+ *           description: URL to the detailed result report
+ *           example: "https://example.com/reports/result_12345.pdf"
+ *       required:
+ *         - sample_id
+ *         - appointment_id
+ *         - customer_id
+ *         - is_match
+ * 
+ *     StartTestingDto:
+ *       type: object
+ *       properties:
+ *         notes:
+ *           type: string
+ *           description: Additional notes for the testing process
+ *           example: "Sample appears to be in good condition"
+ *
+ *     Result:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           example: "5f8d0e0e9d3b9a0017c1a7a4"
+ *         sample_id:
+ *           type: string
+ *           example: "5f8d0e0e9d3b9a0017c1a7a1"
+ *         appointment_id:
+ *           type: string
+ *           example: "5f8d0e0e9d3b9a0017c1a7a2"
+ *         customer_id:
+ *           type: string
+ *           example: "5f8d0e0e9d3b9a0017c1a7a3"
+ *         is_match:
+ *           type: boolean
+ *           example: true
+ *         result_data:
+ *           type: object
+ *           example: {"dna_match_percentage": 99.99, "confidence_level": "high"}
+ *         report_url:
+ *           type: string
+ *           example: "https://example.com/reports/result_12345.pdf"
+ *         completed_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-07-15T14:30:00Z"
+ *         created_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-07-15T14:00:00Z"
+ *         updated_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-07-15T14:30:00Z"
  */ 

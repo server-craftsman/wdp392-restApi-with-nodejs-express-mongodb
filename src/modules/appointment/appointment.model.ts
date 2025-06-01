@@ -2,21 +2,25 @@ import mongoose, { Schema } from 'mongoose';
 import { COLLECTION_NAME } from '../../core/constants';
 import { AppointmentStatuses, CollectionTypes } from './appointment.constant';
 import { IAppointment } from './appointment.interface';
-
-
+import { AppointmentStatusEnum, TypeEnum, PaymentStatusEnum } from './appointment.enum';
 
 const AppointmentSchemaEntity: Schema<IAppointment> = new Schema({
     user_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true },
     service_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.SERVICE, required: true },
     status: {
         type: String,
-        enum: AppointmentStatuses,
-        required: true
+        enum: Object.values(AppointmentStatusEnum),
+        default: AppointmentStatusEnum.PENDING
+    },
+    payment_status: {
+        type: String,
+        enum: Object.values(PaymentStatusEnum),
+        default: PaymentStatusEnum.UNPAID
     },
     appointment_date: { type: Date, required: true },
     type: {
         type: String,
-        enum: CollectionTypes,
+        enum: Object.values(TypeEnum),
         required: true
     },
     collection_address: { type: String },

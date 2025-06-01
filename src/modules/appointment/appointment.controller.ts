@@ -158,4 +158,17 @@ export default class AppointmentController {
             next(error);
         }
     };
+
+    public getAppointmentPrice = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { appointmentId } = req.params;
+            const price = await this.appointmentService.getAppointmentPrice(appointmentId);
+
+            res.status(HttpStatus.Success).json(
+                formatResponse({ price }, true, 'Appointment price retrieved successfully')
+            );
+        } catch (error) {
+            next(error);
+        }
+    };
 }

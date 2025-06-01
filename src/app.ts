@@ -20,7 +20,6 @@ export default class App {
         this.app = express();
         this.port = process.env.WEBSITES_PORT || 3000;
         this.production = !!(process.env.NODE_ENV === 'production');
-
         this.connectToDatabase();
         this.initializeMiddleware();
         this.initializeRoute(routes);

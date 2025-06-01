@@ -9,7 +9,7 @@ import { StartTestingDto } from './dtos/startTesting.dto';
 import SampleService from '../sample/sample.service';
 import { SampleStatusEnum } from '../sample/sample.enum';
 import AppointmentService from '../appointment/appointment.service';
-import { AppointmentStatusEnum } from '../appointment/appointment.enum';
+import { AppointmentStatusEnum, PaymentStatusEnum } from '../appointment/appointment.enum';
 import { AppointmentLogService } from '../appointment_log';
 import { AppointmentLogTypeEnum } from '../appointment_log/appointment_log.enum';
 
@@ -41,6 +41,14 @@ export default class ResultService {
             const appointment = await this.appointmentService.getAppointmentById(resultData.appointment_id);
             if (!appointment) {
                 throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
+            }
+
+            // Check if appointment has been paid for
+            if (appointment.payment_status !== PaymentStatusEnum.PAID) {
+                throw new HttpException(
+                    HttpStatus.BadRequest,
+                    `Cannot create result for appointment that hasn't been paid for (payment status: ${appointment.payment_status})`
+                );
             }
 
             // Check if sample is in TESTING status
@@ -215,6 +223,15 @@ export default class ResultService {
                 throw new HttpException(HttpStatus.NotFound, 'Sample not found');
             }
 
+            // Check if appointment exists and has been paid for
+            const appointment = await this.appointmentService.getAppointmentById(sample.appointment_id.toString());
+            if (appointment.payment_status !== PaymentStatusEnum.PAID) {
+                throw new HttpException(
+                    HttpStatus.BadRequest,
+                    `Cannot start testing for appointment that hasn't been paid for (payment status: ${appointment.payment_status})`
+                );
+            }
+
             // Check if sample is in RECEIVED status
             if (sample.status !== SampleStatusEnum.RECEIVED) {
                 throw new HttpException(
@@ -227,7 +244,6 @@ export default class ResultService {
             await this.sampleService.updateSampleStatus(sampleId, SampleStatusEnum.TESTING);
 
             // Get appointment and update its status to TESTING
-            const appointment = await this.appointmentService.getAppointmentById(sample.appointment_id.toString());
             if (appointment.status !== AppointmentStatusEnum.TESTING) {
                 await this.appointmentService.updateAppointmentStatus(
                     appointment._id.toString(),

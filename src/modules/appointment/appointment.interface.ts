@@ -1,5 +1,5 @@
 import { Document, Schema } from 'mongoose';
-import { AppointmentStatusEnum, TypeEnum } from './appointment.enum';
+import { AppointmentStatusEnum, TypeEnum, PaymentStatusEnum } from './appointment.enum';
 import { ISample } from '../sample/sample.interface';
 
 export type AppointmentStatus =
@@ -29,6 +29,7 @@ export interface IAppointment extends Document {
     user_id: Schema.Types.ObjectId;
     service_id: Schema.Types.ObjectId;
     status: AppointmentStatus;
+    payment_status: PaymentStatusEnum;
     appointment_date: Date;
     type: CollectionType;
     collection_address?: string;

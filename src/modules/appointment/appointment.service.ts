@@ -3,7 +3,7 @@ import { HttpStatus } from '../../core/enums';
 import { HttpException } from '../../core/exceptions';
 import { SearchPaginationResponseModel } from '../../core/models';
 import { IAppointment } from './appointment.interface';
-import { AppointmentStatusEnum, TypeEnum } from './appointment.enum';
+import { AppointmentStatusEnum, TypeEnum, PaymentStatusEnum } from './appointment.enum';
 import { CreateAppointmentDto } from './dtos/createAppointment.dto';
 import { AssignStaffDto } from './dtos/assign-staff.dto';
 import { ConfirmAppointmentDto } from './dtos/confirm-appointment.dto';
@@ -137,6 +137,7 @@ export default class AppointmentService {
                 type: appointmentData.type,
                 collection_address: appointmentData.collection_address,
                 status: AppointmentStatusEnum.PENDING,
+                payment_status: PaymentStatusEnum.UNPAID,
                 created_at: new Date(),
                 updated_at: new Date()
             });
@@ -582,5 +583,35 @@ export default class AppointmentService {
         // Get samples for the appointment
         const samples = await this.getSampleService().getSamplesByAppointmentId(appointmentId);
         return samples;
+    }
+
+    /**
+     * Get price for an appointment
+     * @param appointmentId The ID of the appointment
+     * @returns The price of the service associated with the appointment
+     */
+    public async getAppointmentPrice(appointmentId: string): Promise<number> {
+        try {
+            if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid appointment ID');
+            }
+
+            const appointment = await this.appointmentRepository.findById(appointmentId);
+            if (!appointment) {
+                throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
+            }
+
+            const service = await ServiceSchema.findById(appointment.service_id);
+            if (!service) {
+                throw new HttpException(HttpStatus.NotFound, 'Service not found for this appointment');
+            }
+
+            return service.price;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error getting appointment price');
+        }
     }
 }

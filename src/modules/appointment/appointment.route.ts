@@ -62,5 +62,12 @@ export default class AppointmentRoute implements IRoute {
             validationMiddleware(ConfirmAppointmentDto),
             this.appointmentController.confirmAppointment
         );
+
+        // GET: domain:/api/appointment/:appointmentId/price -> Get price for an appointment
+        this.router.get(
+            `${this.path}/:appointmentId/price`,
+            authMiddleWare(),
+            this.appointmentController.getAppointmentPrice
+        );
     }
 } 

@@ -365,3 +365,66 @@
  *       500:
  *         description: Internal server error
  */
+
+/**
+ * @swagger
+ * /api/appointment/{appointmentId}/price:
+ *   get:
+ *     tags:
+ *       - appointments
+ *     summary: Get price for an appointment
+ *     description: Retrieves the price for an appointment based on its associated service
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - name: appointmentId
+ *         in: path
+ *         required: true
+ *         description: ID of the appointment
+ *         schema:
+ *           type: string
+ *     responses:
+ *       '200':
+ *         description: Appointment price retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     price:
+ *                       type: number
+ *                       example: 100000
+ *                 message:
+ *                   type: string
+ *                   example: "Appointment price retrieved successfully"
+ *       '400':
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '401':
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '404':
+ *         description: Appointment not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '500':
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
