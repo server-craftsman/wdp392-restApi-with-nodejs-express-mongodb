@@ -7,6 +7,7 @@ import SlotService from './slot.service';
 import { CreateSlotDto } from './dtos/createSlot.dto';
 import { ISlot } from './slot.interface';
 import { SearchPaginationResponseModel } from '../../core/models/searchPagination.model';
+import { UserRoleEnum } from '../user/user.enum';
 
 export default class SlotController {
     private slotService = new SlotService();
@@ -45,7 +46,11 @@ export default class SlotController {
      */
     public getSlots = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const slots = await this.slotService.getSlots(req.query);
+            // Get user role and ID from the authenticated request
+            const userRole = req.user?.role;
+            const userId = req.user?.id;
+
+            const slots = await this.slotService.getSlots(req.query, userRole, userId);
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<ISlot>>(slots));
         } catch (error) {
             next(error);
@@ -58,7 +63,15 @@ export default class SlotController {
     public getSlotById = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const slotId = req.params.id;
-            const slot = await this.slotService.getSlotById(slotId);
+
+            // Get user role and ID from the authenticated request
+            const userRole = req.user?.role;
+            const userId = req.user?.id;
+
+            // Get requested staff ID if any
+            const requestedStaffId = req.query.staff_profile_id as string;
+
+            const slot = await this.slotService.getSlotById(slotId, userRole, userId, requestedStaffId);
             res.status(HttpStatus.Success).json(formatResponse<ISlot>(slot));
         } catch (error) {
             next(error);
@@ -109,7 +122,17 @@ export default class SlotController {
                 throw new HttpException(HttpStatus.BadRequest, 'User ID is required');
             }
 
-            const slots = await this.slotService.getSlotsByUser(userId, req.query);
+            // Get requesting user role and ID
+            const requestingUserRole = req.user?.role;
+            const requestingUserId = req.user?.id;
+
+            const slots = await this.slotService.getSlotsByUser(
+                userId,
+                req.query,
+                requestingUserRole,
+                requestingUserId
+            );
+
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<ISlot>>(slots));
         } catch (error) {
             next(error);
@@ -122,7 +145,16 @@ export default class SlotController {
     public getSlotsByDepartment = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const departmentId = req.params.departmentId;
-            const slots = await this.slotService.getSlotsByDepartment(departmentId, req.query);
+            // Get user role and ID from the authenticated request
+            const userRole = req.user?.role;
+            const userId = req.user?.id;
+
+            // Staff role is not allowed to filter by staff_profile_ids
+            if (userRole === UserRoleEnum.STAFF && req.query.staff_profile_ids) {
+                throw new HttpException(HttpStatus.Forbidden, 'Staff role is not allowed to filter by staff_profile_id');
+            }
+
+            const slots = await this.slotService.getSlotsByDepartment(departmentId, req.query, userRole, userId);
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<ISlot>>(slots));
         } catch (error) {
             next(error);
@@ -162,17 +194,27 @@ export default class SlotController {
      */
     public getAvailableSlots = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { start_date, end_date, type } = req.query;
+            const { start_date, end_date, type, staff_profile_ids } = req.query;
 
             if (!start_date) {
                 throw new HttpException(HttpStatus.BadRequest, 'start_date is required');
             }
 
+            // Get user role and ID from the authenticated request
+            const userRole = req.user?.role;
+            const userId = req.user?.id;
+
+            // Staff role is not allowed to filter by staff_profile_ids
+            if (userRole === UserRoleEnum.STAFF && staff_profile_ids) {
+                throw new HttpException(HttpStatus.Forbidden, 'Staff role is not allowed to filter by staff_profile_id');
+            }
+
             const availableSlots = await this.slotService.getAvailableSlots({
                 start_date: start_date as string,
                 end_date: end_date as string,
-                type: type as string
-            });
+                type: type as string,
+                staff_profile_ids: staff_profile_ids as string | string[]
+            }, userRole, userId);
 
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<ISlot>>(availableSlots));
         } catch (error) {

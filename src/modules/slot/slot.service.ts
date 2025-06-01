@@ -158,82 +158,62 @@ export default class SlotService {
     // }
 
     /**
-     * Lấy slots theo phòng ban và khoảng thời gian
+     * Get slots by department with role-based filtering
+     * @param departmentId Department ID
+     * @param queryParams Query parameters
+     * @param userRole Role of the requesting user
+     * @param userId ID of the requesting user
+     * @returns Paginated list of slots for the department
      */
-    public async getSlotsByDepartment(departmentId: string, queryParams: any = {}): Promise<SearchPaginationResponseModel<ISlot>> {
+    public async getSlotsByDepartment(
+        departmentId: string,
+        queryParams: any = {},
+        userRole?: string,
+        userId?: string
+    ): Promise<SearchPaginationResponseModel<ISlot>> {
         if (!mongoose.Types.ObjectId.isValid(departmentId)) {
             throw new HttpException(HttpStatus.BadRequest, 'Department ID is invalid');
         }
 
-        // Tìm tất cả nhân viên thuộc phòng ban
+        // Find all staff profiles in the department
         const staffProfiles = await this.staffProfileSchema.find({
             department_id: departmentId,
             status: StaffStatusEnum.ACTIVE
         });
 
-        const staffProfileIds = staffProfiles.map(profile => profile._id); // lấy danh sách id của nhân viên thuộc phòng ban
+        const staffProfileIds = staffProfiles.map(profile => profile._id);
 
-        // Xử lý tham số truy vấn
-        const {
-            pageNum,
-            pageSize,
-            date_from,
-            date_to,
-            status,
-            staff_profile_ids
-        } = this.processQueryParams(queryParams);
+        // For staff users, check if they belong to the requested department
+        if (userRole === UserRoleEnum.STAFF && userId) {
+            const staffProfile = await this.staffProfileSchema.findOne({ user_id: userId });
 
-        const skip = (pageNum - 1) * pageSize; // tính toán số lượng slot bị bỏ qua
-
-        // Xây dựng truy vấn
-        const query: any = {};
-
-        // Lọc theo staff_profile_ids hoặc tất cả nhân viên trong phòng ban
-        if (staff_profile_ids) {
-            query.staff_profile_ids = staff_profile_ids;
-        } else {
-            query.staff_profile_ids = { $in: staffProfileIds }; // $in is used in array to filter the some of the values
-        }
-
-        // Lọc theo trạng thái
-        if (status) {
-            query.status = status;
-        }
-
-        // Lọc theo khoảng thời gian
-        if (date_from || date_to) {
-            if (date_from) {
-                const startDate = new Date(date_from);
-                query.start_time = { $gte: startDate }; // start_time >= date_from
+            if (!staffProfile) {
+                return {
+                    pageData: [],
+                    pageInfo: {
+                        totalItems: 0,
+                        totalPages: 0,
+                        pageNum: 1,
+                        pageSize: 10
+                    }
+                };
             }
-            if (date_to) {
-                const endDate = new Date(date_to);
-                endDate.setHours(23, 59, 59, 999); // set the end time of the slot
-                if (query.start_time) {
-                    query.start_time.$lte = endDate; // start_time <= end_time
-                } else {
-                    query.start_time = { $lte: endDate }; // start_time <= end_time
-                }
+
+            // Check if staff belongs to the requested department
+            if (staffProfile.department_id?.toString() !== departmentId) {
+                // Staff can only see slots from their own department
+                throw new HttpException(HttpStatus.Forbidden, 'You can only view slots from your own department');
             }
         }
 
-        // Đếm tổng số slot
-        const totalItems = await this.slotRepository.countDocuments(query);
-
-        // Lấy dữ liệu với phân trang
-        const slots = await this.slotRepository.findWithPopulate(query, { start_time: 1 }, skip, pageSize);
-
-        const totalPages = Math.ceil(totalItems / pageSize);
-
-        return {
-            pageData: slots,
-            pageInfo: {
-                totalItems,
-                totalPages,
-                pageNum,
-                pageSize
-            }
+        // Add department_id to query params
+        const enrichedQueryParams = {
+            ...queryParams,
+            department_id: departmentId
         };
+
+        // Use the getSlots method with role-based filtering
+        return this.getSlots(enrichedQueryParams, userRole, userId);
     }
 
     /**
@@ -481,9 +461,13 @@ export default class SlotService {
     }
 
     /**
-     * Lấy danh sách slot với các bộ lọc động (params mới)
+     * Get slots with filters
+     * @param queryParams Query parameters for filtering
+     * @param userRole Role of the requesting user
+     * @param userId ID of the requesting user
+     * @returns Paginated list of slots
      */
-    public async getSlots(queryParams: any = {}): Promise<SearchPaginationResponseModel<ISlot>> {
+    public async getSlots(queryParams: any = {}, userRole?: string, userId?: string): Promise<SearchPaginationResponseModel<ISlot>> {
         try {
             const {
                 pageNum = 1,
@@ -498,29 +482,87 @@ export default class SlotService {
                 sort_order = 1,
             } = queryParams;
 
-            // tính toán số lượng skip
             const skip = (pageNum - 1) * pageSize;
 
-            // tạo query
             const query: any = {};
 
-            if (staff_profile_ids) {
-                query.staff_profile_ids = Array.isArray(staff_profile_ids)
-                    ? { $in: staff_profile_ids } // $in is used in array to filter the some of the values
-                    : { $in: [staff_profile_ids] }; // $in is used in array to filter the some of the values        
+            // Lưu trữ staff_profile_ids được yêu cầu để lọc trong phản hồi sau
+            let requestedStaffIds: string[] = [];
+
+            // Xử lý lọc staff_profile_ids dựa trên vai trò của người dùng
+            if (userRole === UserRoleEnum.STAFF) {
+                if (staff_profile_ids) {
+                    // Vai trò STAFF không được phép lọc bằng staff_profile_ids
+                    throw new HttpException(HttpStatus.Forbidden, 'Staff role is not allowed to filter by staff_profile_id');
+                }
+
+                // STAFF chỉ có thể xem slot mà họ được giao
+                if (userId) {
+                    const staffProfile = await this.staffProfileSchema.findOne({ user_id: userId });
+                    if (staffProfile) {
+                        query.staff_profile_ids = { $in: [staffProfile._id] }; // $in is used in array to filter the some of the values
+                        requestedStaffIds = [staffProfile._id.toString()];
+                    } else {
+                        // Nếu staff profile không được tìm thấy, trả về kết quả trống
+                        return {
+                            pageData: [],
+                            pageInfo: {
+                                totalItems: 0,
+                                totalPages: 0,
+                                pageNum: Number(pageNum),
+                                pageSize: Number(pageSize)
+                            }
+                        };
+                    }
+                }
+            } else if (userRole === UserRoleEnum.ADMIN || userRole === UserRoleEnum.MANAGER) {
+                // Admin/Manager có thể lọc bằng staff_profile_ids nếu được cung cấp
+                if (staff_profile_ids) {
+                    // Chuyển đổi thành mảng nếu đó là ID duy nhất
+                    const staffIdsArray: any[] = Array.isArray(staff_profile_ids)
+                        ? staff_profile_ids
+                        : [staff_profile_ids]; // ép kiểu sang mảng
+
+                    // Chuyển đổi tất cả các ID thành chuỗi để so sánh
+                    requestedStaffIds = staffIdsArray.map(id => id.toString());
+
+                    // Sử dụng các giá trị gốc cho truy vấn
+                    query.staff_profile_ids = { $in: staffIdsArray };
+                }
+                // Ngược lại, họ có thể xem tất cả các slot (không áp dụng bất kỳ lọc nào)
             }
 
-            // lọc theo department_id
+            // Lọc theo department_id
             if (department_id) {
                 const staffProfiles = await this.staffProfileSchema.find({
                     department_id,
                     status: StaffStatusEnum.ACTIVE
                 });
-                const staffProfileIds = staffProfiles.map(profile => profile._id);
-                query.staff_profile_ids = { $in: staffProfileIds };
+                const staffProfileIds = staffProfiles.map(profile => profile._id.toString());
+
+                // Nếu staff_profile_ids đã được thiết lập, sử dụng $and để kết hợp các bộ lọc
+                if (query.staff_profile_ids) {
+                    query.$and = [
+                        { staff_profile_ids: query.staff_profile_ids },
+                        { staff_profile_ids: { $in: staffProfileIds } }
+                    ];
+
+                    // Lọc requestedStaffIds để chỉ bao gồm nhân viên từ phòng ban này
+                    if (requestedStaffIds.length > 0) {
+                        requestedStaffIds = requestedStaffIds.filter(id =>
+                            staffProfileIds.includes(id)
+                        );
+                    } else {
+                        requestedStaffIds = staffProfileIds;
+                    }
+
+                    delete query.staff_profile_ids; // Xóa bộ lọc gốc vì chúng ta đang sử dụng $and
+                } else {
+                    query.staff_profile_ids = { $in: staffProfileIds };
+                    requestedStaffIds = staffProfileIds;
+                }
             }
 
-            // lọc theo appointment_id
             if (appointment_id) {
                 query.appointment_id = appointment_id;
             }
@@ -529,31 +571,74 @@ export default class SlotService {
                 query.status = status;
             }
 
-            // lọc theo khoảng thời gian
+            // Lọc theo khoảng ngày
             if (date_from || date_to) {
-                query.start_time = {};
+                // Tìm các slot mà bất kỳ thời gian_slot nào nằm trong khoảng ngày
+                const dateConditions = [];
 
-                // lọc theo ngày bắt đầu
                 if (date_from) {
-                    query.start_time.$gte = new Date(date_from); // start_time >= date_from
+                    const startDate = new Date(date_from);
+                    const startYear = startDate.getFullYear();
+                    const startMonth = startDate.getMonth() + 1; // JavaScript months are 0-based
+                    const startDay = startDate.getDate();
+
+                    dateConditions.push({
+                        $or: [
+                            { 'time_slots.year': { $gt: startYear } },
+                            {
+                                'time_slots.year': startYear,
+                                'time_slots.month': { $gt: startMonth }
+                            },
+                            {
+                                'time_slots.year': startYear,
+                                'time_slots.month': startMonth,
+                                'time_slots.day': { $gte: startDay }
+                            }
+                        ]
+                    });
                 }
 
-                // lọc theo ngày kết thúc
                 if (date_to) {
                     const endDate = new Date(date_to);
-                    endDate.setHours(23, 59, 59, 999);
-                    query.start_time.$lte = endDate; // start_time <= end_time
+                    const endYear = endDate.getFullYear();
+                    const endMonth = endDate.getMonth() + 1;
+                    const endDay = endDate.getDate();
+
+                    dateConditions.push({
+                        $or: [
+                            { 'time_slots.year': { $lt: endYear } },
+                            {
+                                'time_slots.year': endYear,
+                                'time_slots.month': { $lt: endMonth }
+                            },
+                            {
+                                'time_slots.year': endYear,
+                                'time_slots.month': endMonth,
+                                'time_slots.day': { $lte: endDay }
+                            }
+                        ]
+                    });
+                }
+
+                // Nếu có điều kiện ngày, sử dụng $and để kết hợp các điều kiện => tạo ra điều kiện ngày
+                if (dateConditions.length > 0) {
+                    if (query.$and) {
+                        query.$and.push({ $and: dateConditions });
+                    } else {
+                        query.$and = dateConditions;
+                    }
                 }
             }
 
+            console.log('Slot search query:', JSON.stringify(query, null, 2));
+
             const totalItems = await this.slotSchema.countDocuments(query);
 
-            // lấy danh sách slot
             const slots = await this.slotSchema
                 .find(query)
-                .sort({ [sort_by]: sort_order }) // sắp xếp theo trường sort_by và sort_order
+                .sort({ [sort_by]: sort_order })
                 .skip(skip)
-                .limit(Number(pageSize)) // giới hạn số lượng slot trả về
+                .limit(Number(pageSize))
                 .populate({
                     path: 'staff_profile_ids',
                     select: 'employee_id job_title department_id',
@@ -565,12 +650,31 @@ export default class SlotService {
                 .populate({
                     path: 'appointment_id',
                     select: 'code status'
-                })
+                });
+
+            // Xử lý kết quả dựa trên vai trò của người dùng và tham số lọc
+            const processedSlots = slots.map(slot => {
+                const slotObj = slot.toObject();
+
+                // Nếu lọc theo staff_profile_ids, chỉ hiển thị những nhân viên được yêu cầu trong phản hồi
+                if (staff_profile_ids && Array.isArray(slotObj.staff_profile_ids)) {
+                    // Lọc staff_profile_ids để chỉ bao gồm những nhân viên được yêu cầu
+                    slotObj.staff_profile_ids = slotObj.staff_profile_ids.filter((profile: any) => {
+                        return profile._id && requestedStaffIds.includes(profile._id.toString());
+                    }) as any;
+                }
+                // Đối với danh sách xem (không lọc theo staff_profile_id cụ thể), ẩn staff_profile_ids cho vai trò STAFF
+                else if (!staff_profile_ids && userRole === UserRoleEnum.STAFF) {
+                    slotObj.staff_profile_ids = [];  // Thay thế bằng mảng trống
+                }
+
+                return slotObj;
+            });
 
             const totalPages = Math.ceil(totalItems / pageSize);
 
             return {
-                pageData: slots,
+                pageData: processedSlots,
                 pageInfo: {
                     totalItems,
                     totalPages,
@@ -585,24 +689,89 @@ export default class SlotService {
     }
 
     /**
-     * Lấy slot theo ID
+     * Get slot by ID with role-based access control
+     * @param id Slot ID
+     * @param userRole Role of the requesting user
+     * @param userId ID of the requesting user
+     * @param requestedStaffId Optional specific staff ID to filter in the response
+     * @returns Slot with appropriate staff information based on user role
      */
-    public async getSlotById(id: string): Promise<ISlot> {
+    public async getSlotById(
+        id: string,
+        userRole?: string,
+        userId?: string,
+        requestedStaffId?: string
+    ): Promise<ISlot> {
         if (!mongoose.Types.ObjectId.isValid(id)) {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid slot ID');
         }
 
         const slot = await this.slotRepository.findByIdWithPopulate(id);
 
-        if (slot && Array.isArray(slot.staff_profile_ids)) {
-            slot.staff_profile_ids = slot.staff_profile_ids.map((staffProfile: any) => staffProfile.toString());
-        }
-
         if (!slot) {
             throw new HttpException(HttpStatus.NotFound, 'Slot not found');
         }
 
-        return slot as ISlot;
+        // Process the slot based on user role
+        const slotObj = slot.toObject();
+
+        // Nếu yêu cầu một nhân viên cụ thể và người dùng không phải là STAFF hoặc là nhân viên được yêu cầu
+        if (requestedStaffId && (userRole !== UserRoleEnum.STAFF ||
+            (userId && await this.isUserMatchingStaffId(userId, requestedStaffId)))) {
+            // Lọc để chỉ hiển thị thông tin nhân viên được yêu cầu
+            if (Array.isArray(slotObj.staff_profile_ids)) {
+                slotObj.staff_profile_ids = slotObj.staff_profile_ids.filter((profile: any) => {
+                    return profile._id && profile._id.toString() === requestedStaffId;
+                });
+            }
+        }
+        // Đối với vai trò STAFF, chỉ hiển thị thông tin của chính họ trong staff_profile_ids
+        else if (userRole === UserRoleEnum.STAFF && userId && Array.isArray(slotObj.staff_profile_ids)) {
+            const staffProfile = await this.staffProfileSchema.findOne({ user_id: userId });
+
+            if (staffProfile) {
+                // Kiểm tra xem nhân viên này có được giao slot hay không
+                const isAssigned = slotObj.staff_profile_ids.some((profile: any) => {
+                    return profile._id && profile._id.toString() === staffProfile._id.toString();
+                });
+
+                if (isAssigned) {
+                    // Chỉ giữ lại thông tin nhân viên này trong danh sách
+                    const staffProfileData = slotObj.staff_profile_ids.find((profile: any) =>
+                        profile._id && profile._id.toString() === staffProfile._id.toString()
+                    );
+
+                    slotObj.staff_profile_ids = staffProfileData ? [staffProfileData] : [];
+                } else {
+                    // Nhân viên không được giao slot, ẩn tất cả thông tin nhân viên
+                    slotObj.staff_profile_ids = [];
+                }
+            } else {
+                // Staff profile not found, hide all staff info
+                slotObj.staff_profile_ids = [];
+            }
+        }
+
+        return slotObj as ISlot;
+    }
+
+    /**
+     * Check if the given user ID matches the given staff profile ID
+     * @param userId User ID to check
+     * @param staffProfileId Staff profile ID to check against
+     * @returns True if the user is associated with the staff profile
+     */
+    private async isUserMatchingStaffId(userId: string, staffProfileId: string): Promise<boolean> {
+        if (!mongoose.Types.ObjectId.isValid(staffProfileId)) {
+            return false;
+        }
+
+        const staffProfile = await this.staffProfileSchema.findById(staffProfileId);
+        if (!staffProfile) {
+            return false;
+        }
+
+        return staffProfile.user_id?.toString() === userId;
     }
 
     /**
@@ -652,92 +821,57 @@ export default class SlotService {
     }
 
     /**
-     * Lấy slots theo nhân viên (user)
+     * Get slots by user (staff) with role-based access control
+     * @param userId User ID to get slots for
+     * @param queryParams Query parameters
+     * @param requestingUserRole Role of the requesting user
+     * @param requestingUserId ID of the requesting user
+     * @returns Paginated list of slots for the user
      */
-    public async getSlotsByUser(userId: string, queryParams: any = {}): Promise<SearchPaginationResponseModel<ISlot>> {
+    public async getSlotsByUser(
+        userId: string,
+        queryParams: any = {},
+        requestingUserRole?: string,
+        requestingUserId?: string
+    ): Promise<SearchPaginationResponseModel<ISlot>> {
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid user ID');
         }
 
-        // tìm user theo id
+        // Find user
         const user = await this.userSchema.findById(userId);
 
-        // nếu không tìm thấy user thì throw lỗi
         if (!user) {
             throw new HttpException(HttpStatus.NotFound, 'User not found');
         }
 
-        // nếu user không active thì throw lỗi
         if (user.status !== true) {
             throw new HttpException(HttpStatus.BadRequest, 'User is not active');
         }
 
-        // tìm staff profile theo user_id
+        // Find staff profile
         const staffProfile = await this.staffProfileSchema.findOne({ user_id: userId });
 
         if (!staffProfile) {
             throw new HttpException(HttpStatus.NotFound, 'Staff profile not found for this user');
         }
 
-        // Process query parameters
-        const {
-            pageNum,
-            pageSize,
-            date_from,
-            date_to,
-            status
-        } = this.processQueryParams(queryParams);
+        // Check permissions - staff can only view their own slots
+        if (requestingUserRole === UserRoleEnum.STAFF) {
+            if (requestingUserId !== userId) {
+                throw new HttpException(HttpStatus.Forbidden, 'As a staff member, you can only view your own slots');
+            }
+        }
 
-        const skip = (pageNum - 1) * pageSize;
-
-        // Build query
-        const query: any = {
-            staff_profile_ids: { $in: [staffProfile._id] }
+        // Add staff_profile_id to query params
+        const enrichedQueryParams = {
+            ...queryParams,
+            staff_profile_ids: [staffProfile._id.toString()]
         };
 
-        // Filter by status
-        if (status) {
-            query.status = status;
-        }
-
-        // Filter by date range
-        if (date_from || date_to) {
-            query.start_time = {};
-            if (date_from) {
-                query.start_time.$gte = new Date(date_from);
-            }
-            if (date_to) {
-                const endDate = new Date(date_to);
-                endDate.setHours(23, 59, 59, 999);
-                query.start_time.$lte = endDate;
-            }
-        }
-
-        const totalItems = await this.slotSchema.countDocuments(query);
-
-        // Lấy slot với phân trang và populate thông tin nhân viên
-        const slots = await this.slotSchema
-            .find(query)
-            .sort({ start_time: 1 })
-            .skip(skip)
-            .limit(pageSize)
-            .populate({
-                path: 'staff_profile_ids',
-                select: 'employee_id job_title department_id',
-                populate: {
-                    path: 'user_id',
-                    select: 'first_name last_name email'
-                }
-            })
-
-        const totalPages = Math.ceil(totalItems / pageSize);
-
-        return new SearchPaginationResponseModel<ISlot>(slots, {
-            pageNum,
-            pageSize,
-            totalItems,
-            totalPages
-        });
+        // Use the getSlots method with role override to ensure we see all slots for this staff
+        // We pass ADMIN as the role to bypass staff-specific filtering in getSlots
+        return this.getSlots(enrichedQueryParams, UserRoleEnum.ADMIN);
     }
 
     /**
@@ -794,16 +928,23 @@ export default class SlotService {
     }
 
     /**
-     * Lấy danh sách slots có sẵn để đặt lịch
-     * 
-     *
+     * Get available slots for booking with role-based filtering
+     * @param params Search parameters
+     * @param userRole Role of the requesting user
+     * @param userId ID of the requesting user
+     * @returns Paginated list of available slots
      */
-    public async getAvailableSlots(params: {
-        start_date: string;
-        end_date?: string;
-        type?: string;
-    }): Promise<SearchPaginationResponseModel<ISlot>> {
-        const { start_date, end_date, type } = params;
+    public async getAvailableSlots(
+        params: {
+            start_date: string;
+            end_date?: string;
+            type?: string;
+            staff_profile_ids?: string | string[];
+        },
+        userRole?: string,
+        userId?: string
+    ): Promise<SearchPaginationResponseModel<ISlot>> {
+        const { start_date, end_date, type, staff_profile_ids } = params;
 
         // Validate start_date
         if (!start_date) {
@@ -811,11 +952,11 @@ export default class SlotService {
         }
 
         const startDate = new Date(start_date);
-        if (isNaN(startDate.getTime())) { // Kiểm tra xem startDate có phải là ngày hợp lệ không
+        if (isNaN(startDate.getTime())) {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid start_date format');
         }
 
-        // Nếu không có end_date, set default end_date là 7 ngày từ start_date
+        // Set default end_date if not provided
         let endDate: Date;
         if (end_date) {
             endDate = new Date(end_date);
@@ -827,49 +968,24 @@ export default class SlotService {
             endDate.setDate(startDate.getDate() + 7); // Default to 7 days from start date
         }
 
-        // Build query
-        const query: any = {
-            status: SlotStatusEnum.AVAILABLE
+        // Create query with all parameters
+        const queryParams: Record<string, any> = {
+            status: SlotStatusEnum.AVAILABLE,
+            date_from: start_date,
+            date_to: end_date,
+            staff_profile_ids: staff_profile_ids
         };
 
-        // Filter slots by date range using time_slots
-        query.time_slots = {
-            $elemMatch: {
-                year: { $gte: startDate.getFullYear(), $lte: endDate.getFullYear() },
-                month: { $gte: startDate.getMonth() + 1, $lte: endDate.getMonth() + 1 },
-                day: { $gte: startDate.getDate(), $lte: endDate.getDate() }
-            }
-        };
-
-        // Nếu type được cung cấp, lọc theo kiểu dịch vụ
         if (type) {
-            // Kiểm tra xem type có phải là một trong các giá trị hợp lệ của SampleMethodEnum không
+            // Validate type if provided
             const validTypes = Object.values(SampleMethodEnum);
             if (!validTypes.includes(type as SampleMethodEnum)) {
                 throw new HttpException(HttpStatus.BadRequest, `Invalid type. Must be one of: ${validTypes.join(', ')}`);
             }
+            queryParams.type = type;
         }
 
-        // Count total slots matching the query
-        const totalItems = await this.slotRepository.countDocuments(query);
-
-        // Get slots with pagination (default page 1, limit 10)
-        const pageNum = 1;
-        const pageSize = 10;
-        const skip = (pageNum - 1) * pageSize;
-
-        // Calculate total pages
-        const totalPages = Math.ceil(totalItems / pageSize);
-
-        // Get slots with populated data
-        const slots = await this.slotRepository.findWithPopulate(query, { "time_slots.year": 1, "time_slots.month": 1, "time_slots.day": 1 }, skip, pageSize);
-
-        // Return formatted response
-        return new SearchPaginationResponseModel<ISlot>(slots, {
-            pageNum,
-            pageSize,
-            totalItems,
-            totalPages
-        });
+        // Use the getSlots method with role-based filtering
+        return this.getSlots(queryParams, userRole, userId);
     }
 }
