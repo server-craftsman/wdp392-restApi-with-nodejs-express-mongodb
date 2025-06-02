@@ -1,6 +1,7 @@
 import AppointmentSchema from './appointment.model';
 import { IAppointment } from './appointment.interface';
 import SampleSchema from '../sample/sample.model';
+import mongoose from 'mongoose';
 
 export default class AppointmentRepository {
     public async create(data: Partial<IAppointment>): Promise<IAppointment> {
@@ -12,7 +13,17 @@ export default class AppointmentRepository {
     }
 
     public async findById(id: string): Promise<IAppointment | null> {
-        return AppointmentSchema.findById(id);
+        try {
+            // Try to convert the ID to a valid ObjectId if it's not already
+            const objectId = mongoose.Types.ObjectId.isValid(id)
+                ? new mongoose.Types.ObjectId(id)
+                : id;
+
+            return AppointmentSchema.findById(objectId);
+        } catch (error) {
+            console.error(`Error finding appointment by ID ${id}:`, error);
+            return null;
+        }
     }
 
     public async findByIdAndUpdate(id: string, update: Partial<IAppointment>, options: any = {}): Promise<IAppointment | null> {

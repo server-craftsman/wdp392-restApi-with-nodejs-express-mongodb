@@ -29,6 +29,11 @@ export default class ResultController {
                 throw new HttpException(HttpStatus.Forbidden, 'Only laboratory technicians can create test results');
             }
 
+            // Validate that sample_ids is provided and is an array
+            if (!req.body.sample_ids || !Array.isArray(req.body.sample_ids) || req.body.sample_ids.length === 0) {
+                throw new HttpException(HttpStatus.BadRequest, 'At least one sample ID is required');
+            }
+
             const resultData: CreateResultDto = req.body;
             const result = await this.resultService.createResult(resultData, laboratoryTechnicianId);
 

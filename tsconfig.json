@@ -26,7 +26,7 @@
     "src/**/*.ts",
     "src/**/*.json",
     "src/modules/auth/swagger/auth.swagger.js"
-  ],
+, "src/modules/result/swagger/results.swagger.js"  ],
   "exclude": [
     "node_modules"
   ]

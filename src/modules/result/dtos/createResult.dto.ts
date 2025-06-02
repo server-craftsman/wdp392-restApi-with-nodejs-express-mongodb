@@ -1,4 +1,4 @@
-import { IsBoolean, IsMongoId, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsMongoId, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ResultDataDto {
@@ -6,9 +6,10 @@ export class ResultDataDto {
 }
 
 export class CreateResultDto {
-    @IsNotEmpty({ message: 'Sample ID is required' })
-    @IsMongoId({ message: 'Sample ID must be a valid MongoDB ID' })
-    sample_id: string = '';
+    @IsNotEmpty({ message: 'Sample IDs are required' })
+    @IsArray({ message: 'Sample IDs must be an array' })
+    @IsMongoId({ each: true, message: 'Each Sample ID must be a valid MongoDB ID' })
+    sample_ids: string[] = [];
 
     @IsNotEmpty({ message: 'Appointment ID is required' })
     @IsMongoId({ message: 'Appointment ID must be a valid MongoDB ID' })

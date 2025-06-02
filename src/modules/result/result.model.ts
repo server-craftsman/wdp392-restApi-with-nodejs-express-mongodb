@@ -3,9 +3,10 @@ import { COLLECTION_NAME } from '../../core/constants';
 import { IResult } from './result.interface';
 
 const ResultSchemaEntity: Schema<IResult> = new Schema({
-    sample_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.SAMPLE, required: true },
+    sample_ids: { type: [Schema.Types.ObjectId], ref: COLLECTION_NAME.SAMPLE, required: true },
     customer_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true },
     appointment_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.APPOINTMENT, required: true },
+    laboratory_technician_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true },
     is_match: { type: Boolean, required: true },
     result_data: { type: Schema.Types.Mixed },
     report_url: { type: String },

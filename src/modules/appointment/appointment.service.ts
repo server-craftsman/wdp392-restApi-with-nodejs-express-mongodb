@@ -182,16 +182,35 @@ export default class AppointmentService {
      * Get appointment by ID
      */
     public async getAppointmentById(id: string): Promise<IAppointment> {
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid appointment ID');
-        }
+        try {
+            if (!id) {
+                throw new HttpException(HttpStatus.BadRequest, 'Appointment ID is required');
+            }
 
-        const appointment = await this.appointmentRepository.findByIdWithPopulate(id);
-        if (!appointment) {
-            throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
-        }
+            // Convert string ID to ObjectId if needed
+            let objectId = id;
+            if (typeof id === 'string') {
+                try {
+                    if (mongoose.Types.ObjectId.isValid(id)) {
+                        objectId = new mongoose.Types.ObjectId(id).toString();
+                    }
+                } catch (error) {
+                    console.error(`Error converting appointment ID ${id} to ObjectId:`, error);
+                }
+            }
 
-        return appointment;
+            const appointment = await this.appointmentRepository.findByIdWithPopulate(objectId);
+            if (!appointment) {
+                throw new HttpException(HttpStatus.NotFound, `Appointment not found with ID: ${id}`);
+            }
+
+            return appointment;
+        } catch (error: any) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, `Error getting appointment: ${error.message}`);
+        }
     }
 
     /**
