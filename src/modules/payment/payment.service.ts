@@ -62,13 +62,35 @@ export default class PaymentService {
                 { new: true }
             );
 
-            await this.transactionSchema.create({
-                payment_id: payment._id,
-                receipt_number: payment_no,
-                transaction_date: new Date(),
-                created_at: new Date(),
-                updated_at: new Date(),
-            });
+            // Create a transaction for each sample
+            if (payment.sample_ids && payment.sample_ids.length > 0) {
+                for (const sampleId of payment.sample_ids) {
+                    await this.transactionSchema.create({
+                        payment_id: payment._id,
+                        receipt_number: `${payment_no}-${sampleId.toString().substring(0, 6)}`,
+                        transaction_date: new Date(),
+                        sample_id: sampleId,
+                        payos_transaction_id: payment.payos_payment_id,
+                        payos_payment_status: 'PAID',
+                        payos_payment_status_time: new Date(),
+                        created_at: new Date(),
+                        updated_at: new Date(),
+                    });
+                }
+                console.log(`Created ${payment.sample_ids.length} transactions for payment ${payment_no}`);
+            } else {
+                // Fallback if no samples
+                await this.transactionSchema.create({
+                    payment_id: payment._id,
+                    receipt_number: payment_no,
+                    transaction_date: new Date(),
+                    payos_transaction_id: payment.payos_payment_id,
+                    payos_payment_status: 'PAID',
+                    payos_payment_status_time: new Date(),
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                });
+            }
 
             return { success: true, message: 'Payment successful' };
         } else {
@@ -138,18 +160,15 @@ export default class PaymentService {
             const paymentNo = `PAY-${uuidv4().substring(0, 8)}-${moment().format('HHmmss')}`;
 
             // Tự động lấy tất cả các mẫu dữ liệu liên quan đến cuộc hẹn
-            let sampleIds: string[] = [];
-
-            if (paymentData.sample_ids && paymentData.sample_ids.length > 0) {
-                // Nếu có ID mẫu được cung cấp, sử dụng chúng
-                sampleIds = paymentData.sample_ids;
+            const samples = await this.sampleService.getSamplesByAppointmentId(paymentData.appointment_id);
+            if (!samples || samples.length === 0) {
+                console.log(`No samples found for appointment ${paymentData.appointment_id}`);
             } else {
-                // Nếu không, lấy tất cả các mẫu cho cuộc hẹn này
-                const samples = await this.sampleService.getSamplesByAppointmentId(paymentData.appointment_id);
-                sampleIds = samples.map(sample => sample._id.toString());
+                console.log(`Found ${samples.length} samples for appointment ${paymentData.appointment_id}`);
             }
 
-            console.log(`Found ${sampleIds.length} samples for appointment ${paymentData.appointment_id}`);
+            // Lưu danh sách ID mẫu
+            const sampleIds = samples.map(sample => sample._id.toString());
 
             const payment = await this.paymentSchema.create({
                 appointment_id: paymentData.appointment_id,
@@ -257,20 +276,41 @@ export default class PaymentService {
                     { new: true }
                 );
 
-                // Create transaction record
-                await this.transactionSchema.create({
-                    payment_id: payment._id,
-                    receipt_number: payment.payment_no || paymentNo,
-                    transaction_date: new Date(),
-                    created_at: new Date(),
-                    updated_at: new Date(),
-                    payos_transaction_id: payment.payos_payment_id,
-                    payos_payment_status: 'PAID',
-                    payos_payment_status_time: new Date(),
-                    payos_payment_status_code: 'PAID',
-                    payos_payment_status_message: 'Thanh toán thành công',
-                    payos_payment_status_detail: 'Thanh toán thành công',
-                });
+                // Create a transaction for each sample
+                if (payment.sample_ids && payment.sample_ids.length > 0) {
+                    for (const sampleId of payment.sample_ids) {
+                        await this.transactionSchema.create({
+                            payment_id: payment._id,
+                            receipt_number: `${payment.payment_no || paymentNo}-${sampleId.toString().substring(0, 6)}`,
+                            transaction_date: new Date(),
+                            sample_id: sampleId,
+                            payos_transaction_id: payment.payos_payment_id,
+                            payos_payment_status: 'PAID',
+                            payos_payment_status_time: new Date(),
+                            payos_payment_status_code: 'PAID',
+                            payos_payment_status_message: 'Thanh toán thành công',
+                            payos_payment_status_detail: 'Thanh toán thành công',
+                            created_at: new Date(),
+                            updated_at: new Date(),
+                        });
+                    }
+                    console.log(`Created ${payment.sample_ids.length} transactions for payment ${paymentNo}`);
+                } else {
+                    // Fallback if no samples
+                    await this.transactionSchema.create({
+                        payment_id: payment._id,
+                        receipt_number: payment.payment_no || paymentNo,
+                        transaction_date: new Date(),
+                        payos_transaction_id: payment.payos_payment_id,
+                        payos_payment_status: 'PAID',
+                        payos_payment_status_time: new Date(),
+                        payos_payment_status_code: 'PAID',
+                        payos_payment_status_message: 'Thanh toán thành công',
+                        payos_payment_status_detail: 'Thanh toán thành công',
+                        created_at: new Date(),
+                        updated_at: new Date(),
+                    });
+                }
 
                 return {
                     success: true,

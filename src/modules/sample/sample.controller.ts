@@ -125,14 +125,7 @@ export default class SampleController {
 
             const result = await this.sampleService.getSamplesReadyForTesting(page, limit);
 
-            res.status(HttpStatus.Success).json(formatResponse({
-                samples: result.samples,
-                pagination: {
-                    total: result.total,
-                    page: result.page,
-                    pages: result.pages
-                }
-            }));
+            res.status(HttpStatus.Success).json(formatResponse(result));
         } catch (error) {
             next(error);
         }
@@ -200,7 +193,7 @@ export default class SampleController {
 
                 // Handle pagination parameters
                 if (req.query.page) {
-                    page = parseInt(String(req.query.page), 10);
+                    page = parseInt(String(req.query.page));
                     if (isNaN(page) || page < 1) {
                         page = 1;
                     }
@@ -209,7 +202,7 @@ export default class SampleController {
                 }
 
                 if (req.query.limit) {
-                    limit = parseInt(String(req.query.limit), 10);
+                    limit = parseInt(String(req.query.limit));
                     if (isNaN(limit) || limit < 1) {
                         limit = 10;
                     }
@@ -217,17 +210,12 @@ export default class SampleController {
                     limit = 10;
                 }
             } catch (error) {
-                console.error('Error parsing query parameters:', error);
-                throw new HttpException(HttpStatus.BadRequest, 'Invalid query parameters');
+                console.error('Error parsing search parameters:', error);
+                // Continue with defaults if parsing fails
             }
 
-            // Log query parameters for debugging
-            console.log('Search parameters:', {
-                status, type, appointmentId, kitCode, personName,
-                startDate, endDate, page, limit
-            });
-
-            const result = await this.sampleService.searchSamples({
+            // Prepare search options
+            const searchOptions = {
                 status,
                 type,
                 appointmentId,
@@ -237,18 +225,44 @@ export default class SampleController {
                 endDate,
                 page,
                 limit
-            });
+            };
 
-            res.status(HttpStatus.Success).json(formatResponse({
-                samples: result.samples,
-                pagination: {
-                    total: result.total,
-                    page: result.page,
-                    pages: result.pages
-                }
-            }));
+            console.log('Search options in controller:', searchOptions);
+
+            // Search samples
+            const result = await this.sampleService.searchSamples(searchOptions);
+
+            // Return formatted response
+            res.status(HttpStatus.Success).json(formatResponse(result));
         } catch (error) {
-            console.error('Error in searchSamples controller:', error);
+            next(error);
+        }
+    };
+
+    /**
+     * Get all samples with RECEIVED status for laboratory technicians
+     * This endpoint returns all samples ready for testing with pagination
+     */
+    public getAllSamplesForTesting = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userRole = req.user.role;
+
+            // Only laboratory technicians can access this endpoint
+            if (userRole !== UserRoleEnum.LABORATORY_TECHNICIAN) {
+                throw new HttpException(
+                    HttpStatus.Forbidden,
+                    'Only laboratory technicians can access samples for testing'
+                );
+            }
+
+            // Get pagination parameters from query string
+            const page = req.query.page ? parseInt(req.query.page as string) : 1;
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+
+            const result = await this.sampleService.getSamplesForTesting(page, limit);
+
+            res.status(HttpStatus.Success).json(formatResponse(result));
+        } catch (error) {
             next(error);
         }
     };

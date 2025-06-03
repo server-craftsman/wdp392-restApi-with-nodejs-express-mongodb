@@ -145,7 +145,7 @@
  * @swagger
  * /api/result:
  *   post:
- *     summary: Create a new test result
+ *     summary: Create a new test result (Lab only)
  *     description: >
  *       Create a new test result with automatic PDF report generation.
  *       The report will include detailed information about the test and results.
@@ -185,7 +185,7 @@
  * 
  * /api/result/{id}:
  *   get:
- *     summary: Get result by ID
+ *     summary: Get result by ID (All authenticated users)
  *     description: Get a test result by its ID. Includes PDF report URL.
  *     tags:
  *       - results
@@ -215,7 +215,7 @@
  *         description: Result not found
  * 
  *   put:
- *     summary: Update a test result
+ *     summary: Update a test result (Lab only)
  *     description: >
  *       Update a test result. If the is_match or result_data fields are changed,
  *       a new PDF report will be automatically generated.
@@ -257,7 +257,7 @@
  * 
  * /api/result/sample/start-testing:
  *   post:
- *     summary: Start testing process for multiple samples (batch processing)
+ *     summary: Start testing process for multiple samples (batch processing) (Lab only)
  *     description: >
  *       Mark multiple samples as being tested in a single request. 
  *       Updates each sample status to TESTING and their associated appointment statuses to TESTING.
@@ -312,7 +312,7 @@
  * 
  * /api/result/sample/{sampleId}:
  *   get:
- *     summary: Get result by sample ID
+ *     summary: Get result by sample ID (All authenticated users)
  *     description: Get a test result by its associated sample ID. Searches for the sample ID in the sample_ids array. Includes PDF report URL.
  *     tags:
  *       - results
@@ -343,7 +343,7 @@
  * 
  * /api/result/appointment/{appointmentId}:
  *   get:
- *     summary: Get result by appointment ID
+ *     summary: Get result by appointment ID (All authenticated users)
  *     description: Get a test result by its associated appointment ID. Includes PDF report URL.
  *     tags:
  *       - results

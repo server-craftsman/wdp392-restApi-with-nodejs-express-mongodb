@@ -37,6 +37,13 @@ export default class SampleRoute implements IRoute {
             this.sampleController.getSamplesReadyForTesting
         );
 
+        // GET: domain:/api/sample/testing/all -> Get all samples with TESTING status without pagination
+        this.router.get(
+            `${API_PATH.SAMPLE}/testing/all`,
+            authMiddleWare([UserRoleEnum.LABORATORY_TECHNICIAN]),
+            this.sampleController.getAllSamplesForTesting
+        );
+
         // GET: domain:/api/sample/appointment/:appointmentId -> Get samples by appointment ID
         this.router.get(
             `${API_PATH.SAMPLE}/appointment/:appointmentId`,
@@ -99,9 +106,9 @@ export default class SampleRoute implements IRoute {
             this.sampleController.batchReceiveSamples
         );
 
-        // POST: domain:/api/sample/:id/upload-person-image -> Upload person image for a sample
+        // POST: domain:/api/sample/upload-person-image -> Upload person image for a sample
         this.router.post(
-            `${API_PATH.SAMPLE}/:id/upload-person-image`,
+            `${API_PATH.SAMPLE}/upload-person-image`,
             authMiddleWare([UserRoleEnum.CUSTOMER, UserRoleEnum.STAFF]),
             uploadSingleFile('image'),
             this.sampleController.uploadPersonImage

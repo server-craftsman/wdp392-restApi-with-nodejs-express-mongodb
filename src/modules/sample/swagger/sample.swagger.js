@@ -107,7 +107,7 @@
  *   get:
  *     tags:
  *       - samples
- *     summary: Get samples by appointment ID
+ *     summary: Get samples by appointment ID (All authenticated users)
  *     description: Retrieve all samples associated with a specific appointment
  *     operationId: getSamplesByAppointmentId
  *     security:
@@ -219,7 +219,7 @@
  *   post:
  *     tags:
  *       - samples
- *     summary: Add samples with multiple person information (Customer only)
+ *     summary: Add samples with multiple person information (Customer only or Other Authenticated Users)
  *     description: Add samples to an existing appointment where each sample type corresponds to a specific person_info entry
  *     security:
  *       - Bearer: []
@@ -453,7 +453,7 @@
  * @swagger
  * /api/sample/testing/ready:
  *   get:
- *     summary: Get samples ready for testing
+ *     summary: Get samples ready for testing (Lab only)
  *     description: Retrieve samples with RECEIVED status that are ready for laboratory testing. Only accessible by laboratory technicians.
  *     tags:
  *       - samples
@@ -486,20 +486,82 @@
  *                 data:
  *                   type: object
  *                   properties:
- *                     samples:
+ *                     pageData:
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/Sample'
- *                     pagination:
+ *                     pageInfo:
  *                       type: object
  *                       properties:
- *                         total:
+ *                         totalItems:
  *                           type: integer
  *                           example: 25
- *                         page:
+ *                         pageNum:
  *                           type: integer
  *                           example: 1
- *                         pages:
+ *                         pageSize:
+ *                           type: integer
+ *                           example: 10
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 3
+ *       403:
+ *         description: Forbidden - Only laboratory technicians can access this endpoint
+ *       500:
+ *         description: Internal server error
+ * 
+ * /api/sample/testing/all:
+ *   get:
+ *     summary: Get all samples with TESTING status (Lab only)
+ *     description: Retrieve all samples with TESTING status that are ready for laboratory testing, with pagination. Only accessible by laboratory technicians.
+ *     tags:
+ *       - samples
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: List of all samples with TESTING status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     pageData:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Sample'
+ *                     pageInfo:
+ *                       type: object
+ *                       properties:
+ *                         totalItems:
+ *                           type: integer
+ *                           example: 25
+ *                         pageNum:
+ *                           type: integer
+ *                           example: 1
+ *                         pageSize:
+ *                           type: integer
+ *                           example: 10
+ *                         totalPages:
  *                           type: integer
  *                           example: 3
  *       403:
@@ -509,7 +571,7 @@
  * 
  * /api/sample/search:
  *   get:
- *     summary: Search samples by various criteria
+ *     summary: Search samples by various criteria (Lab, Staff only)
  *     description: Search for samples using different filters. Accessible by laboratory technicians and staff.
  *     tags:
  *       - samples
@@ -581,20 +643,23 @@
  *                 data:
  *                   type: object
  *                   properties:
- *                     samples:
+ *                     pageData:
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/Sample'
- *                     pagination:
+ *                     pageInfo:
  *                       type: object
  *                       properties:
- *                         total:
+ *                         totalItems:
  *                           type: integer
  *                           example: 25
- *                         page:
+ *                         pageNum:
  *                           type: integer
  *                           example: 1
- *                         pages:
+ *                         pageSize:
+ *                           type: integer
+ *                           example: 10
+ *                         totalPages:
  *                           type: integer
  *                           example: 3
  *       403:

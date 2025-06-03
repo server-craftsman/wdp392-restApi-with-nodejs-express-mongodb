@@ -49,7 +49,7 @@
  *   post:
  *     tags:
  *       - payment
- *     summary: Create a payment for an appointment with selected payment method
+ *     summary: Create a payment for an appointment with selected payment method (Customer only)
  *     description: Creates a new payment for an appointment with CASH or PAY_OS payment method
  *     security:
  *       - Bearer: []
@@ -98,7 +98,7 @@
  *   get:
  *     tags:
  *       - payment
- *     summary: Verify payment status
+ *     summary: Verify payment status (All authenticated users)
  *     description: Verify the status of a payment by payment number
  *     security:
  *       - Bearer: []
@@ -142,7 +142,7 @@
  *   post:
  *     tags:
  *       - payment
- *     summary: Cancel payment
+ *     summary: Cancel payment (All authenticated users)
  *     description: Cancel a pending payment
  *     security:
  *       - Bearer: []
@@ -366,11 +366,11 @@
 
 /**
  * @swagger
- * /api/payment/{paymentId}/samples:
+ * /api/payment/{paymentId}/samples: 
  *   get:
  *     tags:
  *       - payment
- *     summary: Get samples for a payment
+ *     summary: Get samples for a payment (All authenticated users)
  *     description: Retrieve all samples associated with a specific payment
  *     security:
  *       - Bearer: []

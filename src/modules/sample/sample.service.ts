@@ -13,6 +13,8 @@ import { KitStatusEnum } from '../kit/kit.enum';
 import { SampleSelectionDto } from '../appointment/dtos/createAppointment.dto';
 import { TypeEnum } from '../appointment/appointment.enum';
 import { AddSampleDto } from './dtos/addSample.dto';
+import { SearchPaginationResponseModel } from "../../core/models";
+
 
 /**
  * Helper function to compare MongoDB ObjectIds or strings
@@ -1011,7 +1013,7 @@ export default class SampleService {
      * Get samples ready for testing (samples with status RECEIVED)
      * This is used by laboratory technicians to find samples that are ready to be tested
      */
-    public async getSamplesReadyForTesting(page: number = 1, limit: number = 10): Promise<{ samples: ISample[], total: number, page: number, pages: number }> {
+    public async getSamplesReadyForTesting(page: number = 1, limit: number = 10): Promise<SearchPaginationResponseModel<ISample>> {
         try {
             const skip = (page - 1) * limit;
 
@@ -1032,18 +1034,63 @@ export default class SampleService {
             // Calculate total pages
             const pages = Math.ceil(total / limit);
 
-            return {
+            return new SearchPaginationResponseModel<ISample>(
                 samples,
-                total,
-                page,
-                pages
-            };
+                {
+                    totalItems: total,
+                    totalPages: pages,
+                    pageNum: page,
+                    pageSize: limit
+                }
+            );
         } catch (error) {
             console.error('Error in getSamplesReadyForTesting:', error);
             if (error instanceof HttpException) {
                 throw error;
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error retrieving samples ready for testing');
+        }
+    }
+
+    /**
+     * Get all samples with RECEIVED status
+     * This endpoint is used by laboratory technicians to view all samples that need testing
+     */
+    public async getSamplesForTesting(page: number = 1, limit: number = 10): Promise<SearchPaginationResponseModel<ISample>> {
+        try {
+            const skip = (page - 1) * limit;
+
+            const query = { status: SampleStatusEnum.TESTING };
+
+            // Get total count for pagination
+            const total = await this.sampleRepository.countDocuments(query);
+
+            // Find samples with pagination and populate related fields
+            const samples = await this.sampleRepository.findWithPopulate(
+                query,
+                { received_date: -1 }, // Sort by received date, newest first
+                skip,
+                limit
+            );
+
+            // Calculate total pages
+            const pages = Math.ceil(total / limit);
+
+            return new SearchPaginationResponseModel<ISample>(
+                samples,
+                {
+                    totalItems: total,
+                    totalPages: pages,
+                    pageNum: page,
+                    pageSize: limit
+                }
+            );
+        } catch (error) {
+            console.error('Error in getSamplesForTesting:', error);
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error retrieving samples for testing');
         }
     }
 
@@ -1063,7 +1110,7 @@ export default class SampleService {
             page?: number,
             limit?: number
         }
-    ): Promise<{ samples: ISample[], total: number, page: number, pages: number }> {
+    ): Promise<SearchPaginationResponseModel<ISample>> {
         try {
             // Extract options with default values and validation
             const {
@@ -1200,13 +1247,16 @@ export default class SampleService {
             // Calculate total pages based on filtered total
             const pages = Math.ceil(filteredTotal / limit);
 
-            // Return paginated results
-            return {
-                samples: samples.slice(0, limit), // Ensure we don't return more than the limit
-                total: filteredTotal,
-                page,
-                pages: pages > 0 ? pages : 1 // Ensure at least 1 page even if no results
-            };
+            // Return paginated results using SearchPaginationResponseModel
+            return new SearchPaginationResponseModel<ISample>(
+                samples.slice(0, limit), // Ensure we don't return more than the limit
+                {
+                    totalItems: filteredTotal,
+                    totalPages: pages > 0 ? pages : 1, // Ensure at least 1 page even if no results
+                    pageNum: page,
+                    pageSize: limit
+                }
+            );
         } catch (error) {
             console.error('Error in searchSamples service:', error);
             if (error instanceof HttpException) {
