@@ -32,7 +32,7 @@ function areIdsEqual(id1: any, id2: any): boolean {
 
     // If that fails, try comparing the last 24 chars (MongoDB ObjectId length)
     if (str1.length >= 24 && str2.length >= 24) {
-        return str1.slice(-24) === str2.slice(-24);
+        return str1.slice(-24) === str2.slice(-24); // Compare the last 24 characters of the strings
     }
 
     return false;
@@ -593,147 +593,81 @@ export default class SampleService {
      */
     public async addSampleToAppointment(userId: string, addSampleData: AddSampleDto): Promise<ISample[]> {
         try {
-            // Validate appointment ID
+            // Validate appointmentId
             if (!mongoose.Types.ObjectId.isValid(addSampleData.appointment_id)) {
                 throw new HttpException(HttpStatus.BadRequest, 'Invalid appointment ID');
             }
 
-            // Get appointment data
+            // Get the appointment
             const appointment = await this.getAppointmentService().getAppointmentById(addSampleData.appointment_id);
-
-            try {
-                // Extract user_id using the helper function
-                const appointmentUserId = extractUserIdFromAppointment(appointment);
-
-                if (!areIdsEqual(appointmentUserId, userId)) {
-                    throw new HttpException(HttpStatus.Forbidden, 'You are not authorized to add samples to this appointment');
-                }
-            } catch (error) {
-                console.error('Error extracting user ID from appointment:', error);
-                throw new HttpException(HttpStatus.Forbidden, 'Failed to verify authorization for this appointment');
+            if (!appointment) {
+                throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
             }
 
-            // Check if the appointment is in a valid state to add samples
-            if (appointment.status !== AppointmentStatusEnum.PENDING &&
-                appointment.status !== AppointmentStatusEnum.CONFIRMED) {
+            // Check if the appointment belongs to the user
+            const appointmentUserId = extractUserIdFromAppointment(appointment);
+            if (!areIdsEqual(appointmentUserId, userId)) {
+                throw new HttpException(HttpStatus.Forbidden, 'You are not authorized to add samples to this appointment');
+            }
+
+            // Validate that there are at least 2 sample types
+            if (!addSampleData.sample_types || addSampleData.sample_types.length < 2) {
+                throw new HttpException(HttpStatus.BadRequest, 'At least 2 sample types are required');
+            }
+
+            // Check if person_info_list is provided and matches the length of sample_types
+            if (addSampleData.person_info_list &&
+                addSampleData.person_info_list.length !== addSampleData.sample_types.length) {
                 throw new HttpException(
                     HttpStatus.BadRequest,
-                    `Cannot add samples to appointment with status ${appointment.status}`
+                    'The number of person_info entries must match the number of sample types'
                 );
             }
 
-            if (!addSampleData.sample_types || addSampleData.sample_types.length < 2) {
-                throw new HttpException(HttpStatus.BadRequest, 'At least two sample types must be provided');
-            }
-
-            // Get available kits for the samples
-            const numSamplesNeeded = addSampleData.sample_types.length;
-            let availableKits = [];
-
-            // Get all available kits first
-            const allAvailableKits = await this.kitService.getAvailableKits();
-
-            if (addSampleData.kit_id) {
-                // If specific kit_id is provided, validate and use it for the first sample
-                if (!mongoose.Types.ObjectId.isValid(addSampleData.kit_id)) {
-                    throw new HttpException(HttpStatus.BadRequest, 'Invalid kit ID');
-                }
-
-                const kit = await this.kitService.getKitById(addSampleData.kit_id);
-                if (kit.status !== KitStatusEnum.AVAILABLE) {
-                    throw new HttpException(HttpStatus.BadRequest, `Kit is not available (status: ${kit.status})`);
-                }
-
-                // thêm kit vào danh sách các kit có sẵn
-                availableKits.push(kit);
-
-                // nếu có nhiều hơn 1 sample type, lấy thêm kit
-                if (numSamplesNeeded > 1) {
-                    // loại bỏ kit đã chọn
-                    const filteredKits = allAvailableKits.filter(k => k._id.toString() !== addSampleData.kit_id);
-
-                    if (filteredKits.length < numSamplesNeeded - 1) {
-                        throw new HttpException(
-                            HttpStatus.BadRequest,
-                            `Not enough available kits. Need ${numSamplesNeeded - 1} additional kits but only ${filteredKits.length} available.`
-                        );
-                    }
-
-                    availableKits = [...availableKits, ...filteredKits.slice(0, numSamplesNeeded - 1)];
-                }
-            } else {
-                // nếu không có kit_id, tự động gán kit có sẵn
-                if (allAvailableKits.length < numSamplesNeeded) {
-                    throw new HttpException(
-                        HttpStatus.BadRequest,
-                        `Not enough available kits. Need ${numSamplesNeeded} but only ${allAvailableKits.length} available.`
-                    );
-                }
-
-                // chỉ sử dụng số lượng kit cần thiết
-                availableKits = allAvailableKits.slice(0, numSamplesNeeded);
-            }
-
-            // tạo samples với các kit được gán
             const samples: ISample[] = [];
-            const assignedKits: string[] = [];
 
+            // Process each sample type
             for (let i = 0; i < addSampleData.sample_types.length; i++) {
-                const kit = availableKits[i];
-                const kitId = kit._id.toString();
+                const sampleType = addSampleData.sample_types[i];
 
-                // thứ tự 1: gán kit cho appointment
-                try {
-                    await this.kitService.changeKitStatus(kitId, KitStatusEnum.ASSIGNED);
-                    assignedKits.push(kitId);
-                } catch (kitError) {
-                    console.error(`Failed to assign kit ${kitId} to appointment:`, kitError);
-                    // nếu gán kit thất bại, thử lại gán lại kit có sẵn
-                    for (const assignedKitId of assignedKits) {
-                        try {
-                            await this.kitService.changeKitStatus(assignedKitId, KitStatusEnum.AVAILABLE);
-                        } catch (revertError) {
-                            console.error(`Failed to revert kit ${assignedKitId} status:`, revertError);
-                        }
+                // Get an available kit
+                let kitId = addSampleData.kit_id;
+                if (!kitId || i > 0) {
+                    // Only use the specified kit for the first sample, get new kits for the rest
+                    const availableKits = await this.kitService.getAvailableKits();
+                    if (!availableKits || availableKits.length === 0) {
+                        throw new HttpException(HttpStatus.BadRequest, 'No available kits found');
                     }
-                    throw new HttpException(HttpStatus.InternalServerError, 'Failed to assign kits to appointment');
+                    kitId = availableKits[0]._id.toString();
                 }
 
-                // thứ tự 2: tạo sample với kit được gán
-                try {
-                    const sample = await this.sampleRepository.create({
-                        appointment_id: addSampleData.appointment_id as any,
-                        kit_id: kitId as any,
-                        type: addSampleData.sample_types[i],
-                        collection_method: appointment.type as unknown as CollectionMethodEnum,
-                        collection_date: new Date(),
-                        status: SampleStatusEnum.PENDING,
-                        created_at: new Date(),
-                        updated_at: new Date()
-                    });
+                // Update the kit status to ASSIGNED
+                await this.kitService.changeKitStatus(kitId, KitStatusEnum.ASSIGNED);
 
-                    console.log(`Sample created with ID ${sample._id}, type ${sample.type}`);
-                    samples.push(sample);
-                } catch (sampleError) {
-                    console.error(`Failed to create sample for kit ${kitId}:`, sampleError);
-                    // If sample creation fails, try to revert kit status
-                    try {
-                        await this.kitService.changeKitStatus(kitId, KitStatusEnum.AVAILABLE);
-                    } catch (revertError) {
-                        console.error(`Failed to revert kit ${kitId} status:`, revertError);
-                    }
-                    throw new HttpException(HttpStatus.InternalServerError, 'Failed to create sample');
+                // Create the sample
+                const sampleData: any = {
+                    appointment_id: addSampleData.appointment_id,
+                    kit_id: kitId,
+                    type: sampleType,
+                    collection_method: CollectionMethodEnum.SELF, // Default to self collection
+                    collection_date: new Date(),
+                    status: SampleStatusEnum.PENDING,
+                };
+
+                // Set person_info from the corresponding entry in person_info_list if available
+                if (addSampleData.person_info_list && addSampleData.person_info_list[i]) {
+                    sampleData.person_info = addSampleData.person_info_list[i];
+                } else if (addSampleData.person_info) {
+                    // Fall back to the single person_info if available
+                    sampleData.person_info = addSampleData.person_info;
                 }
+
+                const sample = await this.sampleRepository.create(sampleData);
+                samples.push(sample);
             }
 
-            // Log the sample creation event
-            try {
-                await this.appointmentLogService.logSampleCreation(appointment, samples);
-                console.log(`Successfully logged sample creation for appointment ${addSampleData.appointment_id}`);
-            } catch (logError) {
-                console.error('Failed to create log for sample creation:', logError);
-                // Don't fail the sample creation if logging fails
-            }
+            // Log the sample addition
+            await this.appointmentLogService.logSampleCreation(appointment, samples);
 
             return samples;
         } catch (error) {
@@ -741,7 +675,544 @@ export default class SampleService {
                 throw error;
             }
             console.error('Error in addSampleToAppointment:', error);
-            throw new HttpException(HttpStatus.InternalServerError, 'Error adding samples to appointment');
+            throw new HttpException(HttpStatus.InternalServerError, 'Failed to add samples to appointment');
+        }
+    }
+
+    /**
+     * Submit multiple samples at once (by customer)
+     * @param sampleIds Array of sample IDs to submit
+     * @param collectionDate Optional collection date for all samples
+     * @param userId ID of the user submitting the samples
+     */
+    public async batchSubmitSamples(sampleIds: string[], collectionDate: string | undefined, userId: string): Promise<ISample[]> {
+        try {
+            if (!sampleIds || sampleIds.length === 0) {
+                throw new HttpException(HttpStatus.BadRequest, 'No sample IDs provided');
+            }
+
+            // Validate all sample IDs
+            for (const sampleId of sampleIds) {
+                if (!mongoose.Types.ObjectId.isValid(sampleId)) {
+                    throw new HttpException(HttpStatus.BadRequest, `Invalid sample ID: ${sampleId}`);
+                }
+            }
+
+            // Find all samples
+            const samples = await this.sampleRepository.findManyByIds(sampleIds);
+            if (samples.length !== sampleIds.length) {
+                throw new HttpException(HttpStatus.NotFound, 'One or more samples not found');
+            }
+
+            // Group samples by appointment ID for efficient processing
+            const samplesByAppointment = new Map<string, ISample[]>();
+
+            for (const sample of samples) {
+                const appointmentId = extractAppointmentIdFromSample(sample);
+
+                if (!samplesByAppointment.has(appointmentId)) {
+                    samplesByAppointment.set(appointmentId, []);
+                }
+
+                samplesByAppointment.get(appointmentId)!.push(sample);
+            }
+
+            // Verify authorization and validate samples for each appointment
+            for (const [appointmentId, appointmentSamples] of samplesByAppointment.entries()) {
+                // Verify that the samples belong to the user making the request
+                const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+                const appointmentUserId = extractUserIdFromAppointment(appointment);
+
+                if (!areIdsEqual(appointmentUserId, userId)) {
+                    throw new HttpException(HttpStatus.Forbidden,
+                        `You are not authorized to submit samples for appointment ${appointmentId}`);
+                }
+
+                // Verify that all samples are in PENDING status
+                for (const sample of appointmentSamples) {
+                    if (sample.status !== SampleStatusEnum.PENDING) {
+                        throw new HttpException(
+                            HttpStatus.BadRequest,
+                            `Cannot submit sample ${sample._id} with status ${sample.status}`
+                        );
+                    }
+                }
+            }
+
+            // Update all samples
+            const updatedSamples: ISample[] = [];
+            const updateData: any = {
+                updated_at: new Date()
+            };
+
+            // Only update collection_date if provided
+            if (collectionDate) {
+                updateData.collection_date = new Date(collectionDate);
+            }
+
+            // Update each sample
+            for (const sampleId of sampleIds) {
+                const updatedSample = await this.sampleRepository.findByIdAndUpdate(
+                    sampleId,
+                    updateData,
+                    { new: true }
+                );
+
+                if (!updatedSample) {
+                    throw new HttpException(HttpStatus.InternalServerError, `Failed to update sample ${sampleId}`);
+                }
+
+                updatedSamples.push(updatedSample);
+            }
+
+            // Update appointment status and kit status for each appointment
+            for (const [appointmentId, appointmentSamples] of samplesByAppointment.entries()) {
+                const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+
+                // Update appointment status to SAMPLE_COLLECTED if not already
+                if (appointment.status !== AppointmentStatusEnum.SAMPLE_COLLECTED) {
+                    await this.getAppointmentService().updateAppointmentStatus(
+                        appointmentId,
+                        AppointmentStatusEnum.SAMPLE_COLLECTED
+                    );
+
+                    // Log the status change
+                    try {
+                        await this.appointmentLogService.logStatusChange(
+                            appointment,
+                            AppointmentLogTypeEnum.SAMPLE_COLLECTED
+                        );
+                    } catch (logError) {
+                        console.error('Failed to create appointment log for batch sample submission:', logError);
+                    }
+                }
+
+                // Update kit status to USED for each sample
+                for (const sample of appointmentSamples) {
+                    try {
+                        const kitId = extractKitIdFromSample(sample);
+                        const kit = await this.kitService.getKitById(kitId);
+
+                        if (kit.status !== KitStatusEnum.USED) {
+                            await this.kitService.changeKitStatus(kitId, KitStatusEnum.USED);
+                        }
+                    } catch (kitError) {
+                        console.error(`Error updating kit status for sample ${sample._id}:`, kitError);
+                        // Don't fail the batch submission if kit update fails
+                    }
+                }
+            }
+
+            return updatedSamples;
+        } catch (error) {
+            console.error('Error in batchSubmitSamples:', error);
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            if (error instanceof Error) {
+                throw new HttpException(HttpStatus.InternalServerError, `Error submitting samples: ${error.message}`);
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error submitting samples');
+        }
+    }
+
+    /**
+     * Receive multiple samples at once (by staff)
+     * @param sampleIds Array of sample IDs to receive
+     * @param receivedDate Received date for all samples
+     * @param staffId ID of the staff receiving the samples
+     */
+    public async batchReceiveSamples(sampleIds: string[], receivedDate: string, staffId: string): Promise<ISample[]> {
+        try {
+            if (!sampleIds || sampleIds.length === 0) {
+                throw new HttpException(HttpStatus.BadRequest, 'No sample IDs provided');
+            }
+
+            // Validate all sample IDs
+            for (const sampleId of sampleIds) {
+                if (!mongoose.Types.ObjectId.isValid(sampleId)) {
+                    throw new HttpException(HttpStatus.BadRequest, `Invalid sample ID: ${sampleId}`);
+                }
+            }
+
+            // Find all samples
+            const samples = await this.sampleRepository.findManyByIds(sampleIds);
+            if (samples.length !== sampleIds.length) {
+                throw new HttpException(HttpStatus.NotFound, 'One or more samples not found');
+            }
+
+            // Group samples by appointment ID for efficient processing
+            const samplesByAppointment = new Map<string, ISample[]>();
+
+            for (const sample of samples) {
+                const appointmentId = extractAppointmentIdFromSample(sample);
+
+                if (!samplesByAppointment.has(appointmentId)) {
+                    samplesByAppointment.set(appointmentId, []);
+                }
+
+                samplesByAppointment.get(appointmentId)!.push(sample);
+            }
+
+            // Validate samples for each appointment
+            for (const appointmentSamples of samplesByAppointment.values()) {
+                // Verify that all samples are in PENDING status and have been collected
+                for (const sample of appointmentSamples) {
+                    if (sample.status !== SampleStatusEnum.PENDING) {
+                        throw new HttpException(
+                            HttpStatus.BadRequest,
+                            `Cannot receive sample ${sample._id} with status ${sample.status}`
+                        );
+                    }
+
+                    if (!sample.collection_date) {
+                        throw new HttpException(
+                            HttpStatus.BadRequest,
+                            `Sample ${sample._id} must be collected before it can be received`
+                        );
+                    }
+                }
+            }
+
+            // Update all samples
+            const updatedSamples: ISample[] = [];
+            const receivedDate_obj = new Date(receivedDate);
+
+            // Update each sample
+            for (const sampleId of sampleIds) {
+                const updatedSample = await this.sampleRepository.findByIdAndUpdate(
+                    sampleId,
+                    {
+                        received_date: receivedDate_obj,
+                        status: SampleStatusEnum.RECEIVED,
+                        updated_at: new Date()
+                    },
+                    { new: true }
+                );
+
+                if (!updatedSample) {
+                    throw new HttpException(HttpStatus.InternalServerError, `Failed to update sample ${sampleId}`);
+                }
+
+                updatedSamples.push(updatedSample);
+            }
+
+            // Update appointment status for each appointment
+            for (const [appointmentId, _] of samplesByAppointment.entries()) {
+                const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+
+                // Update appointment status to SAMPLE_RECEIVED if not already
+                if (appointment.status !== AppointmentStatusEnum.SAMPLE_RECEIVED) {
+                    await this.getAppointmentService().updateAppointmentStatus(
+                        appointmentId,
+                        AppointmentStatusEnum.SAMPLE_RECEIVED
+                    );
+
+                    // Log the status change
+                    try {
+                        await this.appointmentLogService.logStatusChange(
+                            appointment,
+                            AppointmentLogTypeEnum.SAMPLE_RECEIVED
+                        );
+                    } catch (logError) {
+                        console.error('Failed to create appointment log for batch sample reception:', logError);
+                    }
+                }
+            }
+
+            return updatedSamples;
+        } catch (error) {
+            console.error('Error in batchReceiveSamples:', error);
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            if (error instanceof Error) {
+                throw new HttpException(HttpStatus.InternalServerError, `Error receiving samples: ${error.message}`);
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error receiving samples');
+        }
+    }
+
+    /**
+     * Update a person's image URL in a sample
+     * @param sampleId ID of the sample
+     * @param imageUrl URL of the uploaded image
+     * @param userId ID of the user making the request
+     */
+    public async updatePersonImage(
+        sampleId: string,
+        imageUrl: string,
+        userId: string
+    ): Promise<ISample> {
+        try {
+            console.log("updatePersonImage called with:", { sampleId, imageUrl, userId });
+
+            // Validate sampleId
+            if (!mongoose.Types.ObjectId.isValid(sampleId)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid sample ID');
+            }
+
+            // Find the sample
+            const sample = await this.sampleRepository.findByIdWithPopulate(sampleId);
+            if (!sample) {
+                throw new HttpException(HttpStatus.NotFound, 'Sample not found');
+            }
+
+            console.log("Sample found:", {
+                id: sample._id,
+                hasSinglePersonInfo: !!sample.person_info,
+                hasPersonInfoList: !!sample.person_info_list,
+                personInfoListLength: sample.person_info_list?.length
+            });
+
+            // Extract appointment_id using the helper function
+            const appointmentId = extractAppointmentIdFromSample(sample);
+
+            // Verify that the sample belongs to the user making the request
+            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+            const appointmentUserId = extractUserIdFromAppointment(appointment);
+
+            if (!areIdsEqual(appointmentUserId, userId)) {
+                throw new HttpException(HttpStatus.Forbidden, 'You are not authorized to update this sample');
+            }
+
+            // Always update the single person_info object
+            if (!sample.person_info) {
+                sample.person_info = { name: 'Unknown', image_url: imageUrl };
+            } else {
+                sample.person_info.image_url = imageUrl;
+            }
+
+            // Update the sample
+            const updatedSample = await this.sampleRepository.findByIdAndUpdate(
+                sampleId,
+                { person_info: sample.person_info, updated_at: new Date() },
+                { new: true }
+            );
+
+            if (!updatedSample) {
+                throw new HttpException(HttpStatus.InternalServerError, 'Failed to update sample');
+            }
+
+            return updatedSample;
+        } catch (error) {
+            console.error('Error in updatePersonImage:', error);
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            if (error instanceof Error) {
+                throw new HttpException(HttpStatus.InternalServerError, `Error updating person image: ${error.message}`);
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error updating person image');
+        }
+    }
+
+    /**
+     * Get samples ready for testing (samples with status RECEIVED)
+     * This is used by laboratory technicians to find samples that are ready to be tested
+     */
+    public async getSamplesReadyForTesting(page: number = 1, limit: number = 10): Promise<{ samples: ISample[], total: number, page: number, pages: number }> {
+        try {
+            const skip = (page - 1) * limit;
+
+            // Find samples with status RECEIVED
+            const query = { status: SampleStatusEnum.RECEIVED };
+
+            // Get total count for pagination
+            const total = await this.sampleRepository.countDocuments(query);
+
+            // Find samples with pagination and populate related fields
+            const samples = await this.sampleRepository.findWithPopulate(
+                query,
+                { received_date: -1 }, // Sort by received date, newest first
+                skip,
+                limit
+            );
+
+            // Calculate total pages
+            const pages = Math.ceil(total / limit);
+
+            return {
+                samples,
+                total,
+                page,
+                pages
+            };
+        } catch (error) {
+            console.error('Error in getSamplesReadyForTesting:', error);
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error retrieving samples ready for testing');
+        }
+    }
+
+    /**
+     * Search samples by various criteria
+     * This allows laboratory technicians to search for samples by different parameters
+     */
+    public async searchSamples(
+        options: {
+            status?: SampleStatusEnum,
+            type?: SampleTypeEnum,
+            appointmentId?: string,
+            kitCode?: string,
+            personName?: string,
+            startDate?: Date,
+            endDate?: Date,
+            page?: number,
+            limit?: number
+        }
+    ): Promise<{ samples: ISample[], total: number, page: number, pages: number }> {
+        try {
+            // Extract options with default values and validation
+            const {
+                status,
+                type,
+                appointmentId,
+                kitCode,
+                personName,
+                startDate,
+                endDate
+            } = options;
+
+            // Ensure page and limit are valid numbers with defaults
+            const page = options.page && options.page > 0 ? Math.floor(options.page) : 1;
+            const limit = options.limit && options.limit > 0 ? Math.floor(options.limit) : 10;
+            const skip = (page - 1) * limit;
+
+            console.log('Search options in service:', {
+                status, type, appointmentId, kitCode, personName,
+                startDate, endDate, page, limit, skip
+            });
+
+            // Build query object
+            const query: any = {};
+
+            // Add status filter if provided and valid
+            if (status) {
+                // Check if status is a valid enum value
+                try {
+                    // Simple string check instead of using Object.values
+                    const validStatuses = ['pending', 'received', 'testing', 'completed', 'invalid'];
+                    if (validStatuses.includes(status.toLowerCase())) {
+                        query.status = status;
+                    }
+                } catch (err) {
+                    console.log('Error validating status:', err);
+                }
+            }
+
+            // Add type filter if provided and valid
+            if (type) {
+                // Check if type is a valid enum value
+                try {
+                    // Simple string check instead of using Object.values
+                    const validTypes = ['saliva', 'blood', 'hair', 'other'];
+                    if (validTypes.includes(type.toLowerCase())) {
+                        query.type = type;
+                    }
+                } catch (err) {
+                    console.log('Error validating type:', err);
+                }
+            }
+
+            // Add appointment ID filter if provided and valid
+            if (appointmentId && mongoose.Types.ObjectId.isValid(appointmentId)) {
+                query.appointment_id = new mongoose.Types.ObjectId(appointmentId);
+            }
+
+            // Add date range filter if either start or end date is provided
+            if (startDate instanceof Date || endDate instanceof Date) {
+                query.updated_at = {};
+
+                // Add start date filter if valid
+                if (startDate instanceof Date && !isNaN(startDate.getTime())) {
+                    query.updated_at.$gte = startDate;
+                }
+
+                // Add end date filter if valid
+                if (endDate instanceof Date && !isNaN(endDate.getTime())) {
+                    query.updated_at.$lte = endDate;
+                }
+
+                // If no valid date filters were added, remove the empty updated_at filter
+                if (Object.keys(query.updated_at).length === 0) {
+                    delete query.updated_at;
+                }
+            }
+
+            console.log('MongoDB query:', JSON.stringify(query, null, 2));
+
+            // Get total count for pagination
+            const total = await this.sampleRepository.countDocuments(query);
+
+            // Find samples with pagination and populate related fields
+            let samples = await this.sampleRepository.findWithPopulate(
+                query,
+                { updated_at: -1 }, // Sort by updated date, newest first
+                skip,
+                limit
+            );
+
+            // In-memory filtering for properties that can't be filtered in the database query
+            let filteredTotal = total;
+
+            // Filter by kit code if provided
+            if (kitCode && kitCode.trim() !== '') {
+                samples = samples.filter(sample => {
+                    const kit = sample.kit_id as any;
+                    return kit &&
+                        kit.code &&
+                        typeof kit.code === 'string' &&
+                        kit.code.toLowerCase().includes(kitCode.toLowerCase());
+                });
+                filteredTotal = samples.length;
+            }
+
+            // Filter by person name if provided
+            if (personName && personName.trim() !== '') {
+                samples = samples.filter(sample => {
+                    // Check in single person_info
+                    if (sample.person_info &&
+                        sample.person_info.name &&
+                        typeof sample.person_info.name === 'string') {
+                        return sample.person_info.name.toLowerCase().includes(personName.toLowerCase());
+                    }
+
+                    // Check in person_info_list
+                    if (sample.person_info_list &&
+                        Array.isArray(sample.person_info_list) &&
+                        sample.person_info_list.length > 0) {
+                        return sample.person_info_list.some(person =>
+                            person &&
+                            person.name &&
+                            typeof person.name === 'string' &&
+                            person.name.toLowerCase().includes(personName.toLowerCase())
+                        );
+                    }
+
+                    return false;
+                });
+                filteredTotal = samples.length;
+            }
+
+            // Calculate total pages based on filtered total
+            const pages = Math.ceil(filteredTotal / limit);
+
+            // Return paginated results
+            return {
+                samples: samples.slice(0, limit), // Ensure we don't return more than the limit
+                total: filteredTotal,
+                page,
+                pages: pages > 0 ? pages : 1 // Ensure at least 1 page even if no results
+            };
+        } catch (error) {
+            console.error('Error in searchSamples service:', error);
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error searching samples');
         }
     }
 } 

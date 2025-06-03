@@ -2,6 +2,51 @@
  * @swagger
  * components:
  *   schemas:
+ *     PersonInfoDto:
+ *       type: object
+ *       required:
+ *         - name
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Full name of the person
+ *           example: "Nguyễn Văn A"
+ *         dob:
+ *           type: string
+ *           format: date-time
+ *           description: Date of birth
+ *           example: "1978-04-19T00:00:00Z"
+ *         relationship:
+ *           type: string
+ *           description: Relationship to the test subject
+ *           example: "Cha giả định"
+ *         birth_place:
+ *           type: string
+ *           description: Place of birth
+ *           example: "Thanh An"
+ *         nationality:
+ *           type: string
+ *           description: Nationality
+ *           example: "Hà Lan"
+ *         identity_document:
+ *           type: string
+ *           description: Identity document number (ID card, passport, etc.)
+ *           example: "NX2JHP9F9"
+ *         image_url:
+ *           type: string
+ *           description: URL to the person's image
+ *           example: "https://dna-test-samples.s3.ap-southeast-1.amazonaws.com/sample/60c72b2f9b1e8b3b4c8d6e27/1234567890.jpg"
+ *
+ *     UploadPersonImageDto:
+ *       type: object
+ *       required:
+ *         - sample_id
+ *       properties:
+ *         sample_id:
+ *           type: string
+ *           description: ID of the sample
+ *           example: "60c72b2f9b1e8b3b4c8d6e27"
+ *
  *     SubmitSampleDto:
  *       type: object
  *       properties:
@@ -20,6 +65,41 @@
  *           type: string
  *           format: date-time
  *           description: Date and time when the sample was received by the facility
+ *           example: "2025-05-29T09:00:00Z"
+ *
+ *     BatchSubmitSamplesDto:
+ *       type: object
+ *       required:
+ *         - sample_ids
+ *       properties:
+ *         sample_ids:
+ *           type: array
+ *           description: Array of sample IDs to submit
+ *           items:
+ *             type: string
+ *           example: ["60c72b2f9b1e8b3b4c8d6e27", "60c72b2f9b1e8b3b4c8d6e28"]
+ *         collection_date:
+ *           type: string
+ *           format: date-time
+ *           description: Date and time when the samples were collected (optional - if not provided, the existing collection dates will be used)
+ *           example: "2025-05-28T10:00:00Z"
+ *
+ *     BatchReceiveSamplesDto:
+ *       type: object
+ *       required:
+ *         - sample_ids
+ *         - received_date
+ *       properties:
+ *         sample_ids:
+ *           type: array
+ *           description: Array of sample IDs to receive
+ *           items:
+ *             type: string
+ *           example: ["60c72b2f9b1e8b3b4c8d6e27", "60c72b2f9b1e8b3b4c8d6e28"]
+ *         received_date:
+ *           type: string
+ *           format: date-time
+ *           description: Date and time when the samples were received by the facility
  *           example: "2025-05-29T09:00:00Z"
  *
  *     SampleResponse:
@@ -92,6 +172,13 @@
  *           enum: [pending, received, testing, completed, invalid]
  *           description: Current sample status
  *           example: "pending"
+ *         person_info:
+ *           $ref: '#/components/schemas/PersonInfoDto'
+ *         person_info_list:
+ *           type: array
+ *           description: List of person information associated with each sample type
+ *           items:
+ *             $ref: '#/components/schemas/PersonInfoDto'
  *         created_at:
  *           type: string
  *           format: date-time
@@ -107,7 +194,7 @@
  *       type: object
  *       required:
  *         - appointment_id
- *         - type
+ *         - sample_types
  *       properties:
  *         appointment_id:
  *           type: string
@@ -117,13 +204,22 @@
  *           type: string
  *           description: ID of the kit to use (optional - if not provided, an available kit will be assigned)
  *           example: "60d0fe4f5311236168a109cb"
- *         type:
- *           type: string
- *           enum: [saliva, blood, hair, other]
- *           description: Type of sample
- *           example: "saliva"
+ *         sample_types:
+ *           type: array
+ *           description: Types of samples to add (must provide at least two)
+ *           items:
+ *             type: string
+ *             enum: [saliva, blood, hair, other]
+ *           example: ["saliva", "saliva"]
  *         notes:
  *           type: string
  *           description: Additional notes about the sample
  *           example: "Morning sample"
+ *         person_info:
+ *           $ref: '#/components/schemas/PersonInfoDto'
+ *         person_info_list:
+ *           type: array
+ *           description: List of person information corresponding to each sample type
+ *           items:
+ *             $ref: '#/components/schemas/PersonInfoDto'
  */ 

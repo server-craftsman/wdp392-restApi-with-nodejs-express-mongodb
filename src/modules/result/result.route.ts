@@ -55,9 +55,17 @@ export default class ResultRoute implements IRoute {
             this.resultController.getResultByAppointmentId
         );
 
-        // PUT: domain:/api/result/sample/:sampleId/start-testing -> Start testing process (laboratory technician only)
-        this.router.put(
-            `${API_PATH.RESULT}/sample/:sampleId/start-testing`,
+        // PUT: domain:/api/result/sample/start-testing -> Start testing process for a single sample (laboratory technician only)
+        // this.router.put(
+        //     `${API_PATH.RESULT}/sample/start-testing`,
+        //     authMiddleWare([UserRoleEnum.LABORATORY_TECHNICIAN]),
+        //     validationMiddleware(StartTestingDto),
+        //     this.resultController.startTesting
+        // );
+
+        // POST: domain:/api/result/samples/start-testing -> Start testing process for multiple samples (laboratory technician only)
+        this.router.post(
+            `${API_PATH.RESULT}/sample/start-testing`,
             authMiddleWare([UserRoleEnum.LABORATORY_TECHNICIAN]),
             validationMiddleware(StartTestingDto),
             this.resultController.startTesting

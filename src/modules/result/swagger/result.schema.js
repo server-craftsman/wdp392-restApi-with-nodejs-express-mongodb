@@ -5,15 +5,17 @@
  *     CreateResultDto:
  *       type: object
  *       required:
- *         - sample_id
+ *         - sample_ids
  *         - appointment_id
  *         - customer_id
  *         - is_match
  *       properties:
- *         sample_id:
- *           type: string
- *           description: ID of the sample being tested
- *           example: "60c72b2f9b1e8b3b4c8d6e26"
+ *         sample_ids:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs of the samples being tested
+ *           example: ["60c72b2f9b1e8b3b4c8d6e26", "60c72b2f9b1e8b3b4c8d6e27"]
  *         appointment_id:
  *           type: string
  *           description: ID of the appointment associated with the test
@@ -81,19 +83,34 @@
  *           type: string
  *           description: Result ID
  *           example: "60c72b2f9b1e8b3b4c8d6e27"
- *         sample_id:
- *           type: object
- *           description: Associated sample
- *           properties:
- *             _id:
- *               type: string
- *               example: "60c72b2f9b1e8b3b4c8d6e26"
- *             type:
- *               type: string
- *               example: "saliva"
- *             status:
- *               type: string
- *               example: "completed"
+ *         sample_ids:
+ *           type: array
+ *           description: Associated samples
+ *           items:
+ *             type: object
+ *             properties:
+ *               _id:
+ *                 type: string
+ *                 example: "60c72b2f9b1e8b3b4c8d6e26"
+ *               type:
+ *                 type: string
+ *                 example: "saliva"
+ *               status:
+ *                 type: string
+ *                 example: "completed"
+ *               person_info:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                     example: "Nguyễn Văn A"
+ *                   relationship:
+ *                     type: string
+ *                     example: "Cha giả định"
+ *                   dob:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "1978-04-19T00:00:00Z"
  *         customer_id:
  *           type: object
  *           description: Customer who ordered the test
@@ -117,6 +134,19 @@
  *             status:
  *               type: string
  *               example: "completed"
+ *         laboratory_technician_id:
+ *           type: object
+ *           description: Laboratory technician who performed the test
+ *           properties:
+ *             _id:
+ *               type: string
+ *               example: "60c72b2f9b1e8b3b4c8d6e28"
+ *             first_name:
+ *               type: string
+ *               example: "Jane"
+ *             last_name:
+ *               type: string
+ *               example: "Smith"
  *         is_match:
  *           type: boolean
  *           description: Whether the DNA test resulted in a match

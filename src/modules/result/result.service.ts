@@ -51,7 +51,7 @@ export default class ResultService {
                 }
 
                 // Check if sample is not in TESTING status
-                if (sample.status === SampleStatusEnum.TESTING) {
+                if (sample.status !== SampleStatusEnum.TESTING) {
                     throw new HttpException(
                         HttpStatus.BadRequest,
                         `Cannot create result for sample ${sampleId} that is already in testing status`
@@ -95,7 +95,7 @@ export default class ResultService {
             }
 
             // Check if appointment is in TESTING status
-            if (appointment.status === AppointmentStatusEnum.TESTING) {
+            if (appointment.status !== AppointmentStatusEnum.TESTING) {
                 throw new HttpException(
                     HttpStatus.BadRequest,
                     `Cannot create result for appointment that is not in testing status`
@@ -328,8 +328,20 @@ export default class ResultService {
                 throw new HttpException(HttpStatus.NotFound, 'Sample not found');
             }
 
+            // Extract appointment ID as string
+            let appointmentId: string;
+            if (typeof sample.appointment_id === 'object' && sample.appointment_id !== null) {
+                appointmentId = sample.appointment_id.toString();
+            } else {
+                appointmentId = String(sample.appointment_id);
+            }
+
             // Check if appointment exists and has been paid for
-            const appointment = await this.appointmentService.getAppointmentById(sample.appointment_id.toString());
+            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+            if (!appointment) {
+                throw new HttpException(HttpStatus.NotFound, `Appointment not found with ID: ${appointmentId}`);
+            }
+
             if (appointment.payment_status !== PaymentStatusEnum.PAID) {
                 throw new HttpException(
                     HttpStatus.BadRequest,
@@ -348,10 +360,13 @@ export default class ResultService {
             // Update sample status to TESTING
             await this.sampleService.updateSampleStatus(sampleId, SampleStatusEnum.TESTING);
 
-            // Get appointment and update its status to TESTING
+            // Get appointment ID as string for updating
+            const appointmentObjectId = appointment._id.toString();
+
+            // Update appointment status to TESTING
             if (appointment.status !== AppointmentStatusEnum.TESTING) {
                 await this.appointmentService.updateAppointmentStatus(
-                    appointment._id.toString(),
+                    appointmentObjectId,
                     AppointmentStatusEnum.TESTING
                 );
 
@@ -366,6 +381,7 @@ export default class ResultService {
                 }
             }
         } catch (error) {
+            console.error('Error in startTesting:', error);
             if (error instanceof HttpException) {
                 throw error;
             }

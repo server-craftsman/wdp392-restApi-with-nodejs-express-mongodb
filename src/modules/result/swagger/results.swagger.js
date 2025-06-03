@@ -33,15 +33,17 @@
  *     CreateResult:
  *       type: object
  *       required:
- *         - sample_id
+ *         - sample_ids
  *         - appointment_id
  *         - customer_id
  *         - is_match
  *       properties:
- *         sample_id:
- *           type: string
- *           description: ID of the sample
- *           example: 5f8d0e0e9d3b9a0017c1a7a1
+ *         sample_ids:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs of the samples being tested
+ *           example: ["60c72b2f9b1e8b3b4c8d6e26", "60c72b2f9b1e8b3b4c8d6e27"]
  *         appointment_id:
  *           type: string
  *           description: ID of the appointment
@@ -80,15 +82,21 @@
  *         _id:
  *           type: string
  *           description: Result ID
- *         sample_id:
- *           type: string
- *           description: ID of the sample
+ *         sample_ids:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: IDs of the samples
+ *           example: ["60c72b2f9b1e8b3b4c8d6e26", "60c72b2f9b1e8b3b4c8d6e27"]
  *         appointment_id:
  *           type: string
  *           description: ID of the appointment
  *         customer_id:
  *           type: string
  *           description: ID of the customer
+ *         laboratory_technician_id:
+ *           type: string
+ *           description: ID of the laboratory technician who performed the test
  *         is_match:
  *           type: boolean
  *           description: Whether the test result is a match
@@ -114,12 +122,23 @@
  *     StartTesting:
  *       type: object
  *       required:
- *         - notes
+ *         - testing_start_date
  *       properties:
+ *         testing_start_date:
+ *           type: string
+ *           format: date-time
+ *           description: Date when the testing process started
+ *           example: "2023-10-25T10:00:00.000Z"
  *         notes:
  *           type: string
  *           description: Notes about the testing process
  *           example: "Starting DNA testing process"
+ *         sample_ids:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Array of sample IDs to start testing (for batch processing)
+ *           example: ["60c72b2f9b1e8b3b4c8d6e26", "60c72b2f9b1e8b3b4c8d6e27"]
  */
 
 /**
@@ -164,7 +183,7 @@
  *       403:
  *         description: Forbidden, only laboratory technicians can create results
  * 
- * /api/results/{id}:
+ * /api/result/{id}:
  *   get:
  *     summary: Get result by ID
  *     description: Get a test result by its ID. Includes PDF report URL.
@@ -236,21 +255,17 @@
  *       404:
  *         description: Result not found
  * 
- * /api/samples/{sampleId}/start-testing:
+ * /api/result/sample/start-testing:
  *   post:
- *     summary: Start testing process for a sample
- *     description: Mark a sample as being tested. Only laboratory technicians can start testing.
+ *     summary: Start testing process for multiple samples (batch processing)
+ *     description: >
+ *       Mark multiple samples as being tested in a single request. 
+ *       Updates each sample status to TESTING and their associated appointment statuses to TESTING.
+ *       Only laboratory technicians can start testing.
  *     tags:
  *       - results
  *     security:
  *       - Bearer: []
- *     parameters:
- *       - in: path
- *         name: sampleId
- *         required: true
- *         schema:
- *           type: string
- *         description: Sample ID
  *     requestBody:
  *       required: true
  *       content:
@@ -259,16 +274,46 @@
  *             $ref: '#/components/schemas/StartTesting'
  *     responses:
  *       200:
- *         description: Testing process started successfully
- *       404:
- *         description: Sample not found
+ *         description: Testing process started for multiple samples
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Testing process started for 2 samples, 0 failed
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         description: Sample ID
+ *                         example: 60c72b2f9b1e8b3b4c8d6e26
+ *                       success:
+ *                         type: boolean
+ *                         description: Whether testing started successfully for this sample
+ *                         example: true
+ *                       error:
+ *                         type: string
+ *                         description: Error message if testing failed for this sample
+ *                         example: Sample not found
  *       400:
- *         description: Invalid sample status
+ *         description: No sample IDs provided or invalid request
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden, only laboratory technicians can start testing
  * 
- * /api/results/sample/{sampleId}:
+ * /api/result/sample/{sampleId}:
  *   get:
  *     summary: Get result by sample ID
- *     description: Get a test result by its associated sample ID. Includes PDF report URL.
+ *     description: Get a test result by its associated sample ID. Searches for the sample ID in the sample_ids array. Includes PDF report URL.
  *     tags:
  *       - results
  *     security:
@@ -296,7 +341,7 @@
  *       404:
  *         description: Result not found for this sample
  * 
- * /api/results/appointment/{appointmentId}:
+ * /api/result/appointment/{appointmentId}:
  *   get:
  *     summary: Get result by appointment ID
  *     description: Get a test result by its associated appointment ID. Includes PDF report URL.

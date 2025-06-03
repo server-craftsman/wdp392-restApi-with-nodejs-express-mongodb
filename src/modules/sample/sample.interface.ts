@@ -20,6 +20,16 @@ export type CollectionMethod =
     CollectionMethodEnum.FACILITY |
     CollectionMethodEnum.HOME;
 
+export interface IPersonInfo {
+    name: string;
+    dob?: Date;
+    relationship?: string;
+    birth_place?: string;
+    nationality?: string;
+    identity_document?: string;
+    image_url?: string;
+}
+
 export interface ISample extends Document {
     _id: string;
     appointment_id: Schema.Types.ObjectId;
@@ -29,6 +39,8 @@ export interface ISample extends Document {
     collection_date: Date;
     received_date?: Date;
     status: SampleStatus;
+    person_info?: IPersonInfo;
+    person_info_list?: IPersonInfo[];
     created_at: Date;
     updated_at: Date;
 } 

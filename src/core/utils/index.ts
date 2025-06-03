@@ -7,6 +7,8 @@ import { sendMail, createVerificationEmailTemplate, createPasswordResetEmailTemp
 import { createToken, createTokenVerifiedUser } from './token';
 import validateEnv from './validateEnv';
 import { checkUserMatch, checkValidUrl } from './validation';
+import { uploadFileToS3, uploadMultipleFilesToS3 } from './s3Upload';
+import { s3Client, bucketName, s3Folders } from './aws.config';
 
 export {
     checkUserMatch,
@@ -26,4 +28,9 @@ export {
     logger,
     sendMail,
     validateEnv,
+    uploadFileToS3,
+    uploadMultipleFilesToS3,
+    s3Client,
+    bucketName,
+    s3Folders,
 };

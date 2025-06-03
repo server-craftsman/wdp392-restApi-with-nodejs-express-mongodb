@@ -1,4 +1,5 @@
-import { IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsDateString, IsMongoId, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class StartTestingDto {
     @IsNotEmpty({ message: 'Testing start date is required' })
@@ -8,4 +9,10 @@ export class StartTestingDto {
     @IsOptional()
     @IsString({ message: 'Notes must be a string' })
     notes?: string;
+
+    @IsOptional()
+    @IsArray({ message: 'Sample IDs must be an array' })
+    @IsMongoId({ each: true, message: 'Each sample ID must be a valid MongoDB ID' })
+    @Type(() => String)
+    sample_ids?: string[];
 } 

@@ -36,15 +36,23 @@ export default class ReportGeneratorService {
             throw new HttpException(HttpStatus.BadRequest, 'No samples associated with this result');
         }
 
-        // Get primary sample data (using the first sample for report)
-        const primarySampleId = result.sample_ids[0].toString();
-        const sample = await this.sampleService.getSampleById(primarySampleId);
-        if (!sample) {
-            throw new HttpException(HttpStatus.NotFound, 'Primary sample not found');
+        // Get all samples with their data
+        const samples = [];
+        const sampleIds = result.sample_ids.map(id => id.toString());
+
+        for (const sampleId of sampleIds) {
+            const sample = await this.sampleService.getSampleById(sampleId);
+            if (sample) {
+                samples.push(sample);
+            }
         }
 
-        // Get all sample IDs as strings
-        const sampleIds = result.sample_ids.map(id => id.toString());
+        if (samples.length === 0) {
+            throw new HttpException(HttpStatus.NotFound, 'No samples found');
+        }
+
+        // Get primary sample data (using the first sample for basic report data)
+        const primarySample = samples[0];
 
         // Get appointment data
         const appointment = await this.appointmentService.getAppointmentById(result.appointment_id.toString());
@@ -96,6 +104,20 @@ export default class ReportGeneratorService {
             // Continue with unknown service name
         }
 
+        // Compile person information from samples
+        const personsInfo = samples
+            .filter(sample => sample.person_info)
+            .map(sample => ({
+                name: sample.person_info?.name || 'Unknown',
+                relationship: sample.person_info?.relationship || 'Unknown',
+                dob: sample.person_info?.dob || null,
+                birthPlace: sample.person_info?.birth_place || 'Unknown',
+                nationality: sample.person_info?.nationality || 'Unknown',
+                identityDocument: sample.person_info?.identity_document || 'Unknown',
+                sampleId: sample._id.toString(),
+                imageUrl: sample.person_info?.image_url
+            }));
+
         // Compile all data
         const reportData: TestResultReportData = {
             // Result data
@@ -105,13 +127,14 @@ export default class ReportGeneratorService {
             completedAt: result.completed_at || new Date(),
 
             // Sample data
-            sampleId: sample._id.toString(),
-            sampleType: sample.type || 'Unknown',
-            collectionMethod: sample.collection_method || 'Unknown',
-            collectionDate: sample.collection_date || new Date(),
+            sampleId: primarySample._id.toString(),
+            sampleType: primarySample.type || 'Unknown',
+            collectionMethod: primarySample.collection_method || 'Unknown',
+            collectionDate: primarySample.collection_date || new Date(),
 
             // Additional data for multiple samples
             allSampleIds: sampleIds,
+            personsInfo: personsInfo.length > 0 ? personsInfo : undefined,
 
             // Appointment data
             appointmentId: appointment._id.toString(),

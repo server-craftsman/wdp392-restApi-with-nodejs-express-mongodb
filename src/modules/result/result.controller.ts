@@ -131,13 +131,15 @@ export default class ResultController {
     };
 
     /**
-     * Start testing process for a sample (by laboratory technician)
+     * Start testing process for a sample or multiple samples (by laboratory technician)
      */
     public startTesting = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const laboratoryTechnicianId = req.user.id;
             const userRole = req.user.role;
             const sampleId = req.params.sampleId;
+
+            console.log(`Starting testing process by user ${laboratoryTechnicianId} with role ${userRole}`);
 
             if (!laboratoryTechnicianId) {
                 throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
@@ -149,10 +151,55 @@ export default class ResultController {
             }
 
             const testingData: StartTestingDto = req.body;
-            await this.resultService.startTesting(sampleId, testingData, laboratoryTechnicianId);
+            console.log('Testing data:', testingData);
 
-            res.status(HttpStatus.Success).json(formatResponse({ message: 'Testing process started successfully' }));
+            // If sample_ids are provided in the body, use them for batch processing
+            if (testingData.sample_ids && testingData.sample_ids.length > 0) {
+                console.log(`Batch processing ${testingData.sample_ids.length} samples`);
+
+                // Process each sample ID
+                const results = await Promise.all(
+                    testingData.sample_ids.map(async (id) => {
+                        try {
+                            await this.resultService.startTesting(id, testingData, laboratoryTechnicianId);
+                            return { id, success: true };
+                        } catch (error: any) {
+                            console.error(`Error processing sample ${id}:`, error);
+                            return {
+                                id,
+                                success: false,
+                                error: error instanceof HttpException ?
+                                    error.message :
+                                    'Failed to start testing for this sample'
+                            };
+                        }
+                    })
+                );
+
+                // Count successes and failures
+                const successful = results.filter(r => r.success).length;
+                const failed = results.filter(r => !r.success).length;
+
+                res.status(HttpStatus.Success).json(formatResponse({
+                    message: `Testing process started for ${successful} samples, ${failed} failed`,
+                    results
+                }));
+            } else if (sampleId) {
+                // Single sample processing using the sample ID from the URL parameter
+                await this.resultService.startTesting(sampleId, testingData, laboratoryTechnicianId);
+                res.status(HttpStatus.Success).json(formatResponse({
+                    message: 'Testing process started successfully',
+                    sample_id: sampleId
+                }));
+            } else {
+                // Neither sample_ids in body nor sampleId in URL parameters
+                throw new HttpException(
+                    HttpStatus.BadRequest,
+                    'No sample ID provided. Please provide a sample ID in the URL or sample_ids in the request body.'
+                );
+            }
         } catch (error) {
+            console.error('Error in startTesting controller:', error);
             next(error);
         }
     };

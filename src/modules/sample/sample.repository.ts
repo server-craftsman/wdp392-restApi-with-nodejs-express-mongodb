@@ -53,4 +53,14 @@ export default class SampleRepository {
             .populate('appointment_id', '_id user_id service_id status appointment_date type collection_address staff_id slot_id created_at updated_at')
             .populate('kit_id', '_id code status created_at updated_at');
     }
+
+    /**
+     * Find multiple samples by their IDs with populated data
+     * @param ids Array of sample IDs to find
+     */
+    public async findManyByIds(ids: string[]): Promise<ISample[]> {
+        return SampleSchema.find({ _id: { $in: ids } })
+            .populate('appointment_id', '_id user_id service_id status appointment_date type collection_address staff_id slot_id created_at updated_at')
+            .populate('kit_id', '_id code status created_at updated_at');
+    }
 } 

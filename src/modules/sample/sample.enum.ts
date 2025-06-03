@@ -11,7 +11,7 @@ export enum SampleStatusEnum {
     TESTING = 'testing',
     COMPLETED = 'completed',
     INVALID = 'invalid'
-} 
+}
 
 export enum CollectionMethodEnum {
     SELF = 'self',

@@ -23,6 +23,20 @@ const s3 = new AWS.S3({
 // 'Times-Roman', 'Times-Bold', 'Times-Italic', 'Times-BoldItalic'
 
 /**
+ * Thông tin về người liên quan đến mẫu
+ */
+export interface PersonInfo {
+    name: string;
+    relationship: string;
+    dob: Date | null;
+    birthPlace: string;
+    nationality: string;
+    identityDocument: string;
+    sampleId: string;
+    imageUrl?: string; // URL to the person's image
+}
+
+/**
  * Interface for data required to generate a test result PDF
  */
 export interface TestResultReportData {
@@ -40,6 +54,7 @@ export interface TestResultReportData {
 
     // Additional data for multiple samples
     allSampleIds?: string[];
+    personsInfo?: PersonInfo[];
 
     // Appointment data
     appointmentId: string;
@@ -136,7 +151,73 @@ export async function generateTestResultPDF(data: TestResultReportData): Promise
         doc.moveDown(1);
         doc.y += 10;
 
+        // Hiển thị thông tin về người liên quan đến mẫu nếu có
+        if (data.personsInfo && data.personsInfo.length > 0) {
+            doc.addPage();
+            doc.fontSize(18).fillColor('#0066cc').text('THONG TIN NGUOI LIEN QUAN', { align: 'center' });
+            doc.moveDown(1);
+
+            // Hiển thị thông tin từng người
+            for (let i = 0; i < data.personsInfo.length; i++) {
+                const person = data.personsInfo[i];
+
+                doc.roundedRect(50, doc.y, 500, 220, 5).fillAndStroke('#f0f7ff', '#bbddff');
+                doc.y += 10;
+
+                doc.fontSize(14).fillColor('#0066cc').text(`NGUOI ${i + 1}`, 70, doc.y);
+                doc.moveDown(0.5);
+
+                // Add person image if available
+                if (person.imageUrl) {
+                    try {
+                        // Download the image from the URL
+                        const response = await axios.get(person.imageUrl, {
+                            responseType: 'arraybuffer'
+                        });
+
+                        // Create a buffer from the response data
+                        const imageBuffer = Buffer.from(response.data, 'binary');
+
+                        // Calculate image position (right side of the person info)
+                        const imageX = 400;
+                        const imageY = doc.y;
+
+                        // Add the image to the PDF with a maximum width/height of 100px
+                        doc.image(imageBuffer, imageX, imageY, {
+                            fit: [100, 100],
+                            align: 'right'
+                        });
+                    } catch (error) {
+                        console.error(`Error adding person image for ${person.name}:`, error);
+                        // Continue without the image if there's an error
+                    }
+                }
+
+                doc.fontSize(12).fillColor('#333333');
+                doc.text(`Ho va ten: ${person.name}`, 70);
+                doc.text(`Quan he: ${convertToASCII(person.relationship)}`);
+                if (person.dob) {
+                    doc.text(`Ngay sinh: ${moment(person.dob).format('DD/MM/YYYY')}`);
+                }
+                doc.text(`Noi sinh: ${convertToASCII(person.birthPlace)}`);
+                doc.text(`Quoc tich: ${convertToASCII(person.nationality)}`);
+                if (person.identityDocument) {
+                    doc.text(`Giay to tuy than: ${person.identityDocument}`);
+                }
+                doc.text(`Ma mau: ${person.sampleId}`);
+
+                doc.moveDown(1);
+                doc.y += 20;
+
+                // Thêm trang mới nếu còn người và không đủ chỗ
+                if (i < data.personsInfo.length - 1 && doc.y > 650) {
+                    doc.addPage();
+                }
+            }
+        }
+
         // Thêm thông tin mẫu với phần được tạo kiểu
+        doc.addPage();
         doc.roundedRect(50, doc.y, 500, 110, 5).fillAndStroke('#f0f7ff', '#bbddff');
         doc.y += 10;
         doc.fontSize(16).fillColor('#0066cc').text('THONG TIN MAU XET NGHIEM', 70, doc.y);

@@ -187,15 +187,50 @@ export default class AppointmentService {
                 throw new HttpException(HttpStatus.BadRequest, 'Appointment ID is required');
             }
 
+            // Check if the id is a JSON string representation of an appointment object
+            if (id.includes('_id') && id.includes('ObjectId')) {
+                console.log('Received appointment object as string instead of ID:', id);
+
+                // Try to extract the _id from the string
+                try {
+                    // Extract the ObjectId value using regex
+                    const match = id.match(/ObjectId\('([^']+)'\)/);
+                    if (match && match[1]) {
+                        id = match[1];
+                        console.log('Extracted ID from object string:', id);
+                    } else {
+                        throw new HttpException(
+                            HttpStatus.BadRequest,
+                            'Invalid appointment ID format: could not extract ObjectId'
+                        );
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing appointment object string:', parseError);
+                    throw new HttpException(
+                        HttpStatus.BadRequest,
+                        'Invalid appointment ID format: not a valid ObjectId or appointment object'
+                    );
+                }
+            }
+
             // Convert string ID to ObjectId if needed
             let objectId = id;
             if (typeof id === 'string') {
                 try {
                     if (mongoose.Types.ObjectId.isValid(id)) {
                         objectId = new mongoose.Types.ObjectId(id).toString();
+                    } else {
+                        throw new HttpException(
+                            HttpStatus.BadRequest,
+                            `Invalid appointment ID format: ${id} is not a valid ObjectId`
+                        );
                     }
-                } catch (error) {
+                } catch (error: any) {
                     console.error(`Error converting appointment ID ${id} to ObjectId:`, error);
+                    throw new HttpException(
+                        HttpStatus.BadRequest,
+                        `Invalid appointment ID format: ${error.message}`
+                    );
                 }
             }
 
@@ -206,6 +241,7 @@ export default class AppointmentService {
 
             return appointment;
         } catch (error: any) {
+            console.error(`Error in getAppointmentById for ID ${id}:`, error);
             if (error instanceof HttpException) {
                 throw error;
             }
