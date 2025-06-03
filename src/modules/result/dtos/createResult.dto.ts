@@ -15,9 +15,9 @@ export class CreateResultDto {
     @IsMongoId({ message: 'Appointment ID must be a valid MongoDB ID' })
     appointment_id: string = '';
 
-    @IsNotEmpty({ message: 'Customer ID is required' })
+    @IsOptional()
     @IsMongoId({ message: 'Customer ID must be a valid MongoDB ID' })
-    customer_id: string = '';
+    customer_id?: string;
 
     @IsNotEmpty({ message: 'Is match status is required' })
     @IsBoolean({ message: 'Is match must be a boolean value' })

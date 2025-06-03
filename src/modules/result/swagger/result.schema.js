@@ -7,7 +7,6 @@
  *       required:
  *         - sample_ids
  *         - appointment_id
- *         - customer_id
  *         - is_match
  *       properties:
  *         sample_ids:
@@ -20,10 +19,6 @@
  *           type: string
  *           description: ID of the appointment associated with the test
  *           example: "60c72b2f9b1e8b3b4c8d6e25"
- *         customer_id:
- *           type: string
- *           description: ID of the customer who ordered the test
- *           example: "60c72b2f9b1e8b3b4c8d6e24"
  *         is_match:
  *           type: boolean
  *           description: Whether the DNA test resulted in a match
@@ -36,6 +31,8 @@
  *             confidence_interval: "99.9% - 100%"
  *             markers_tested: 24
  *             markers_matched: 24
+ *             dna_match_percentage: 99.99
+ *             confidence_level: "High"
  *         report_url:
  *           type: string
  *           description: URL to the detailed test report

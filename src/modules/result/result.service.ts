@@ -38,9 +38,8 @@ export default class ResultService {
                 }
             }
 
-            if (!mongoose.Types.ObjectId.isValid(resultData.appointment_id) ||
-                !mongoose.Types.ObjectId.isValid(resultData.customer_id)) {
-                throw new HttpException(HttpStatus.BadRequest, 'Invalid ID format');
+            if (!mongoose.Types.ObjectId.isValid(resultData.appointment_id)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid appointment ID format');
             }
 
             // Check if all samples exist
@@ -50,11 +49,11 @@ export default class ResultService {
                     throw new HttpException(HttpStatus.NotFound, `Sample not found: ${sampleId}`);
                 }
 
-                // Check if sample is not in TESTING status
+                // Check if sample is in TESTING status
                 if (sample.status !== SampleStatusEnum.TESTING) {
                     throw new HttpException(
                         HttpStatus.BadRequest,
-                        `Cannot create result for sample ${sampleId} that is already in testing status`
+                        `Cannot create result for sample ${sampleId} that is not in testing status`
                     );
                 }
 
@@ -79,11 +78,68 @@ export default class ResultService {
                 appointmentId = new mongoose.Types.ObjectId(resultData.appointment_id).toString();
             } catch (error) {
                 console.error('Error converting appointment ID:', error);
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid appointment ID format');
             }
 
             const appointment = await this.appointmentService.getAppointmentById(appointmentId);
             if (!appointment) {
                 throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
+            }
+
+            let customerId: string;
+            if (resultData.customer_id) {
+                if (!mongoose.Types.ObjectId.isValid(resultData.customer_id)) {
+                    throw new HttpException(HttpStatus.BadRequest, 'Invalid customer ID format');
+                }
+                customerId = resultData.customer_id;
+                console.log(`Using provided customer_id: ${customerId}`);
+            } else if (appointment.user_id) {
+                // Handle different possible types of user_id
+                if (typeof appointment.user_id === 'string') {
+                    // If it's a string, use it directly
+                    customerId = appointment.user_id;
+                } else if (typeof appointment.user_id === 'object') {
+                    // If it's an object (including ObjectId), convert to string
+                    try {
+                        // Try accessing properties safely with type assertions
+                        const userIdObj = appointment.user_id as any;
+                        if (userIdObj && userIdObj._id) {
+                            customerId = userIdObj._id.toString();
+                        } else {
+                            // Direct ObjectId or similar
+                            customerId = appointment.user_id.toString();
+                        }
+                    } catch (err) {
+                        console.error('Error extracting user_id:', err);
+                        console.error('appointment.user_id:', appointment.user_id);
+                        throw new HttpException(
+                            HttpStatus.BadRequest,
+                            'Invalid user ID format in appointment'
+                        );
+                    }
+                } else {
+                    console.error('Invalid user_id format in appointment:', appointment.user_id);
+                    throw new HttpException(
+                        HttpStatus.BadRequest,
+                        'Invalid user ID format in appointment'
+                    );
+                }
+
+                // Validate that we have a valid MongoDB ID
+                if (!mongoose.Types.ObjectId.isValid(customerId)) {
+                    console.error(`Invalid user_id extracted from appointment: ${customerId}`);
+                    throw new HttpException(
+                        HttpStatus.BadRequest,
+                        'Invalid user ID format extracted from appointment'
+                    );
+                }
+
+                console.log(`Using user_id from appointment: ${customerId}`);
+            } else {
+                throw new HttpException(
+                    HttpStatus.BadRequest,
+                    'Customer ID not found in appointment'
+                );
             }
 
             // Check if appointment has been paid for
@@ -102,86 +158,124 @@ export default class ResultService {
                 );
             }
 
-            // Create the initial result
-            const result = await this.resultRepository.create({
-                sample_ids: resultData.sample_ids.map(id => id as any),
-                appointment_id: resultData.appointment_id as any,
-                customer_id: resultData.customer_id as any,
-                laboratory_technician_id: laboratoryTechnicianId as any,
-                is_match: resultData.is_match,
-                result_data: resultData.result_data,
-                report_url: '',
-                completed_at: new Date(),
-                created_at: new Date(),
-                updated_at: new Date()
-            });
-
-            // Generate PDF report synchronously to ensure report_url is available
             try {
-                console.log('Generating PDF report...');
-                const reportUrl = await this.reportGeneratorService.generateReport(
-                    result._id.toString(),
-                    laboratoryTechnicianId
-                );
+                // Log all IDs for debugging
+                console.log('Creating result with:');
+                console.log('sample_ids:', resultData.sample_ids);
+                console.log('appointment_id:', appointmentId);
+                console.log('customer_id:', customerId);
+                console.log('laboratory_technician_id:', laboratoryTechnicianId);
 
-                // Update the result with the report URL
-                await this.resultRepository.findByIdAndUpdate(
-                    result._id.toString(),
-                    { report_url: reportUrl },
-                    { new: true }
-                );
+                // Validate all IDs one more time
+                if (!mongoose.Types.ObjectId.isValid(customerId)) {
+                    throw new Error(`Invalid customer_id format: ${customerId}`);
+                }
 
-                // Update the result object to return to the client
-                result.report_url = reportUrl;
-                console.log(`PDF report generated successfully: ${reportUrl}`);
-            } catch (error: any) {
-                console.error('Failed to generate PDF report:', error);
+                if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+                    throw new Error(`Invalid appointment_id format: ${appointmentId}`);
+                }
 
-                // If the error is related to AWS configuration, provide a clear message
-                if (error.message && (
-                    error.message.includes('AWS credentials not configured') ||
-                    error.message.includes('AWS S3 bucket not configured')
-                )) {
+                if (!mongoose.Types.ObjectId.isValid(laboratoryTechnicianId)) {
+                    throw new Error(`Invalid laboratory_technician_id format: ${laboratoryTechnicianId}`);
+                }
+
+                for (const sampleId of resultData.sample_ids) {
+                    if (!mongoose.Types.ObjectId.isValid(sampleId)) {
+                        throw new Error(`Invalid sample_id format: ${sampleId}`);
+                    }
+                }
+
+                // Create the initial result
+                const result = await this.resultRepository.create({
+                    sample_ids: resultData.sample_ids.map(id => new mongoose.Types.ObjectId(id)) as any,
+                    appointment_id: new mongoose.Types.ObjectId(appointmentId) as any,
+                    customer_id: new mongoose.Types.ObjectId(customerId) as any,
+                    laboratory_technician_id: new mongoose.Types.ObjectId(laboratoryTechnicianId) as any,
+                    is_match: resultData.is_match,
+                    result_data: resultData.result_data || {},
+                    report_url: '',
+                    completed_at: new Date(),
+                    created_at: new Date(),
+                    updated_at: new Date()
+                });
+
+                // Generate PDF report synchronously to ensure report_url is available
+                try {
+                    console.log('Generating PDF report...');
+                    const reportUrl = await this.reportGeneratorService.generateReport(
+                        result._id.toString(),
+                        laboratoryTechnicianId
+                    );
+
+                    // Update the result with the report URL
+                    await this.resultRepository.findByIdAndUpdate(
+                        result._id.toString(),
+                        { report_url: reportUrl },
+                        { new: true }
+                    );
+
+                    // Update the result object to return to the client
+                    result.report_url = reportUrl;
+                    console.log(`PDF report generated successfully: ${reportUrl}`);
+                } catch (error: any) {
+                    console.error('Failed to generate PDF report:', error);
+
+                    // If the error is related to AWS configuration, provide a clear message
+                    if (error.message && (
+                        error.message.includes('AWS credentials not configured') ||
+                        error.message.includes('AWS S3 bucket not configured')
+                    )) {
+                        throw new HttpException(
+                            HttpStatus.InternalServerError,
+                            'AWS S3 is not properly configured. Please check your AWS credentials and bucket settings.'
+                        );
+                    }
+
+                    // For other errors, continue with the process but report the error
                     throw new HttpException(
                         HttpStatus.InternalServerError,
-                        'AWS S3 is not properly configured. Please check your AWS credentials and bucket settings.'
+                        `Failed to generate PDF report: ${error.message}`
                     );
                 }
 
-                // For other errors, continue with the process but report the error
+                // Update all samples status to COMPLETED
+                for (const sampleId of resultData.sample_ids) {
+                    await this.sampleService.updateSampleStatus(sampleId, SampleStatusEnum.COMPLETED);
+                }
+
+                // Update appointment status to COMPLETED
+                await this.appointmentService.updateAppointmentStatus(
+                    appointmentId,
+                    AppointmentStatusEnum.COMPLETED
+                );
+
+                // Log the status change
+                try {
+                    await this.appointmentLogService.logStatusChange(
+                        appointment,
+                        AppointmentLogTypeEnum.COMPLETED
+                    );
+                } catch (logError) {
+                    console.error('Failed to create appointment log for result creation:', logError);
+                }
+
+                return result;
+            } catch (createError: any) {
+                console.error('Error creating result document:', createError);
                 throw new HttpException(
                     HttpStatus.InternalServerError,
-                    `Failed to generate PDF report: ${error.message}`
+                    `Failed to create result: ${createError.message}`
                 );
             }
-
-            // Update all samples status to COMPLETED
-            for (const sampleId of resultData.sample_ids) {
-                await this.sampleService.updateSampleStatus(sampleId, SampleStatusEnum.COMPLETED);
-            }
-
-            // Update appointment status to COMPLETED
-            await this.appointmentService.updateAppointmentStatus(
-                resultData.appointment_id,
-                AppointmentStatusEnum.COMPLETED
-            );
-
-            // Log the status change
-            try {
-                await this.appointmentLogService.logStatusChange(
-                    appointment,
-                    AppointmentLogTypeEnum.COMPLETED
-                );
-            } catch (logError) {
-                console.error('Failed to create appointment log for result creation:', logError);
-            }
-
-            return result;
-        } catch (error) {
+        } catch (error: any) {
+            console.error('Error in createResult:', error);
             if (error instanceof HttpException) {
                 throw error;
             }
-            throw new HttpException(HttpStatus.InternalServerError, 'Error creating result');
+            throw new HttpException(
+                HttpStatus.InternalServerError,
+                `Error creating result: ${error.message}`
+            );
         }
     }
 
