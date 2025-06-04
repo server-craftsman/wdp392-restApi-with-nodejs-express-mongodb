@@ -43,10 +43,9 @@
  * @swagger
  * /api/appointment/search:
  *   get:
- *     summary: Search appointments with filters
  *     tags: [appointments]
- *     security:
- *       - Bearer: []
+ *     summary: Search appointments
+ *     description: Search and filter appointments with pagination
  *     parameters:
  *       - in: query
  *         name: pageNum
@@ -66,6 +65,11 @@
  *           type: string
  *         description: Filter by user ID (MongoDB ObjectId)
  *       - in: query
+ *         name: staff_id
+ *         schema:
+ *           type: string
+ *         description: Filter by staff ID (MongoDB ObjectId)
+ *       - in: query
  *         name: service_id
  *         schema:
  *           type: string
@@ -83,22 +87,17 @@
  *           enum: [self, facility, home]
  *         description: Filter by appointment type
  *       - in: query
- *         name: staff_id
- *         schema:
- *           type: string
- *         description: Filter by assigned staff ID (MongoDB ObjectId)
- *       - in: query
  *         name: start_date
  *         schema:
  *           type: string
  *           format: date
- *         description: Filter appointments from this date (ISO format)
+ *         description: Filter appointments from this date (YYYY-MM-DD)
  *       - in: query
  *         name: end_date
  *         schema:
  *           type: string
  *           format: date
- *         description: Filter appointments until this date (ISO format)
+ *         description: Filter appointments until this date (YYYY-MM-DD)
  *       - in: query
  *         name: search_term
  *         schema:
@@ -110,90 +109,11 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     pageData:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Appointment'
- *                     pageInfo:
- *                       type: object
- *                       properties:
- *                         totalItems:
- *                           type: integer
- *                           example: 50
- *                         pageNum:
- *                           type: integer
- *                           example: 1
- *                         pageSize:
- *                           type: integer
- *                           example: 10
- *                         totalPages:
- *                           type: integer
- *                           example: 5
+ *               $ref: '#/components/schemas/AppointmentResponse'
  *       401:
  *         description: Unauthorized - User not authenticated
  *       500:
  *         description: Internal server error
- * 
- * components:
- *   schemas:
- *     Appointment:
- *       type: object
- *       properties:
- *         _id:
- *           type: string
- *           description: Appointment ID
- *         user_id:
- *           type: object
- *           properties:
- *             _id:
- *               type: string
- *             first_name:
- *               type: string
- *             last_name:
- *               type: string
- *         service_id:
- *           type: object
- *           properties:
- *             _id:
- *               type: string
- *             name:
- *               type: string
- *         status:
- *           type: string
- *           enum: [pending, confirmed, sample_collected, sample_received, testing, completed, cancelled]
- *         appointment_date:
- *           type: string
- *           format: date-time
- *         type:
- *           type: string
- *           enum: [self, facility, home]
- *         collection_address:
- *           type: string
- *         staff_id:
- *           type: object
- *           properties:
- *             _id:
- *               type: string
- *             first_name:
- *               type: string
- *             last_name:
- *               type: string
- *         slot_id:
- *           type: object
- *         created_at:
- *           type: string
- *           format: date-time
- *         updated_at:
- *           type: string
- *           format: date-time
  */
 
 /**
