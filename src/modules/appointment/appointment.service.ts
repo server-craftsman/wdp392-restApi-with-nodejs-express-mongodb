@@ -67,10 +67,10 @@ export default class AppointmentService {
                     throw new HttpException(HttpStatus.BadRequest, 'Slot is not available');
                 }
 
-                // Kiểm tra xem loại dịch vụ có khớp với loại dịch vụ của slot không
-                if (slot.service_id && slot.service_id.toString() !== appointmentData.service_id) {
-                    throw new HttpException(HttpStatus.BadRequest, 'Slot is not available for this service');
-                }
+                // // Kiểm tra xem loại dịch vụ có khớp với loại dịch vụ của slot không
+                // if (slot.service_id && slot.service_id.toString() !== appointmentData.service_id) {
+                //     throw new HttpException(HttpStatus.BadRequest, 'Slot is not available for this service');
+                // }
 
                 // Nếu không có ngày appointment, sử dụng ngày từ slot entity
                 if (!appointmentData.appointment_date) {
