@@ -42,10 +42,10 @@ export default class ServiceService {
 
         // Then handle spaces and special characters
         slug = slug
-            .replace(/[^\w\s-]/g, '') // Remove non-word characters except spaces and hyphens
-            .replace(/[\s_]+/g, '-') // Replace spaces and underscores with hyphens
-            .replace(/-+/g, '-') // Remove consecutive hyphens
-            .replace(/^-+|-+$/g, ''); // Remove leading and trailing hyphens
+            .replace(/[^\w\s-]/g, '') // Xóa các ký tự không phải là từ ngoại trừ khoảng trắng và dấu gạch nối
+            .replace(/[\s_]+/g, '-') // Thay thế khoảng trắng và dấu gạch dưới bằng dấu gạch nối
+            .replace(/-+/g, '-') // Xóa các dấu gạch nối liên tiếp
+            .replace(/^-+|-+$/g, ''); // Xóa các dấu gạch nối ở đầu và cuối chuỗi
 
         return slug;
     }
