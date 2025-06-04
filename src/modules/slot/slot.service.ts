@@ -577,7 +577,19 @@ export default class SlotService {
                 const dateConditions = [];
 
                 if (date_from) {
-                    const startDate = new Date(date_from);
+                    // Parse date_from in yyyy-mm-dd format
+                    let startDate: Date;
+                    if (typeof date_from === 'string' && date_from.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        const [year, month, day] = date_from.split('-').map(Number);
+                        startDate = new Date(year, month - 1, day); // Month is 0-indexed in JavaScript Date
+                    } else {
+                        startDate = new Date(date_from);
+                    }
+
+                    if (isNaN(startDate.getTime())) {
+                        throw new HttpException(HttpStatus.BadRequest, 'Invalid date_from format. Use YYYY-MM-DD format.');
+                    }
+
                     const startYear = startDate.getFullYear();
                     const startMonth = startDate.getMonth() + 1; // JavaScript months are 0-based
                     const startDay = startDate.getDate();
@@ -599,7 +611,19 @@ export default class SlotService {
                 }
 
                 if (date_to) {
-                    const endDate = new Date(date_to);
+                    // Parse date_to in yyyy-mm-dd format
+                    let endDate: Date;
+                    if (typeof date_to === 'string' && date_to.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        const [year, month, day] = date_to.split('-').map(Number);
+                        endDate = new Date(year, month - 1, day); // Month is 0-indexed in JavaScript Date
+                    } else {
+                        endDate = new Date(date_to);
+                    }
+
+                    if (isNaN(endDate.getTime())) {
+                        throw new HttpException(HttpStatus.BadRequest, 'Invalid date_to format. Use YYYY-MM-DD format.');
+                    }
+
                     const endYear = endDate.getFullYear();
                     const endMonth = endDate.getMonth() + 1;
                     const endDay = endDate.getDate();
@@ -951,17 +975,33 @@ export default class SlotService {
             throw new HttpException(HttpStatus.BadRequest, 'start_date is required');
         }
 
-        const startDate = new Date(start_date);
+        // Parse start_date in yyyy-mm-dd format
+        let startDate: Date;
+        if (start_date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Parse yyyy-mm-dd format
+            const [year, month, day] = start_date.split('-').map(Number);
+            startDate = new Date(year, month - 1, day); // Month is 0-indexed in JavaScript Date
+        } else {
+            startDate = new Date(start_date);
+        }
+
         if (isNaN(startDate.getTime())) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid start_date format');
+            throw new HttpException(HttpStatus.BadRequest, 'Invalid start_date format. Use YYYY-MM-DD format.');
         }
 
         // Set default end_date if not provided
         let endDate: Date;
         if (end_date) {
-            endDate = new Date(end_date);
+            // Parse end_date in yyyy-mm-dd format if it matches the pattern
+            if (end_date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const [year, month, day] = end_date.split('-').map(Number);
+                endDate = new Date(year, month - 1, day); // Month is 0-indexed in JavaScript Date
+            } else {
+                endDate = new Date(end_date);
+            }
+
             if (isNaN(endDate.getTime())) {
-                throw new HttpException(HttpStatus.BadRequest, 'Invalid end_date format');
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid end_date format. Use YYYY-MM-DD format.');
             }
         } else {
             endDate = new Date(startDate);
@@ -971,8 +1011,8 @@ export default class SlotService {
         // Create query with all parameters
         const queryParams: Record<string, any> = {
             status: SlotStatusEnum.AVAILABLE,
-            date_from: start_date,
-            date_to: end_date,
+            date_from: startDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+            date_to: endDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
             staff_profile_ids: staff_profile_ids
         };
 
