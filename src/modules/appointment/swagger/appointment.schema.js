@@ -300,7 +300,7 @@
  * /api/appointment/staff/roles:
  *   get:
  *     tags: [appointments]
- *     summary: Get staff roles
+ *     summary: Get staff roles (Manager only)
  *     description: Get list of all staff members with their roles and profiles (Department Manager only)
  *     security:
  *       - Bearer: []
@@ -352,7 +352,7 @@
  * /api/appointment/staff/slots:
  *   get:
  *     tags: [appointments]
- *     summary: Get available slots for staff
+ *     summary: Get available slots for staff (Staff only)
  *     description: Get list of available time slots for the logged-in staff member
  *     security:
  *       - Bearer: []

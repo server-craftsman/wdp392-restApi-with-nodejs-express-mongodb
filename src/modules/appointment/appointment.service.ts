@@ -55,7 +55,8 @@ export default class AppointmentService {
             }
 
             let slot;
-            // Nếu có slot_id, kiểm tra slot
+            let staffId;
+            // Nếu có slot_id, kiểm tra slot và lấy staff_id
             if (appointmentData.slot_id) {
                 slot = await SlotSchema.findById(appointmentData.slot_id);
                 if (!slot) {
@@ -67,10 +68,17 @@ export default class AppointmentService {
                     throw new HttpException(HttpStatus.BadRequest, 'Slot is not available');
                 }
 
-                // // Kiểm tra xem loại dịch vụ có khớp với loại dịch vụ của slot không
-                // if (slot.service_id && slot.service_id.toString() !== appointmentData.service_id) {
-                //     throw new HttpException(HttpStatus.BadRequest, 'Slot is not available for this service');
-                // }
+                // Lấy staff profile từ slot
+                if (slot.staff_profile_ids && slot.staff_profile_ids.length > 0) {
+                    const staffProfile = await StaffProfileSchema.findById(slot.staff_profile_ids[0]);
+                    if (staffProfile) {
+                        // Lấy user ID từ staff profile
+                        const staffUser = await UserSchema.findOne({ _id: staffProfile.user_id });
+                        if (staffUser) {
+                            staffId = staffUser._id;
+                        }
+                    }
+                }
 
                 // Nếu không có ngày appointment, sử dụng ngày từ slot entity
                 if (!appointmentData.appointment_date) {
@@ -103,11 +111,12 @@ export default class AppointmentService {
                 );
             }
 
-            // Tạo appointment
+            // Tạo appointment với staff_id nếu có
             const appointment = await this.appointmentRepository.create({
                 user_id: userId as any,
                 service_id: appointmentData.service_id as any,
                 slot_id: appointmentData.slot_id as any,
+                staff_id: staffId as any, // Thêm staff_id nếu có
                 appointment_date: appointmentData.appointment_date,
                 type: appointmentData.type,
                 collection_address: appointmentData.collection_address,
@@ -139,7 +148,6 @@ export default class AppointmentService {
             // Log sự kiện tạo appointment
             try {
                 await this.appointmentLogService.logAppointmentCreation(appointment);
-                // console.log(`Appointment log created for appointment ID: ${appointment._id}`);
             } catch (logError) {
                 console.error('Failed to create appointment log:', logError);
             }
