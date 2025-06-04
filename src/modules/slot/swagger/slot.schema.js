@@ -33,7 +33,7 @@
  *         year:
  *           type: integer
  *           description: Year
- *           example: 2023
+ *           example: 2025
  *         month:
  *           type: integer
  *           minimum: 1
@@ -55,7 +55,6 @@
  *       type: object
  *       required:
  *         - staff_profile_ids
- *         - service_id
  *         - time_slots
  *         - appointment_limit
  *       properties:
@@ -65,10 +64,6 @@
  *             type: string
  *           description: Array of staff profile IDs assigned to this slot
  *           example: ["60d5ec9af682fbd12a0f4a1b"]
- *         service_id:
- *           type: string
- *           description: Service ID associated with this slot
- *           example: "60d5ec9af682fbd12a0f4a2c"
  *         time_slots:
  *           type: array
  *           items:

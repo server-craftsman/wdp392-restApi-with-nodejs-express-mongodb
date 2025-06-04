@@ -54,6 +54,15 @@ export default class AppointmentService {
                 throw new HttpException(HttpStatus.NotFound, 'Service not found');
             }
 
+            // Automatically set appointment type based on service sample_method
+            if (service.sample_method === SampleMethodEnum.SELF_COLLECTED) {
+                appointmentData.type = TypeEnum.SELF;
+            } else if (service.sample_method === SampleMethodEnum.FACILITY_COLLECTED) {
+                appointmentData.type = TypeEnum.FACILITY;
+            } else if (service.sample_method === SampleMethodEnum.HOME_COLLECTED) {
+                appointmentData.type = TypeEnum.HOME;
+            }
+
             let slot;
             // Nếu có slot_id, kiểm tra slot
             if (appointmentData.slot_id) {
@@ -93,31 +102,6 @@ export default class AppointmentService {
 
             } else if (!appointmentData.appointment_date) {
                 throw new HttpException(HttpStatus.BadRequest, 'Either slot_id or appointment_date must be provided');
-            }
-
-            // kiểm tra xem loại dịch vụ có phù hợp với loại dịch vụ không
-            if (service.sample_method === SampleMethodEnum.FACILITY_COLLECTED &&
-                appointmentData.type !== TypeEnum.FACILITY) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'This service requires facility collection'
-                );
-            }
-
-            if (service.sample_method === SampleMethodEnum.HOME_COLLECTED &&
-                appointmentData.type !== TypeEnum.HOME) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'This service requires home collection'
-                );
-            }
-
-            if (service.sample_method === SampleMethodEnum.SELF_COLLECTED &&
-                appointmentData.type !== TypeEnum.SELF) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'This service requires self collection'
-                );
             }
 
             // Đối với dịch vụ thu thập tại nhà, địa chỉ thu thập là bắt buộc

@@ -21,7 +21,8 @@ export class CreateAppointmentDto {
     appointment_date?: Date;
 
     @IsEnum(TypeEnum)
-    type: TypeEnum = TypeEnum.SELF;
+    @IsOptional()
+    type?: TypeEnum;
 
     @IsString()
     @IsOptional()
