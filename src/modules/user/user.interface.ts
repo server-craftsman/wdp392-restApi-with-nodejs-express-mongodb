@@ -36,6 +36,13 @@ export interface IUser extends Document {
     updated_at?: Date; // default new Date()
     is_deleted?: boolean; // flag remove logic when user is deleted, default is false
 
+
+    // citizen id
+    citizen_id?: string;
+    citizen_id_url?: string;
+    birth_certificate?: string; // giấy khai sinh
+    divorce_certificate?: string; // giấy ly hôn
+
     full_name?: string;
     phone?: string;
 }

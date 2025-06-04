@@ -42,6 +42,19 @@ const UserSchemaEntity: Schema<IUser> = new Schema({
     //     },
     // ],
 
+    balance: { type: Number, default: 0 },
+    balance_total: { type: Number, default: 0 },
+    withdrawn_amount: { type: Number, default: 0 },
+    bank_name: { type: String },
+    bank_account_no: { type: String },
+    bank_account_name: { type: String },
+
+    // citizen id
+    citizen_id: { type: String },
+    citizen_id_url: { type: String },
+    birth_certificate: { type: String },
+    divorce_certificate: { type: String },
+
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now },
     is_deleted: { type: Boolean, default: false },
