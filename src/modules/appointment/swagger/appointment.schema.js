@@ -21,11 +21,6 @@
  *           format: date-time
  *           description: Appointment date and time (optional if slot_id is provided)
  *           example: "2023-10-15T14:30:00Z"
- *         type:
- *           type: string
- *           enum: [self, facility, home]
- *           description: Type of sample collection
- *           example: "facility"
  *         collection_address:
  *           type: string
  *           description: Address for home collection (required when type is 'home')
