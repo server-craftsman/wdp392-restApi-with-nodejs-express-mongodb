@@ -39,10 +39,16 @@ export default class App {
             logger.error('MongoDb URI is empty!');
             return;
         }
-        mongoose.connect(mongoDbUri).catch((error) => {
-            logger.error('Connection to database error: ' + error);
+        mongoose.connect(mongoDbUri, {
+            autoIndex: false,
+            serverSelectionTimeoutMS: 5000,
+            connectTimeoutMS: 10000,
+        }).then(() => {
+            logger.info('Connection to database success!');
+        }).catch((err) => {
+            logger.error('Connection to database failed!');
+            logger.error(err);
         });
-        logger.info('Connection to database success!');
     }
 
     // declare middleware

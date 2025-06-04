@@ -16,6 +16,10 @@
  *           type: string
  *           description: service name
  *           example: "DNA Test"
+ *         slug:
+ *           type: string
+ *           description: URL-friendly identifier (generated automatically if not provided)
+ *           example: "dna-test"
  *         description:
  *           type: string
  *           description: service description
@@ -42,6 +46,10 @@
  *           type: number
  *           description: estimated time
  *           example: 72
+ *         image_url:
+ *           type: string
+ *           description: URL của hình ảnh dịch vụ
+ *           example: "https://wdp392-generate-pdf.s3-ap-southeast-2.amazonaws.com/person-sample-images/123456/image.jpg"
  *
  *     UpdateServiceDto:
  *       type: object
@@ -57,6 +65,10 @@
  *           type: string
  *           description: Tên dịch vụ
  *           example: "Xét nghiệm ADN xác định huyết thống"
+ *         slug:
+ *           type: string
+ *           description: URL-friendly identifier (updated automatically if not provided)
+ *           example: "xet-nghiem-adn-xac-dinh-huyet-thong"
  *         description:
  *           type: string
  *           description: Mô tả chi tiết về dịch vụ
@@ -83,6 +95,10 @@
  *           type: number
  *           description: Thời gian ước tính để hoàn thành dịch vụ (tính bằng giờ)
  *           example: 72
+ *         image_url:
+ *           type: string
+ *           description: URL của hình ảnh dịch vụ
+ *           example: "https://wdp392-generate-pdf.s3-ap-southeast-2.amazonaws.com/person-sample-images/123456/image.jpg"
  *
  *     ServiceResponse:
  *       type: object
@@ -95,6 +111,10 @@
  *           type: string
  *           description: Tên dịch vụ
  *           example: "Xét nghiệm ADN xác định huyết thống"
+ *         slug:
+ *           type: string
+ *           description: URL-friendly identifier for the service
+ *           example: "xet-nghiem-adn-xac-dinh-huyet-thong"
  *         description:
  *           type: string
  *           description: Mô tả chi tiết về dịch vụ
@@ -121,6 +141,10 @@
  *           type: number
  *           description: Thời gian ước tính để hoàn thành dịch vụ (tính bằng giờ)
  *           example: 72
+ *         image_url:
+ *           type: string
+ *           description: URL của hình ảnh dịch vụ
+ *           example: "https://wdp392-generate-pdf.s3-ap-southeast-2.amazonaws.com/person-sample-images/123456/image.jpg"
  *         is_active:
  *           type: boolean
  *           description: Trạng thái hoạt động của dịch vụ

@@ -272,10 +272,12 @@
  *           description: Search keyword (email, first name, last name)
  *           example: "john"
  *         role:
- *           type: string
- *           enum: ["", all, admin, manager, staff, customer, laboratory_technician]
- *           description: Filter by role
- *           example: "customer"
+ *           type: array
+ *           description: Filter by multiple roles
+ *           items:
+ *             type: string
+ *             enum: ["", all, admin, manager, staff, customer, laboratory_technician]
+ *           example: ["customer", "staff"]
  *         is_verified:
  *           type: boolean
  *           description: Filter by verification status

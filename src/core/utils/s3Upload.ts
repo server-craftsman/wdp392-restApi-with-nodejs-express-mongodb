@@ -108,4 +108,7 @@ export const uploadMultipleFilesToS3 = async (
         console.error('Error uploading multiple files to S3:', error);
         throw new HttpException(HttpStatus.InternalServerError, 'Failed to upload files to S3');
     }
-}; 
+};
+
+// Re-export s3Folders from aws.config.ts
+export { s3Folders }; 

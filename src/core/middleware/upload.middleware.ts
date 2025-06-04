@@ -71,7 +71,7 @@ const uploadBufferToS3 = async (
 };
 
 // Middleware for single file upload directly to S3
-export const uploadSingleFile = (fieldName: string) => {
+export const uploadSingleFile = (fieldName: string, required: boolean = false) => {
     return (req: Request, res: Response, next: NextFunction) => {
         const uploadMiddleware = upload.single(fieldName);
 
@@ -80,14 +80,24 @@ export const uploadSingleFile = (fieldName: string) => {
                 if (err.code === 'LIMIT_FILE_SIZE') {
                     return next(new HttpException(HttpStatus.BadRequest, 'File too large. Maximum size is 5MB.'));
                 }
+                // Handle field name mismatch error - common when form field name doesn't match expected name
+                if (err.message.includes('Unexpected field')) {
+                    console.warn(`Warning: Unexpected field name. Expected '${fieldName}'. Continuing without file upload.`);
+                    return next(); // Continue without file upload
+                }
                 return next(new HttpException(HttpStatus.BadRequest, err.message));
             } else if (err) {
                 return next(err);
             }
 
-            // Check if file exists
+            // Check if file exists - only required if the 'required' parameter is true
+            if (required && !req.file) {
+                return next(new HttpException(HttpStatus.BadRequest, `Please upload a file for field '${fieldName}'`));
+            }
+
+            // If no file was uploaded and it's not required, just continue
             if (!req.file) {
-                return next(new HttpException(HttpStatus.BadRequest, 'Please upload a file'));
+                return next();
             }
 
             try {
@@ -115,7 +125,7 @@ export const uploadSingleFile = (fieldName: string) => {
 };
 
 // Middleware for multiple file upload directly to S3
-export const uploadMultipleFiles = (fieldName: string, maxCount: number = 5) => {
+export const uploadMultipleFiles = (fieldName: string, maxCount: number = 5, required: boolean = true) => {
     return (req: Request, res: Response, next: NextFunction) => {
         const uploadMiddleware = upload.array(fieldName, maxCount);
 
@@ -126,14 +136,24 @@ export const uploadMultipleFiles = (fieldName: string, maxCount: number = 5) => 
                 } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
                     return next(new HttpException(HttpStatus.BadRequest, `Too many files. Maximum is ${maxCount}.`));
                 }
+                // Handle field name mismatch error - common when form field name doesn't match expected name
+                if (err.message.includes('Unexpected field')) {
+                    console.warn(`Warning: Unexpected field name. Expected '${fieldName}'. Continuing without file upload.`);
+                    return next(); // Continue without file upload
+                }
                 return next(new HttpException(HttpStatus.BadRequest, err.message));
             } else if (err) {
                 return next(err);
             }
 
-            // Check if files exist
+            // Check if files exist - only required if the 'required' parameter is true
+            if (required && (!req.files || (Array.isArray(req.files) && req.files.length === 0))) {
+                return next(new HttpException(HttpStatus.BadRequest, `Please upload at least one file for field '${fieldName}'`));
+            }
+
+            // If no files were uploaded and it's not required, just continue
             if (!req.files || (Array.isArray(req.files) && req.files.length === 0)) {
-                return next(new HttpException(HttpStatus.BadRequest, 'Please upload at least one file'));
+                return next();
             }
 
             try {

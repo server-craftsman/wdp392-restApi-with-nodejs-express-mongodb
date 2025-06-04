@@ -50,12 +50,12 @@ export default class UserController {
     public register = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const model: RegisterDto = req.body;
+            const file = req.file; // Get the uploaded file from multer
             const routerPath = req.route.path;
-            const user: IUser = await this.userService.createUser(
-                model,
-                routerPath === API_PATH.USERS_GOOGLE,
-                !(routerPath === API_PATH.CREATE_USERS),
-            );
+            const isGoogle = routerPath === API_PATH.USERS_GOOGLE;
+            const isRegister = !(routerPath === API_PATH.CREATE_USERS);
+
+            const user: IUser = await this.userService.createUser(model, isGoogle, isRegister, file);
             res.status(HttpStatus.Created).json(formatResponse<IUser>(user));
         } catch (error) {
             next(error);
@@ -124,7 +124,8 @@ export default class UserController {
     public updateUser = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const model: UpdateUserDto = req.body;
-            const user: IUser = await this.userService.updateUser(req.params.id, model);
+            const file = req.file; // Get the uploaded file from multer
+            const user: IUser = await this.userService.updateUser(req.params.id, model, file);
             res.status(HttpStatus.Success).json(formatResponse<IUser>(user));
         } catch (error) {
             next(error);

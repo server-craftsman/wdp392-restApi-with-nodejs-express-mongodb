@@ -8,14 +8,87 @@ import { isEmptyObject } from "../../core/utils";
 import { SampleMethodEnum, ServiceTypeEnum } from "./service.enum";
 import AppointmentSchema from '../appointment/appointment.model';
 import ServiceRepository from './service.repository';
+import { uploadFileToS3 } from "../../core/utils/s3Upload";
+import { s3Folders } from "../../core/utils/aws.config";
 
 export default class ServiceService {
     private appointmentSchema = AppointmentSchema;
     private serviceRepository = new ServiceRepository();
 
-    public async createService(model: CreateServiceDto): Promise<IService> {
+    /**
+     * Generate a slug from a string
+     * @param name The string to generate a slug from
+     * @returns A URL-friendly slug
+     */
+    /**
+     * Generate a slug from a string
+     * @param name The string to generate a slug from
+     * @returns A URL-friendly slug
+     */
+    private generateSlug(name: string): string {
+        if (!name) return '';
+
+        // First normalize Vietnamese characters
+        let slug = name
+            .toLowerCase()
+            .trim()
+            .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, 'a')
+            .replace(/[èéẹẻẽêềếệểễ]/g, 'e')
+            .replace(/[ìíịỉĩ]/g, 'i')
+            .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, 'o')
+            .replace(/[ùúụủũưừứựửữ]/g, 'u')
+            .replace(/[ỳýỵỷỹ]/g, 'y')
+            .replace(/đ/g, 'd');
+
+        // Then handle spaces and special characters
+        slug = slug
+            .replace(/[^\w\s-]/g, '') // Remove non-word characters except spaces and hyphens
+            .replace(/[\s_]+/g, '-') // Replace spaces and underscores with hyphens
+            .replace(/-+/g, '-') // Remove consecutive hyphens
+            .replace(/^-+|-+$/g, ''); // Remove leading and trailing hyphens
+
+        return slug;
+    }
+
+    /**
+     * Ensure a slug is unique by adding a suffix if necessary
+     * @param baseSlug The base slug to check
+     * @returns A unique slug
+     */
+    private async ensureUniqueSlug(baseSlug: string): Promise<string> {
+        if (!baseSlug) return '';
+
+        let slug = baseSlug;
+        let counter = 1;
+        let existingService = await this.serviceRepository.findOne({ slug, is_deleted: false });
+
+        // Keep checking and incrementing counter until we find a unique slug
+        while (existingService) {
+            slug = `${baseSlug}-${counter}`;
+            counter++;
+            existingService = await this.serviceRepository.findOne({ slug, is_deleted: false });
+        }
+
+        return slug;
+    }
+
+    public async createService(model: CreateServiceDto, file?: Express.Multer.File): Promise<IService> {
         if (isEmptyObject(model)) {
             throw new HttpException(HttpStatus.BadRequest, 'Model data is empty');
+        }
+
+        // Convert string values to appropriate types (needed for multipart/form-data)
+        if (typeof model.price === 'string') {
+            model.price = parseFloat(model.price);
+        }
+
+        if (typeof model.estimated_time === 'string') {
+            model.estimated_time = parseFloat(model.estimated_time);
+        }
+
+        // Handle empty string for parent_service_id
+        if (model.parent_service_id === '') {
+            model.parent_service_id = null as any;
         }
 
         // Xác thực tên dịch vụ
@@ -29,13 +102,13 @@ export default class ServiceService {
         }
 
         // Xác thực giá
-        if (model.price <= 0) {
-            throw new HttpException(HttpStatus.BadRequest, 'Service price must be greater than 0');
+        if (isNaN(model.price) || model.price <= 0) {
+            throw new HttpException(HttpStatus.BadRequest, 'Service price must be a valid number greater than 0');
         }
 
         // Xác thực thời gian ước tính
-        if (model.estimated_time <= 0) {
-            throw new HttpException(HttpStatus.BadRequest, 'Estimated time must be greater than 0');
+        if (isNaN(model.estimated_time) || model.estimated_time <= 0) {
+            throw new HttpException(HttpStatus.BadRequest, 'Estimated time must be a valid number greater than 0');
         }
 
         // Xác thực loại dịch vụ
@@ -44,7 +117,7 @@ export default class ServiceService {
         }
 
         // Xác thực parent_service_id
-        if (model.parent_service_id) {
+        if (model.parent_service_id && model.parent_service_id.trim() !== '') {
             const parentService = await this.serviceRepository.findByIdAndPopulateParentService(model.parent_service_id);
             if (!parentService) {
                 throw new HttpException(HttpStatus.BadRequest, 'Parent service not found');
@@ -56,29 +129,51 @@ export default class ServiceService {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid sample method');
         }
 
-        // Ví dụ: Nếu dịch vụ là xét nghiệm tại nhà, tăng giá thêm 20%
-        if (model.sample_method === SampleMethodEnum.HOME_COLLECTED) {
-            model.price = Math.round(model.price * 1.2);
-        }
-
-        // Ví dụ: Nếu dịch vụ hành chính có thời gian ước tính > 48h, giảm giá 10%
-        if (model.type === ServiceTypeEnum.ADMINISTRATIVE && model.estimated_time > 48 && model.sample_method === SampleMethodEnum.FACILITY_COLLECTED) {
-            model.price = Math.round(model.price * 0.9);
-        }
-
         // kiểm tra tên dịch vụ có bị trùng không
         const existingService = await this.serviceRepository.findOne({ name: model.name, is_deleted: false });
         if (existingService) {
             throw new HttpException(HttpStatus.Conflict, 'Service with this name already exists');
         }
 
+        // Generate slug if not provided
+        if (!model.slug) {
+            model.slug = await this.ensureUniqueSlug(this.generateSlug(model.name));
+        } else {
+            // If slug is provided, ensure it's URL-friendly
+            model.slug = this.generateSlug(model.slug);
+            // Check if the slug is unique
+            model.slug = await this.ensureUniqueSlug(model.slug);
+        }
+
         let newService = {
             ...model,
-            parent_service_id: model.parent_service_id ? model.parent_service_id : undefined,
             is_active: true,
             created_at: new Date(),
             updated_at: new Date(),
         };
+
+        // If there's a file, upload the image (for any service type)
+        if (file) {
+            try {
+                // Create the service first to get the ID
+                const createdService = await this.serviceRepository.createService(newService);
+
+                // Upload image to S3
+                const imageUrl = await uploadFileToS3(file, createdService._id, s3Folders.personImages);
+
+                // Update service with image URL
+                const updatedService = await this.serviceRepository.findByIdAndUpdate(
+                    createdService._id,
+                    { image_url: imageUrl },
+                    { new: true }
+                );
+
+                return updatedService || createdService;
+            } catch (error) {
+                console.error('Error uploading image during service creation:', error);
+                throw new HttpException(HttpStatus.InternalServerError, 'Failed to upload image');
+            }
+        }
 
         return this.serviceRepository.createService(newService);
     }
@@ -222,91 +317,119 @@ export default class ServiceService {
     /**
      * Cập nhật dịch vụ
      */
-    public async updateService(id: string, model: Partial<UpdateServiceDto>): Promise<IService | undefined> {
+    public async updateService(id: string, model: Partial<UpdateServiceDto>, file?: Express.Multer.File): Promise<IService | undefined> {
         if (isEmptyObject(model)) {
             throw new HttpException(HttpStatus.BadRequest, 'Model data is empty');
         }
 
-        const service = await this.serviceRepository.findById(id);
-        if (!service) {
+        const existingService = await this.serviceRepository.findById(id);
+        if (!existingService) {
             throw new HttpException(HttpStatus.NotFound, 'Service not found');
         }
 
-        // Cập nhật giá
-        if (model.price || model.sample_method || model.type || model.estimated_time || model.parent_service_id) {
-            const updatedModel = {
-                ...service.toObject(),
-                ...model
-            } as UpdateServiceDto;
+        // Convert string values to appropriate types (needed for multipart/form-data)
+        if (typeof model.price === 'string') {
+            model.price = parseFloat(model.price);
+        }
 
-            // Xác thực tên dịch vụ
-            if (!updatedModel.name || updatedModel.name.trim() === '') {
-                throw new HttpException(HttpStatus.BadRequest, 'Service name is required');
+        if (typeof model.estimated_time === 'string') {
+            model.estimated_time = parseFloat(model.estimated_time);
+        }
+
+        // Handle empty string for parent_service_id
+        if (model.parent_service_id === '') {
+            model.parent_service_id = null as any;
+        }
+
+        // Validate name if provided
+        if (model.name && model.name.trim() === '') {
+            throw new HttpException(HttpStatus.BadRequest, 'Service name cannot be empty');
+        }
+
+        // Validate description if provided
+        if (model.description && model.description.trim() === '') {
+            throw new HttpException(HttpStatus.BadRequest, 'Service description cannot be empty');
+        }
+
+        // Validate price if provided
+        if (model.price !== undefined && (isNaN(model.price) || model.price <= 0)) {
+            throw new HttpException(HttpStatus.BadRequest, 'Service price must be a valid number greater than 0');
+        }
+
+        // Validate estimated time if provided
+        if (model.estimated_time !== undefined && (isNaN(model.estimated_time) || model.estimated_time <= 0)) {
+            throw new HttpException(HttpStatus.BadRequest, 'Estimated time must be a valid number greater than 0');
+        }
+
+        // Validate service type if provided
+        if (model.type && !Object.values(ServiceTypeEnum).includes(model.type as ServiceTypeEnum)) {
+            throw new HttpException(HttpStatus.BadRequest, 'Invalid service type');
+        }
+
+        // Validate parent service ID if provided
+        if (model.parent_service_id && model.parent_service_id.trim() !== '') {
+            const parentService = await this.serviceRepository.findById(model.parent_service_id);
+            if (!parentService) {
+                throw new HttpException(HttpStatus.BadRequest, 'Parent service not found');
             }
+        }
 
-            // Xác thực mô tả
-            if (!updatedModel.description || updatedModel.description.trim() === '') {
-                throw new HttpException(HttpStatus.BadRequest, 'Service description is required');
-            }
+        // Validate sample method if provided
+        if (model.sample_method && !Object.values(SampleMethodEnum).includes(model.sample_method as SampleMethodEnum)) {
+            throw new HttpException(HttpStatus.BadRequest, 'Invalid sample method');
+        }
 
-            // Xác thực giá
-            if (updatedModel.price <= 0) {
-                throw new HttpException(HttpStatus.BadRequest, 'Service price must be greater than 0');
-            }
-
-            // Xác thực thời gian ước tính
-            if (updatedModel.estimated_time <= 0) {
-                throw new HttpException(HttpStatus.BadRequest, 'Estimated time must be greater than 0');
-            }
-
-            // Xác thực loại dịch vụ
-            if (!Object.values(ServiceTypeEnum).includes(updatedModel.type as ServiceTypeEnum)) {
-                throw new HttpException(HttpStatus.BadRequest, 'Invalid service type');
-            }
-
-            // Xác thực phương thức lấy mẫu
-            if (!Object.values(SampleMethodEnum).includes(updatedModel.sample_method as SampleMethodEnum)) {
-                throw new HttpException(HttpStatus.BadRequest, 'Invalid sample method');
-            }
-
-            // Xác thực parent_service_id
-            if (updatedModel.parent_service_id) {
-                const parentService = await this.serviceRepository.findByIdAndPopulateParentService(updatedModel.parent_service_id);
-                if (!parentService) {
-                    throw new HttpException(HttpStatus.BadRequest, 'Parent service not found');
-                }
-            }
-
-            // kiểm tra tên dịch vụ có bị trùng không
-            const existingService = await this.serviceRepository.findOne({ name: updatedModel.name });
-            if (existingService) {
+        // Check for name uniqueness if name is being updated
+        if (model.name && model.name !== existingService.name) {
+            const serviceWithSameName = await this.serviceRepository.findOne({
+                name: model.name,
+                is_deleted: false,
+                _id: { $ne: id } // Exclude the current service
+            });
+            if (serviceWithSameName) {
                 throw new HttpException(HttpStatus.Conflict, 'Service with this name already exists');
             }
-
-            // Ví dụ: Nếu dịch vụ là xét nghiệm tại nhà, tăng giá thêm 20%
-            if (updatedModel.sample_method === SampleMethodEnum.HOME_COLLECTED) {
-                updatedModel.price = Math.round(updatedModel.price * 1.2);
-            }
-
-            // Ví dụ: Nếu dịch vụ hành chính có thời gian ước tính > 48h, giảm giá 10%
-            if (updatedModel.type === ServiceTypeEnum.ADMINISTRATIVE && updatedModel.estimated_time > 48 && updatedModel.sample_method === SampleMethodEnum.FACILITY_COLLECTED) {
-                updatedModel.price = Math.round(updatedModel.price * 0.9);
-            }
-
-            // Cập nhật dịch vụ
-            const updatedService = await this.serviceRepository.findByIdAndUpdate(
-                id, {
-                ...updatedModel,
-                updated_at: new Date()
-            }
-            );
-
-            if (!updatedService) {
-                throw new HttpException(HttpStatus.NotFound, 'Service not found');
-            }
-
-            return updatedService;
         }
+
+        // Update slug if name is changed or slug is provided
+        if ((model.name && model.name !== existingService.name) || model.slug) {
+            const baseSlug = model.slug ? this.generateSlug(model.slug) : this.generateSlug(model.name || existingService.name);
+
+            // Only check for uniqueness if the slug is different from the current one
+            if (baseSlug !== existingService.slug) {
+                model.slug = await this.ensureUniqueSlug(baseSlug);
+            } else {
+                model.slug = baseSlug;
+            }
+        }
+
+        // Handle file upload if provided
+        if (file) {
+            try {
+                const imageUrl = await uploadFileToS3(file, id, s3Folders.personImages);
+                model.image_url = imageUrl;
+            } catch (error) {
+                console.error('Error uploading image during service update:', error);
+                throw new HttpException(HttpStatus.InternalServerError, 'Failed to upload image');
+            }
+        }
+
+        const updateData = {
+            ...model,
+            updated_at: new Date()
+        };
+
+        const updatedService = await this.serviceRepository.findByIdAndUpdate(
+            id,
+            updateData,
+            { new: true }
+        );
+
+        if (!updatedService) {
+            throw new HttpException(HttpStatus.NotFound, 'Service not found');
+        }
+
+        return updatedService;
     }
 
     /**
@@ -733,5 +856,38 @@ export default class ServiceService {
         }
 
         return updatedService;
+    }
+
+    /**
+     * Get all services with images
+     * @returns Array of services with images
+     */
+    public async getServicesWithImages(): Promise<IService[]> {
+        try {
+            // Find all services that have an image_url
+            const services = await this.serviceRepository.findAll({
+                image_url: { $exists: true, $ne: null },
+                is_deleted: false,
+                is_active: true
+            });
+
+            return services;
+        } catch (error) {
+            console.error('Error getting services with images:', error);
+            throw new HttpException(HttpStatus.InternalServerError, 'Failed to get services with images');
+        }
+    }
+
+    /**
+     * Get a service by its slug
+     * @param slug The slug of the service to retrieve
+     * @returns The service with the specified slug
+     */
+    public async getServiceBySlug(slug: string): Promise<IService> {
+        const service = await this.serviceRepository.findBySlug(slug);
+        if (!service) {
+            throw new HttpException(HttpStatus.NotFound, `Service with slug '${slug}' not found`);
+        }
+        return service;
     }
 }

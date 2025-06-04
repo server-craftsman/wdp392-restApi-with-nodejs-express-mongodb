@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsString } from 'class-validator';
+import { IsBoolean, IsIn, IsString, IsArray } from 'class-validator';
 import { UserRoles } from '../user.constant';
 import { UserRole } from '../user.interface';
 import { UserRoleEnum } from '../user.enum';
@@ -6,7 +6,7 @@ import { UserRoleEnum } from '../user.enum';
 export default class SearchUserDto {
     constructor(
         keyword: string = '',
-        role: UserRole | string = '',
+        role: UserRole[] | string[] = [],
         status: boolean = true,
         is_verified: boolean | string = '',
         is_deleted: boolean = false,
@@ -21,8 +21,8 @@ export default class SearchUserDto {
     @IsString()
     public keyword: string;
 
-    @IsIn(UserRoles)
-    public role: UserRole | string;
+    @IsArray()
+    public role: UserRole[] | string[];
 
     public is_verified: boolean | string;
 

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { API_PATH } from '../../core/constants';
 import { IRoute } from '../../core/interfaces';
-import { authMiddleWare, validationMiddleware } from '../../core/middleware';
+import { authMiddleWare, validationMiddleware, uploadSingleFile } from '../../core/middleware';
 import ServiceController from './service.controller';
 import CreateServiceDto from './dtos/createService.dto';
 import UpdateServiceDto from './dtos/updateService.dto';
@@ -22,6 +22,7 @@ export default class ServiceRoute implements IRoute {
         this.router.post(
             API_PATH.CREATE_SERVICE,
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
+            uploadSingleFile('service_image'),
             validationMiddleware(CreateServiceDto),
             this.serviceController.createService);
 
@@ -51,6 +52,12 @@ export default class ServiceRoute implements IRoute {
             authMiddleWare([], true),
             this.serviceController.getServiceById);
 
+        // GET: domain:/api/service/slug/:slug -> Get service by slug
+        this.router.get(
+            `${this.path}/slug/:slug`,
+            authMiddleWare([], true),
+            this.serviceController.getServiceBySlug);
+
         // GET: domain:/api/service/:id/child -> Get child services by id
         this.router.get(
             `${this.path}/:id/child`,
@@ -61,6 +68,7 @@ export default class ServiceRoute implements IRoute {
         this.router.put(
             API_PATH.UPDATE_SERVICE,
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
+            uploadSingleFile('service_image'),
             validationMiddleware(UpdateServiceDto),
             this.serviceController.updateService);
 
@@ -75,5 +83,12 @@ export default class ServiceRoute implements IRoute {
             API_PATH.DELETE_SERVICE,
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             this.serviceController.deleteService);
+
+        // GET: domain:/api/service/services-with-images -> Get all services with images
+        this.router.get(
+            `${this.path}/services-with-images`,
+            authMiddleWare([], true),
+            this.serviceController.getServicesWithImages
+        );
     }
 }

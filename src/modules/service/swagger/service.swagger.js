@@ -12,16 +12,54 @@
  *     tags:
  *       - services
  *     summary: Create a new service (Only Admin, Manager)
- *     description: Create a new DNA testing service in the system
+ *     description: Create a new DNA testing service in the system. You can upload an image for any service type.
  *     operationId: createService
  *     security:
  *       - Bearer: []
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/CreateServiceDto'
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Service name
+ *               slug:
+ *                 type: string
+ *                 description: URL-friendly identifier (generated automatically if not provided)
+ *               description:
+ *                 type: string
+ *                 description: Service description
+ *               parent_service_id:
+ *                 type: string
+ *                 description: ID of parent service (if this is a child service)
+ *               price:
+ *                 type: number
+ *                 description: Service price
+ *               type:
+ *                 type: string
+ *                 enum: [civil, administrative]
+ *                 description: Service type
+ *               sample_method:
+ *                 type: string
+ *                 enum: [self_collected, facility_collected, home_collected]
+ *                 description: Sample collection method
+ *               estimated_time:
+ *                 type: number
+ *                 description: Estimated time in hours
+ *               service_image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image for the service
+ *             required:
+ *               - name
+ *               - description
+ *               - price
+ *               - type
+ *               - sample_method
+ *               - estimated_time
  *     responses:
  *       201:
  *         description: Create service successfully
@@ -123,6 +161,35 @@
  */
 
 /**
+ * @swagger
+ * /api/service/slug/{slug}:
+ *   get:
+ *     tags:
+ *       - services
+ *     summary: Get service by slug (All roles)
+ *     description: Retrieve detailed information of a service by its slug (URL-friendly identifier)
+ *     operationId: getServiceBySlug
+ *     parameters:
+ *       - in: path
+ *         name: slug
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Service slug
+ *     responses:
+ *       200:
+ *         description: Detailed service information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ServiceResponse'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Service not found
+ */
+
+/**
  * @swagger     
  * /api/service/{id}:
  *   get:
@@ -154,7 +221,7 @@
  *     tags:
  *       - services
  *     summary: Update service (Only Admin, Manager)
- *     description: Update service information
+ *     description: Update service information. You can upload or update an image for any service.
  *     operationId: updateService
  *     security:
  *       - Bearer: []
@@ -168,9 +235,47 @@
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/UpdateServiceDto'
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Service name
+ *               slug:
+ *                 type: string
+ *                 description: URL-friendly identifier (updated automatically if not provided)
+ *               description:
+ *                 type: string
+ *                 description: Service description
+ *               parent_service_id:
+ *                 type: string
+ *                 description: ID of parent service (if this is a child service)
+ *               price:
+ *                 type: number
+ *                 description: Service price
+ *               type:
+ *                 type: string
+ *                 enum: [civil, administrative]
+ *                 description: Service type
+ *               sample_method:
+ *                 type: string
+ *                 enum: [self_collected, facility_collected, home_collected]
+ *                 description: Sample collection method
+ *               estimated_time:
+ *                 type: number
+ *                 description: Estimated time in hours
+ *               service_image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image for the service
+ *             required:
+ *               - name
+ *               - description
+ *               - price
+ *               - type
+ *               - sample_method
+ *               - estimated_time
  *     responses:
  *       200:
  *         description: Update service successfully

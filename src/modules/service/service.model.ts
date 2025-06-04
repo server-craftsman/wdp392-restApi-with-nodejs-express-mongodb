@@ -5,6 +5,7 @@ import { IService } from './service.interface';
 
 const ServiceSchemaEntity: Schema<IService> = new Schema({
     name: { type: String, required: true },
+    slug: { type: String, required: true, unique: true },
     description: { type: String, required: true },
     parent_service_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.SERVICE },
     type: {
@@ -19,6 +20,7 @@ const ServiceSchemaEntity: Schema<IService> = new Schema({
     },
     estimated_time: { type: Number, required: true }, // in hours
     price: { type: Number, required: true },
+    image_url: { type: String },
     is_active: { type: Boolean, default: true },
     is_deleted: { type: Boolean, default: false },
     created_at: { type: Date, default: Date.now },

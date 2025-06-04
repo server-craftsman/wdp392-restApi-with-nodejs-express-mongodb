@@ -12,7 +12,8 @@ export default class ServiceController {
     public createService = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const model: CreateServiceDto = req.body;
-            const service = await this.serviceService.createService(model);
+            const file = req.file;
+            const service = await this.serviceService.createService(model, file);
             res.status(HttpStatus.Created).json(formatResponse<IService>(service));
         } catch (error) {
             next(error);
@@ -37,6 +38,15 @@ export default class ServiceController {
         }
     }
 
+    public getServiceBySlug = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const service = await this.serviceService.getServiceBySlug(req.params.slug);
+            res.status(HttpStatus.Success).json(formatResponse<IService>(service));
+        } catch (error) {
+            next(error);
+        }
+    }
+
     public getChildServices = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const services = await this.serviceService.getChildServices(req.params.id);
@@ -48,7 +58,8 @@ export default class ServiceController {
 
     public updateService = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const service = await this.serviceService.updateService(req.params.id, req.body);
+            const file = req.file;
+            const service = await this.serviceService.updateService(req.params.id, req.body, file);
             res.status(HttpStatus.Success).json(formatResponse<IService>(service as IService));
         } catch (error) {
             next(error);
@@ -105,6 +116,18 @@ export default class ServiceController {
 
             const service = await this.serviceService.changeServiceStatus(id, is_active);
             res.status(HttpStatus.Success).json(formatResponse<IService>(service));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get all services with images
+     */
+    public getServicesWithImages = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const services = await this.serviceService.getServicesWithImages();
+            res.status(HttpStatus.Success).json(formatResponse<IService[]>(services));
         } catch (error) {
             next(error);
         }

@@ -12,6 +12,7 @@ import {
     sendMail,
     createVerificationEmailTemplate
 } from '../../core/utils';
+import { uploadFileToS3, s3Folders } from '../../core/utils/s3Upload';
 import ChangePasswordDto from './dtos/changePassword.dto';
 import ChangeRoleDto from './dtos/changeRole.dto';
 import ChangeStatusDto from './dtos/changeStatus.dto';
@@ -33,7 +34,12 @@ export default class UserService {
     public userSchema = UserSchema;
     // public subscriptionSchema = SubscriptionSchema;
 
-    public async createUser(model: RegisterDto, isGoogle = false, isRegister = true): Promise<IUser> {
+    public async createUser(
+        model: RegisterDto,
+        isGoogle = false,
+        isRegister = true,
+        avatarFile?: Express.Multer.File
+    ): Promise<IUser> {
         if (isEmptyObject(model)) {
             throw new HttpException(HttpStatus.BadRequest, 'Model data is empty');
         }
@@ -47,7 +53,17 @@ export default class UserService {
             token_version: 0,
         };
 
-        if (newUser.avatar_url && !checkValidUrl(model.avatar_url)) {
+        // Handle avatar file upload if provided
+        if (avatarFile) {
+            try {
+                // Upload to S3 and get the URL
+                const avatarUrl = await uploadFileToS3(avatarFile, undefined, s3Folders.personImages);
+                newUser.avatar_url = avatarUrl;
+            } catch (error) {
+                console.error('Error uploading avatar to S3:', error);
+                throw new HttpException(HttpStatus.BadRequest, 'Failed to upload avatar image');
+            }
+        } else if (newUser.avatar_url && !checkValidUrl(model.avatar_url)) {
             throw new HttpException(HttpStatus.BadRequest, `The URL '${model.avatar_url}' is not valid`);
         }
 
@@ -143,8 +159,15 @@ export default class UserService {
             ];
         }
 
-        if (role && role !== UserRoleEnum.ALL) {
-            query.role = role;
+        // Handle role filtering with array support
+        if (role && Array.isArray(role) && role.length > 0) {
+            // Filter out 'all' role if present
+            const filteredRoles = role.filter(r => r !== UserRoleEnum.ALL);
+
+            // Only apply role filter if there are specific roles to filter by
+            if (filteredRoles.length > 0) {
+                query.role = { $in: filteredRoles };
+            }
         }
 
         if (is_verified !== '') {
@@ -190,7 +213,11 @@ export default class UserService {
         return user;
     }
 
-    public async updateUser(userId: string, model: UpdateUserDto): Promise<IUser> {
+    public async updateUser(
+        userId: string,
+        model: UpdateUserDto,
+        avatarFile?: Express.Multer.File
+    ): Promise<IUser> {
         if (isEmptyObject(model)) {
             throw new HttpException(HttpStatus.BadRequest, 'Model data is empty');
         }
@@ -215,11 +242,25 @@ export default class UserService {
             throw new HttpException(HttpStatus.BadRequest, '', errorResults);
         }
 
+        // Handle avatar file upload if provided
+        let avatarUrl = model.avatar_url || item.avatar_url;
+        if (avatarFile) {
+            try {
+                // Upload to S3 and get the URL
+                avatarUrl = await uploadFileToS3(avatarFile, undefined, s3Folders.personImages);
+            } catch (error) {
+                console.error('Error uploading avatar to S3:', error);
+                throw new HttpException(HttpStatus.BadRequest, 'Failed to upload avatar image');
+            }
+        } else if (model.avatar_url && !checkValidUrl(model.avatar_url)) {
+            throw new HttpException(HttpStatus.BadRequest, `The URL '${model.avatar_url}' is not valid`);
+        }
+
         const updateData = {
             first_name: model.first_name,
             last_name: model.last_name,
             phone_number: model.phone_number || item.phone_number,
-            avatar_url: model.avatar_url || item.avatar_url,
+            avatar_url: avatarUrl,
             dob: model.dob || item.dob,
             address: model.address || item.address,
             gender: model.gender || item.gender,

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { API_PATH } from '../../core/constants';
 import { IRoute } from '../../core/interfaces';
-import { authMiddleWare, validationMiddleware } from '../../core/middleware';
+import { authMiddleWare, validationMiddleware, uploadSingleFile } from '../../core/middleware';
 import ChangePasswordDto from './dtos/changePassword.dto';
 import ChangeStatusDto from './dtos/changeStatus.dto';
 import RegisterDto from './dtos/register.dto';
@@ -26,7 +26,12 @@ export default class UserRoute implements IRoute {
         this.router.post(API_PATH.GENERATE_USERS, this.userController.generateUser);
 
         // POST domain:/api/users -> Register normal user
-        this.router.post(this.path, validationMiddleware(RegisterDto), this.userController.register);
+        this.router.post(
+            this.path,
+            uploadSingleFile('avatar_image', false),
+            validationMiddleware(RegisterDto),
+            this.userController.register
+        );
 
         // POST domain:/api/users/google -> Register google user
         this.router.post(API_PATH.USERS_GOOGLE, this.userController.register);
@@ -35,6 +40,7 @@ export default class UserRoute implements IRoute {
         this.router.post(
             API_PATH.CREATE_USERS,
             authMiddleWare([UserRoleEnum.ADMIN]),
+            uploadSingleFile('avatar_image', false),
             validationMiddleware(RegisterDto),
             this.userController.register,
         );
@@ -86,6 +92,7 @@ export default class UserRoute implements IRoute {
         this.router.put(
             `${this.path}/:id`,
             authMiddleWare(),
+            uploadSingleFile('avatar_image', false),
             validationMiddleware(UpdateUserDto),
             this.userController.updateUser,
         );

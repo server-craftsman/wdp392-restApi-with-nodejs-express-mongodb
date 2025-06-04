@@ -10,14 +10,61 @@
  * /api/users:
  *   post:
  *     summary: Register new user
- *     description: Register a new user account with email and password
+ *     description: Register a new user account with email and password, with optional avatar upload
  *     tags: [users]
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/RegisterDto'
+ *             type: object
+ *             required:
+ *               - first_name
+ *               - last_name
+ *               - email
+ *               - password
+ *               - phone_number
+ *             properties:
+ *               first_name:
+ *                 type: string
+ *                 example: "John"
+ *               last_name:
+ *                 type: string
+ *                 example: "Doe"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "john.doe@example.com"
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: "password123"
+ *               role:
+ *                 type: string
+ *                 enum: [customer, manager, staff, laboratory_technician]
+ *                 example: "customer"
+ *               phone_number:
+ *                 type: string
+ *                 example: "+84912345678"
+ *               avatar_image:
+ *                 type: string
+ *                 format: binary
+ *                 description: User's avatar image (jpg, jpeg, png, gif) - optional
+ *               avatar_url:
+ *                 type: string
+ *                 description: URL to avatar (can be provided directly or uploaded via avatar_image field)
+ *                 example: "https://example.com/avatars/user123.jpg"
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *                 example: "1990-01-15"
+ *               address:
+ *                 type: string
+ *                 example: "123 Main Street, City, Country"
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 example: "male"
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -72,16 +119,63 @@
  * /api/users/create:
  *   post:
  *     summary: Create user (Admin only)
- *     description: Create a new user with specified role (Admin only)
+ *     description: Create a new user with specified role (Admin only), with optional avatar upload
  *     tags: [users]
  *     security:
  *       - Bearer: []
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/RegisterDto'
+ *             type: object
+ *             required:
+ *               - first_name
+ *               - last_name
+ *               - email
+ *               - password
+ *               - phone_number
+ *             properties:
+ *               first_name:
+ *                 type: string
+ *                 example: "John"
+ *               last_name:
+ *                 type: string
+ *                 example: "Doe"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "john.doe@example.com"
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: "password123"
+ *               role:
+ *                 type: string
+ *                 enum: [customer, manager, staff, admin, laboratory_technician]
+ *                 example: "customer"
+ *               phone_number:
+ *                 type: string
+ *                 example: "+84912345678"
+ *               avatar_image:
+ *                 type: string
+ *                 format: binary
+ *                 description: User's avatar image (jpg, jpeg, png, gif) - optional
+ *               avatar_url:
+ *                 type: string
+ *                 description: URL to avatar (can be provided directly or uploaded via avatar_image field)
+ *                 example: "https://example.com/avatars/user123.jpg"
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *                 example: "1990-01-15"
+ *               address:
+ *                 type: string
+ *                 example: "123 Main Street, City, Country"
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 example: "male"
  *     responses:
  *       201:
  *         description: User created successfully
@@ -160,7 +254,7 @@
  *
  *   put:
  *     summary: Update user profile
- *     description: Update user profile information (own profile or Admin access)
+ *     description: Update user profile information (own profile or Admin access), with optional avatar upload
  *     tags: [users]
  *     security:
  *       - Bearer: []
@@ -175,9 +269,41 @@
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/UpdateUserDto'
+ *             type: object
+ *             required:
+ *               - first_name
+ *               - last_name
+ *             properties:
+ *               first_name:
+ *                 type: string
+ *                 example: "John"
+ *               last_name:
+ *                 type: string
+ *                 example: "Doe"
+ *               phone_number:
+ *                 type: string
+ *                 example: "+84912345678"
+ *               avatar_image:
+ *                 type: string
+ *                 format: binary
+ *                 description: User's avatar image (jpg, jpeg, png, gif) - optional
+ *               avatar_url:
+ *                 type: string
+ *                 description: URL to avatar (can be provided directly or uploaded via avatar_image field)
+ *                 example: "https://example.com/avatars/user123.jpg"
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *                 example: "1990-01-15"
+ *               address:
+ *                 type: string
+ *                 example: "123 Main Street, City, Country"
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 example: "male"
  *     responses:
  *       200:
  *         description: User profile updated successfully
