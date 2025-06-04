@@ -54,15 +54,6 @@ export default class AppointmentService {
                 throw new HttpException(HttpStatus.NotFound, 'Service not found');
             }
 
-            // Automatically set appointment type based on service sample_method
-            if (service.sample_method === SampleMethodEnum.SELF_COLLECTED) {
-                appointmentData.type = TypeEnum.SELF;
-            } else if (service.sample_method === SampleMethodEnum.FACILITY_COLLECTED) {
-                appointmentData.type = TypeEnum.FACILITY;
-            } else if (service.sample_method === SampleMethodEnum.HOME_COLLECTED) {
-                appointmentData.type = TypeEnum.HOME;
-            }
-
             let slot;
             // Nếu có slot_id, kiểm tra slot
             if (appointmentData.slot_id) {
@@ -304,7 +295,7 @@ export default class AppointmentService {
     }
 
     /**
-     * Xác nhận appointment và gán kit (bởi nhân viên) - API cho quy trình tự thu mẫu - self collection
+     * Confirm appointment by selecting a slot (by staff)
      */
     public async confirmAppointment(
         appointmentId: string,
@@ -313,12 +304,13 @@ export default class AppointmentService {
         userRole: UserRoleEnum
     ): Promise<IAppointment> {
         const appointment = await this.getAppointmentById(appointmentId);
+
         // Only staff can confirm appointments
         if (userRole !== UserRoleEnum.STAFF) {
             throw new HttpException(HttpStatus.Forbidden, 'Only staff can confirm appointments');
         }
 
-        // Kiểm tra appointment có nhân viên được gán và nó khớp với nhân viên hiện tại
+        // Check if staff is assigned to the appointment
         if (!appointment.staff_id) {
             throw new HttpException(
                 HttpStatus.BadRequest,
@@ -326,15 +318,7 @@ export default class AppointmentService {
             );
         }
 
-        // Kiểm tra xem appointment có phải là dịch vụ tự thu thập không
-        if (appointment.type !== TypeEnum.SELF) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                'This endpoint is only for self-collection appointments'
-            );
-        }
-
-        // Kiểm tra xem appointment có trạng thái là PENDING không
+        // Check if the appointment is in PENDING status
         if (appointment.status !== AppointmentStatusEnum.PENDING) {
             throw new HttpException(
                 HttpStatus.BadRequest,
@@ -342,19 +326,17 @@ export default class AppointmentService {
             );
         }
 
-        // Kiểm tra xem nhân viên được gán đến appointment là nhân viên xác nhận
+        // Check if the assigned staff matches the confirming staff
         const staffProfile = await StaffProfileSchema.findOne({ user_id: staffId });
         if (!staffProfile) {
             throw new HttpException(HttpStatus.NotFound, 'Staff profile not found');
         }
 
-        // Lấy thông tin user được gán cho appointment
         const appointmentStaff = await UserSchema.findById(appointment.staff_id);
         if (!appointmentStaff) {
             throw new HttpException(HttpStatus.NotFound, 'Assigned staff not found');
         }
 
-        // Kiểm tra xem staffId (từ token) có khớp với staff_id trong appointment không
         if (appointmentStaff._id.toString() !== staffId) {
             throw new HttpException(
                 HttpStatus.Forbidden,
@@ -362,60 +344,22 @@ export default class AppointmentService {
             );
         }
 
-        // Kiểm tra laboratory technician ID có hợp lệ không
-        if (!mongoose.Types.ObjectId.isValid(confirmData.laboratory_technician_id)) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid laboratory technician ID');
+        // Validate slot
+        const slot = await SlotSchema.findById(confirmData.slot_id);
+        if (!slot) {
+            throw new HttpException(HttpStatus.NotFound, 'Slot not found');
         }
 
-        // Kiểm tra laboratory technician có tồn tại không
-        const labTechnician = await UserSchema.findById(confirmData.laboratory_technician_id);
-        if (!labTechnician) {
-            throw new HttpException(HttpStatus.NotFound, 'Laboratory technician not found');
+        if (slot.status !== SlotStatusEnum.AVAILABLE) {
+            throw new HttpException(HttpStatus.BadRequest, 'Slot is not available');
         }
 
-        // Kiểm tra xem user có phải là laboratory technician không
-        if (labTechnician.role !== UserRoleEnum.LABORATORY_TECHNICIAN) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                'The selected user is not a laboratory technician'
-            );
-        }
-
-        // get user_id từ appointment
-        let userId: string;
-
-        // xử lí user_id từ appointment convert  from object to string
-        if (appointment.user_id) { // kiểm tra xem user_id có tồn tại trong bảng appointment không
-            if (typeof appointment.user_id === 'object') { // kiểm tra xem user_id có phải là object không
-                // convert user_id từ object sang string
-                const userObj = appointment.user_id as any; // convert user_id từ object sang any
-                if (userObj._id) { // kiểm tra xem user_id có phải là _id không
-                    userId = userObj._id.toString(); // convert _id từ object sang string
-                } else if (userObj.id) { // kiểm tra xem user_id có phải là id không
-                    userId = userObj.id.toString();
-                } else {
-                    throw new HttpException(HttpStatus.BadRequest, 'Invalid user object in appointment');
-                }
-            } else {
-                // convert user_id từ string sang string
-                userId = (appointment.user_id as any).toString();
-            }
-        } else {
-            throw new HttpException(HttpStatus.BadRequest, 'User ID not found in appointment');
-        }
-
-        // Gán kit cho appointment và laboratory technician thay vì khách hàng
-        await this.kitService.assignKit(
-            confirmData.kit_id,
-            appointmentId,
-            confirmData.laboratory_technician_id // Sử dụng laboratory technician ID thay vì user ID
-        );
-
-        // Cập nhật trạng thái appointment thành CONFIRMED
+        // Update appointment with new slot and status
         const oldStatus = appointment.status;
         const updatedAppointment = await this.appointmentRepository.findByIdAndUpdate(
             appointmentId,
             {
+                slot_id: confirmData.slot_id as any,
                 status: AppointmentStatusEnum.CONFIRMED,
                 updated_at: new Date()
             },
@@ -425,6 +369,13 @@ export default class AppointmentService {
         if (!updatedAppointment) {
             throw new HttpException(HttpStatus.InternalServerError, 'Failed to confirm appointment');
         }
+
+        // Update slot status to BOOKED
+        await SlotSchema.findByIdAndUpdate(
+            confirmData.slot_id,
+            { status: SlotStatusEnum.BOOKED },
+            { new: true }
+        );
 
         // Log the confirmation
         try {
@@ -651,6 +602,67 @@ export default class AppointmentService {
                 throw error;
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error getting appointment price');
+        }
+    }
+
+    /**
+     * Get staff roles for department manager
+     */
+    public async getUserRoleStaff(): Promise<any[]> {
+        try {
+            // Get all staff users
+            const staffUsers = await UserSchema.find({ role: UserRoleEnum.STAFF })
+                .select('_id first_name last_name email phone_number');
+
+            // Get staff profiles
+            const staffProfiles = await StaffProfileSchema.find({
+                user_id: { $in: staffUsers.map(user => user._id) }
+            }).select('user_id status department');
+
+            // Combine user and profile information
+            const staffWithRoles = staffUsers.map(user => {
+                const profile = staffProfiles.find(p => p.user_id.toString() === user._id.toString());
+                return {
+                    ...user.toObject(),
+                    staff_profile: profile ? {
+                        status: profile.status,
+                        department: profile.department_id
+                    } : null
+                };
+            });
+
+            return staffWithRoles;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error getting staff roles');
+        }
+    }
+
+    /**
+     * Get available slots for logged-in staff
+     */
+    public async getStaffAvailableSlots(staffId: string): Promise<any[]> {
+        try {
+            // Get staff profile
+            const staffProfile = await StaffProfileSchema.findOne({ user_id: staffId });
+            if (!staffProfile) {
+                throw new HttpException(HttpStatus.NotFound, 'Staff profile not found');
+            }
+
+            // Get all slots assigned to this staff
+            const slots = await SlotSchema.find({
+                staff_profile_ids: { $in: [staffProfile._id] },
+                status: SlotStatusEnum.AVAILABLE
+            })
+
+            return slots;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error getting staff available slots');
         }
     }
 }

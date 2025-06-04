@@ -9,7 +9,7 @@ export default class CreateServiceDto {
         parent_service_id: string | null,
         price: number,
         type: ServiceType,
-        sample_method: SampleMethod,
+        // sample_method: SampleMethod,
         estimated_time: number,
         image_url?: string,
         slug?: string,
@@ -19,7 +19,7 @@ export default class CreateServiceDto {
         this.parent_service_id = parent_service_id;
         this.price = price;
         this.type = type;
-        this.sample_method = sample_method;
+        // this.sample_method = sample_method;
         this.estimated_time = estimated_time;
         this.image_url = image_url;
         this.slug = slug || '';
@@ -49,10 +49,6 @@ export default class CreateServiceDto {
     @IsString()
     @IsNotEmpty()
     public type: ServiceType;
-
-    @IsString()
-    @IsNotEmpty()
-    public sample_method: SampleMethod;
 
     @IsNumber()
     @IsNotEmpty()

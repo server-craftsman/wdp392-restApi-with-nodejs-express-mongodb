@@ -11,7 +11,7 @@ export interface IService extends Document {
     description: string;
     parent_service_id?: string | null;
     type: ServiceType;
-    sample_method: SampleMethod;
+    // sample_method: SampleMethod;
     estimated_time: number; // in hours
     price: number;
     image_url?: string;

@@ -69,5 +69,19 @@ export default class AppointmentRoute implements IRoute {
             authMiddleWare(),
             this.appointmentController.getAppointmentPrice
         );
+
+        // GET: domain:/api/appointment/staff/roles -> Get staff roles
+        this.router.get(
+            `${this.path}/staff/roles`,
+            authMiddleWare([UserRoleEnum.MANAGER]),
+            this.appointmentController.getStaffRoles
+        );
+
+        // GET: domain:/api/appointment/staff/slots -> Get available slots for logged-in staff
+        this.router.get(
+            `${this.path}/staff/slots`,
+            authMiddleWare([UserRoleEnum.STAFF]),
+            this.appointmentController.getStaffAvailableSlots
+        );
     }
 } 

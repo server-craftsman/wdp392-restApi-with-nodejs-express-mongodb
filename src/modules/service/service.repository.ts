@@ -64,6 +64,6 @@ export default class ServiceRepository {
         }).populate({
             path: 'parent_service_id',
             select: 'name slug'
-        }).select('name description price estimated_time type sample_method image_url slug');
+        }).select('name description price estimated_time type image_url slug');
     }
 }

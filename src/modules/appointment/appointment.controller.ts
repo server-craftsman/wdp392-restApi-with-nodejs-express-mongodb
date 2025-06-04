@@ -171,4 +171,44 @@ export default class AppointmentController {
             next(error);
         }
     };
+
+    /**
+     * Get staff roles (Department Manager only)
+     */
+    public getStaffRoles = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.user.id;
+            const userRole = req.user.role;
+
+            if (!userId) {
+                throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
+            }
+
+            const staffRoles = await this.appointmentService.getUserRoleStaff();
+
+            res.status(HttpStatus.Success).json(formatResponse<string[]>(staffRoles));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Get available slots for logged-in staff
+     */
+
+    public getStaffAvailableSlots = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const staffId = req.user.id;
+            if (!staffId) {
+                throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
+            }
+
+            const slots = await this.appointmentService.getStaffAvailableSlots(staffId);
+
+            res.status(HttpStatus.Success).json(formatResponse<any[]>(slots));
+        } catch (error) {
+            next(error);
+        }
+    };
+
 }

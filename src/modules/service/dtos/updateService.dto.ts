@@ -10,7 +10,7 @@ export default class UpdateServiceDto {
         parent_service_id: string | null,
         price: number,
         type: ServiceType,
-        sample_method: SampleMethod,
+        // sample_method: SampleMethod,
         estimated_time: number,
         image_url?: string,
         slug?: string,
@@ -20,7 +20,7 @@ export default class UpdateServiceDto {
         this.parent_service_id = parent_service_id;
         this.price = price;
         this.type = type;
-        this.sample_method = sample_method;
+        // this.sample_method = sample_method;
         this.estimated_time = estimated_time;
         this.image_url = image_url;
         this.slug = slug;
@@ -50,10 +50,6 @@ export default class UpdateServiceDto {
     @IsEnum(ServiceTypeEnum)
     @IsNotEmpty()
     type: ServiceType;
-
-    @IsEnum(SampleMethodEnum)
-    @IsNotEmpty()
-    sample_method: SampleMethod;
 
     @IsNumber()
     @IsNotEmpty()

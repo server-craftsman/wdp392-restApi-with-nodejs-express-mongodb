@@ -124,10 +124,10 @@ export default class ServiceService {
             }
         }
 
-        // Xác thực phương thức lấy mẫu
-        if (!Object.values(SampleMethodEnum).includes(model.sample_method as SampleMethodEnum)) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid sample method');
-        }
+        // // Xác thực phương thức lấy mẫu
+        // if (!Object.values(SampleMethodEnum).includes(model.sample_method as SampleMethodEnum)) {
+        //     throw new HttpException(HttpStatus.BadRequest, 'Invalid sample method');
+        // }
 
         // kiểm tra tên dịch vụ có bị trùng không
         const existingService = await this.serviceRepository.findOne({ name: model.name, is_deleted: false });
@@ -204,9 +204,9 @@ export default class ServiceService {
                 query.type = new RegExp(`^${cleanParams.type}$`, 'i'); // tìm kiếm theo loại dịch vụ với tùy chọn không phân biệt chữ hoa và chữ thường
             }
 
-            if (cleanParams.sample_method) {
-                query.sample_method = new RegExp(`^${cleanParams.sample_method}$`, 'i'); // tìm kiếm theo phương thức lấy mẫu với tùy chọn không phân biệt chữ hoa và chữ thường
-            }
+            // if (cleanParams.sample_method) {
+            //     query.sample_method = new RegExp(`^${cleanParams.sample_method}$`, 'i'); // tìm kiếm theo phương thức lấy mẫu với tùy chọn không phân biệt chữ hoa và chữ thường
+            // }
 
             if (cleanParams.is_active !== undefined) {
                 query.is_active = cleanParams.is_active;
@@ -273,7 +273,7 @@ export default class ServiceService {
      */
     private processQueryParams(params: any): {
         type?: string;
-        sample_method?: string;
+        // sample_method?: string;
         is_active?: boolean;
         min_price?: number;
         max_price?: number;
@@ -300,7 +300,7 @@ export default class ServiceService {
 
         return {
             type: processedParams.type?.toLowerCase(),
-            sample_method: processedParams.sample_method?.toLowerCase(),
+            // sample_method: processedParams.sample_method?.toLowerCase(),
             is_active: processedParams.is_active === 'true',
             min_price: processedParams.min_price ? parseFloat(processedParams.min_price) : undefined,
             max_price: processedParams.max_price ? parseFloat(processedParams.max_price) : undefined,
@@ -374,10 +374,10 @@ export default class ServiceService {
             }
         }
 
-        // Validate sample method if provided
-        if (model.sample_method && !Object.values(SampleMethodEnum).includes(model.sample_method as SampleMethodEnum)) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid sample method');
-        }
+        // // Validate sample method if provided
+        // if (model.sample_method && !Object.values(SampleMethodEnum).includes(model.sample_method as SampleMethodEnum)) {
+        //     throw new HttpException(HttpStatus.BadRequest, 'Invalid sample method');
+        // }
 
         // Check for name uniqueness if name is being updated
         if (model.name && model.name !== existingService.name) {

@@ -13,11 +13,11 @@ const ServiceSchemaEntity: Schema<IService> = new Schema({
         enum: ServiceTypes,
         required: true
     },
-    sample_method: {
-        type: String,
-        enum: SampleMethods,
-        required: true
-    },
+    // sample_method: {
+    //     type: String,
+    //     enum: SampleMethods,
+    //     required: true
+    // },
     estimated_time: { type: Number, required: true }, // in hours
     price: { type: Number, required: true },
     image_url: { type: String },
