@@ -12,8 +12,8 @@ const QualificationSchema = new Schema({
 });
 
 const StaffProfileSchemaEntity: Schema<IStaffProfile> = new Schema({
-    user_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true, unique: true },
-    department_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.DEPARTMENT, required: true },
+    user_id: { type: String, ref: COLLECTION_NAME.USER, required: true, unique: true },
+    department_id: { type: String, ref: COLLECTION_NAME.DEPARTMENT, required: true },
     job_title: { type: String, required: true },
     hire_date: { type: Date, required: true },
     employee_id: { type: String, required: true, unique: true },

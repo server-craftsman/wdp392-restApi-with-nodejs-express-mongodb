@@ -52,8 +52,8 @@ export default class StaffProfileService {
         // Tạo hồ sơ nhân viên mới với các giá trị mặc định
         const newProfile = await this.staffProfileRepository.createStaffProfile({
             ...model,
-            user_id: new Schema.Types.ObjectId(model.user_id),
-            department_id: new Schema.Types.ObjectId(model.department_id),
+            user_id: model.user_id,
+            department_id: model.department_id,
             employee_id: employeeId,
             status: StaffStatusEnum.ACTIVE,
             salary: model.salary || 0,
@@ -216,8 +216,8 @@ export default class StaffProfileService {
             id,
             {
                 ...model,
-                user_id: new Schema.Types.ObjectId(model.user_id),
-                department_id: new Schema.Types.ObjectId(model.department_id),
+                user_id: model.user_id,
+                department_id: model.department_id,
                 updated_at: new Date()
             },
             { new: true }
