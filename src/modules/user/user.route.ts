@@ -64,7 +64,7 @@ export default class UserRoute implements IRoute {
         // GET: domain:/api/users/staff-lab-tech -> Get staff and laboratory technician users
         this.router.get(
             `${this.path}/staff-lab-tech`,
-            authMiddleWare([UserRoleEnum.MANAGER]),
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             this.userController.getStaffAndLabTechUsers
         );
 

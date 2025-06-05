@@ -436,7 +436,7 @@
  * /api/users/staff-lab-tech:
  *   get:
  *     tags: [users]
- *     summary: Get staff and laboratory technician users (Manager only)
+ *     summary: Get staff and laboratory technician users (Admin and Manager only)
  *     description: Retrieve list of all staff and laboratory technician users with their profiles
  *     security:
  *       - Bearer: []
