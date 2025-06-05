@@ -14,7 +14,7 @@ import { BatchReceiveSamplesDto } from './dtos/batchReceiveSamples.dto';
 import { SearchSamplesDto } from './dtos/searchSamples.dto';
 import { uploadFileToS3 } from '../../core/utils';
 import { SampleStatusEnum, SampleTypeEnum } from './sample.enum';
-
+import { CollectSampleDto } from './dtos/collect-sample.dto';
 export default class SampleController {
     private sampleService = new SampleService();
 
@@ -448,6 +448,30 @@ export default class SampleController {
             }));
         } catch (error) {
             console.error("Error in uploadPersonImage controller:", error);
+            next(error);
+        }
+    };
+
+    /**
+     * Collect sample at facility
+     * @route POST /samples/collect
+     */
+    public collectSampleAtFacility = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const staffId = req.user?.id;
+            if (!staffId) {
+                throw new HttpException(HttpStatus.Unauthorized, 'Staff not authenticated');
+            }
+
+            const collectSampleData: CollectSampleDto = req.body;
+
+            const result = await this.sampleService.collectSampleAtFacility(
+                collectSampleData,
+                staffId
+            );
+
+            res.status(HttpStatus.Success).json(formatResponse<ISample[]>(result));
+        } catch (error) {
             next(error);
         }
     };

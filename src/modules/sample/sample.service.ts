@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 import { HttpStatus } from '../../core/enums';
 import { HttpException } from '../../core/exceptions';
-import { ISample } from './sample.interface';
+import { IPersonInfo, ISample } from './sample.interface';
 import { SampleStatusEnum, SampleTypeEnum, CollectionMethodEnum } from './sample.enum';
 import SampleRepository from './sample.repository';
 import { AppointmentLogService } from '../appointment_log';
@@ -14,7 +14,7 @@ import { SampleSelectionDto } from '../appointment/dtos/createAppointment.dto';
 import { TypeEnum } from '../appointment/appointment.enum';
 import { AddSampleDto } from './dtos/addSample.dto';
 import { SearchPaginationResponseModel } from "../../core/models";
-
+import { CollectSampleDto } from './dtos/collect-sample.dto';
 
 /**
  * Helper function to compare MongoDB ObjectIds or strings
@@ -130,19 +130,13 @@ export default class SampleService {
     private readonly sampleRepository: SampleRepository;
     private readonly appointmentLogService: AppointmentLogService;
     private readonly kitService: KitService;
-    private appointmentService?: AppointmentService;
+    private readonly appointmentService: AppointmentService;
 
     constructor() {
         this.sampleRepository = new SampleRepository();
         this.appointmentLogService = new AppointmentLogService();
         this.kitService = new KitService();
-    }
-
-    private getAppointmentService(): AppointmentService {
-        if (!this.appointmentService) {
-            this.appointmentService = new AppointmentService();
-        }
-        return this.appointmentService;
+        this.appointmentService = new AppointmentService();
     }
 
     /**
@@ -169,7 +163,7 @@ export default class SampleService {
             console.log('Extracted appointment ID:', appointmentId);
 
             // Verify that the sample belongs to the user making the request
-            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
 
             // Log for debugging
             console.log('Sample appointment_id:', sample.appointment_id, 'type:', typeof sample.appointment_id);
@@ -218,7 +212,7 @@ export default class SampleService {
 
             // Update appointment status to SAMPLE_COLLECTED if not already
             if (appointment.status !== AppointmentStatusEnum.SAMPLE_COLLECTED) {
-                await this.getAppointmentService().updateAppointmentStatus(
+                await this.appointmentService.updateAppointmentStatus(
                     appointment._id.toString(),
                     AppointmentStatusEnum.SAMPLE_COLLECTED
                 );
@@ -319,7 +313,7 @@ export default class SampleService {
             }
 
             // Update appointment status to SAMPLE_RECEIVED
-            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
 
             // Log for debugging
             console.log('Sample appointment_id:', sample.appointment_id, 'type:', typeof sample.appointment_id);
@@ -337,7 +331,7 @@ export default class SampleService {
             }
 
             if (appointment.status !== AppointmentStatusEnum.SAMPLE_RECEIVED) {
-                await this.getAppointmentService().updateAppointmentStatus(
+                await this.appointmentService.updateAppointmentStatus(
                     appointment._id.toString(),
                     AppointmentStatusEnum.SAMPLE_RECEIVED
                 );
@@ -455,7 +449,7 @@ export default class SampleService {
             console.log('Finding samples for appointment ID:', appointmentId);
 
             // Verify that the appointment exists
-            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
 
             // Extract the ID to ensure we're using a consistent format
             const appointmentIdStr = appointment._id.toString();
@@ -515,7 +509,7 @@ export default class SampleService {
             }
 
             // Get appointment data for logging
-            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
 
             // Create samples with assigned kits
             const samples: ISample[] = [];
@@ -601,7 +595,7 @@ export default class SampleService {
             }
 
             // Get the appointment
-            const appointment = await this.getAppointmentService().getAppointmentById(addSampleData.appointment_id);
+            const appointment = await this.appointmentService.getAppointmentById(addSampleData.appointment_id);
             if (!appointment) {
                 throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
             }
@@ -722,7 +716,7 @@ export default class SampleService {
             // Verify authorization and validate samples for each appointment
             for (const [appointmentId, appointmentSamples] of samplesByAppointment.entries()) {
                 // Verify that the samples belong to the user making the request
-                const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+                const appointment = await this.appointmentService.getAppointmentById(appointmentId);
                 const appointmentUserId = extractUserIdFromAppointment(appointment);
 
                 if (!areIdsEqual(appointmentUserId, userId)) {
@@ -769,11 +763,11 @@ export default class SampleService {
 
             // Update appointment status and kit status for each appointment
             for (const [appointmentId, appointmentSamples] of samplesByAppointment.entries()) {
-                const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+                const appointment = await this.appointmentService.getAppointmentById(appointmentId);
 
                 // Update appointment status to SAMPLE_COLLECTED if not already
                 if (appointment.status !== AppointmentStatusEnum.SAMPLE_COLLECTED) {
-                    await this.getAppointmentService().updateAppointmentStatus(
+                    await this.appointmentService.updateAppointmentStatus(
                         appointmentId,
                         AppointmentStatusEnum.SAMPLE_COLLECTED
                     );
@@ -901,11 +895,11 @@ export default class SampleService {
 
             // Update appointment status for each appointment
             for (const [appointmentId, _] of samplesByAppointment.entries()) {
-                const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+                const appointment = await this.appointmentService.getAppointmentById(appointmentId);
 
                 // Update appointment status to SAMPLE_RECEIVED if not already
                 if (appointment.status !== AppointmentStatusEnum.SAMPLE_RECEIVED) {
-                    await this.getAppointmentService().updateAppointmentStatus(
+                    await this.appointmentService.updateAppointmentStatus(
                         appointmentId,
                         AppointmentStatusEnum.SAMPLE_RECEIVED
                     );
@@ -971,7 +965,7 @@ export default class SampleService {
             const appointmentId = extractAppointmentIdFromSample(sample);
 
             // Verify that the sample belongs to the user making the request
-            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
+            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
             const appointmentUserId = extractUserIdFromAppointment(appointment);
 
             if (!areIdsEqual(appointmentUserId, userId)) {
@@ -1264,5 +1258,53 @@ export default class SampleService {
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error searching samples');
         }
+    }
+
+    /**
+     * Collect sample at facility
+     */
+    public async collectSampleAtFacility(model: CollectSampleDto, staff_id: string): Promise<ISample[]> {
+        const appointment = await this.appointmentService.getAppointmentById(model.appointment_id);
+        if (!appointment) {
+            throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
+        }
+
+        if (appointment.status !== AppointmentStatusEnum.CONFIRMED) {
+            throw new HttpException(HttpStatus.BadRequest, 'Appointment must be confirmed before collecting sample');
+        }
+
+        // Validate that number of sample types matches number of person info entries
+        if (model.type.length !== model.person_info.length) {
+            throw new HttpException(HttpStatus.BadRequest, 'Number of sample types must match number of person information entries');
+        }
+
+        const samples: ISample[] = [];
+
+        // Create a sample for each type and person info
+        for (let i = 0; i < model.type.length; i++) {
+            const sampleData: Partial<ISample> = {
+                appointment_id: model.appointment_id,
+                type: model.type[i],
+                collection_method: CollectionMethodEnum.FACILITY,
+                collection_date: new Date(model.collection_date),
+                status: SampleStatusEnum.PENDING,
+                person_info: model.person_info[i] as IPersonInfo,
+                created_at: new Date(),
+                updated_at: new Date(),
+                created_by: staff_id,
+                updated_by: staff_id
+            };
+
+            const sample = await this.sampleRepository.create(sampleData);
+            samples.push(sample);
+        }
+
+        // Update appointment status to IN_PROGRESS
+        await this.appointmentService.updateAppointmentStatus(
+            model.appointment_id,
+            AppointmentStatusEnum.SAMPLE_COLLECTED
+        );
+
+        return samples;
     }
 } 

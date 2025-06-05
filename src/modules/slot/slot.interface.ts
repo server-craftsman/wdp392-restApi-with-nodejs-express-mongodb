@@ -20,10 +20,10 @@ export interface ITimeSlot {
 }
 
 export interface ISlot extends Document {
-    _id: string;
-    service_id?: Schema.Types.ObjectId;
-    staff_profile_ids: Schema.Types.ObjectId[] | string[];
-    appointment_id?: Schema.Types.ObjectId;
+    _id: string | undefined;
+    service_id?: string | undefined;
+    staff_profile_ids: string[] | undefined;
+    appointment_id?: string | undefined;
     appointment_limit: number; //max appointment per slot
     time_slots?: ITimeSlot[];
     status: SlotStatus | string;

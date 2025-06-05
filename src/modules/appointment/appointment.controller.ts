@@ -211,4 +211,63 @@ export default class AppointmentController {
         }
     };
 
+    /**
+     * Get appointments assigned to staff
+     */
+    public getStaffAssignedAppointments = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const staffId = req.user.id;
+            const queryParams = req.query;
+            const appointments = await this.appointmentService.getStaffAssignedAppointments(staffId, queryParams);
+            res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IAppointment>>(appointments));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get appointments assigned to laboratory technician
+     */
+    public getLabTechAssignedAppointments = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const labTechId = req.user.id;
+            const queryParams = req.query;
+            const appointments = await this.appointmentService.getLabTechAssignedAppointments(labTechId, queryParams);
+            res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IAppointment>>(appointments));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Assign laboratory technician to appointment
+     */
+    public assignLabTechnician = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { id } = req.params;
+            const { lab_tech_id } = req.body;
+            const appointment = await this.appointmentService.assignLabTechnician(id, lab_tech_id);
+            res.status(HttpStatus.Success).json(formatResponse<IAppointment>(appointment));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get available laboratory technicians
+     */
+    public getAvailableLabTechnicians = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userRole = req.user.role;
+            if (userRole !== UserRoleEnum.STAFF) {
+                throw new HttpException(HttpStatus.Forbidden, 'Only staff can view laboratory technicians');
+            }
+
+            const labTechs = await this.appointmentService.getAvailableLabTechnicians();
+            res.status(HttpStatus.Success).json(formatResponse<any[]>(labTechs));
+        } catch (error) {
+            next(error);
+        }
+    }
+
 }

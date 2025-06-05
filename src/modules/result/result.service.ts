@@ -107,7 +107,7 @@ export default class ResultService {
                             customerId = userIdObj._id.toString();
                         } else {
                             // Direct ObjectId or similar
-                            customerId = appointment.user_id.toString();
+                            customerId = appointment.user_id || '';
                         }
                     } catch (err) {
                         console.error('Error extracting user_id:', err);
@@ -425,9 +425,9 @@ export default class ResultService {
             // Extract appointment ID as string
             let appointmentId: string;
             if (typeof sample.appointment_id === 'object' && sample.appointment_id !== null) {
-                appointmentId = sample.appointment_id.toString();
+                appointmentId = sample.appointment_id || '';
             } else {
-                appointmentId = String(sample.appointment_id);
+                appointmentId = String(sample.appointment_id) || '';
             }
 
             // Check if appointment exists and has been paid for

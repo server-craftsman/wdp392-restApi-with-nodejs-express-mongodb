@@ -4,7 +4,7 @@ import { UserGenderEnum } from '../user/user.enum';
 
 export interface IRegistrationForm extends Document {
     _id: string;
-    sample_id: Schema.Types.ObjectId;
+    sample_id: string | undefined;
     patient_name: string;
     gender: UserGenderEnum;
     phone_number: string;

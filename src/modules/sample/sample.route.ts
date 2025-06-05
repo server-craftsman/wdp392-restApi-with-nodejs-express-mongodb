@@ -12,6 +12,7 @@ import { BatchSubmitSamplesDto } from './dtos/batchSubmitSamples.dto';
 import { BatchReceiveSamplesDto } from './dtos/batchReceiveSamples.dto';
 import { UploadPersonImageDto } from './dtos/uploadPersonImage.dto';
 import { SearchSamplesDto } from './dtos/searchSamples.dto';
+import { CollectSampleDto } from './dtos/collect-sample.dto';
 
 export default class SampleRoute implements IRoute {
     public path = API_PATH.SAMPLE;
@@ -112,6 +113,14 @@ export default class SampleRoute implements IRoute {
             authMiddleWare([UserRoleEnum.CUSTOMER, UserRoleEnum.STAFF]),
             uploadSingleFile('image'),
             this.sampleController.uploadPersonImage
+        );
+
+        // POST: domain:/api/samples/collect -> Collect sample at facility
+        this.router.post(
+            `${this.path}/collect`,
+            authMiddleWare([UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
+            validationMiddleware(CollectSampleDto),
+            this.sampleController.collectSampleAtFacility
         );
     }
 } 

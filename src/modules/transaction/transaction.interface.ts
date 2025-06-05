@@ -2,10 +2,10 @@ import { Document, Schema } from 'mongoose';
 import { TransactionStatusEnum } from './transaction.enum';
 export interface ITransaction extends Document {
     _id: string;
-    payment_id: Schema.Types.ObjectId;
-    staff_id: Schema.Types.ObjectId;
-    customer_id: Schema.Types.ObjectId;
-    sample_id: Schema.Types.ObjectId;
+    payment_id: string | undefined;
+    staff_id: string | undefined;
+    customer_id: string | undefined;
+    sample_id: string | undefined;
     receipt_number: string;
     payos_transaction_id?: string;
     payos_payment_status?: TransactionStatusEnum;

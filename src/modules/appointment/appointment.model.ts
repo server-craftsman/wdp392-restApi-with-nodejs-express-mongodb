@@ -7,16 +7,9 @@ import { AppointmentStatusEnum, TypeEnum, PaymentStatusEnum } from './appointmen
 const AppointmentSchemaEntity: Schema<IAppointment> = new Schema({
     user_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true },
     service_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.SERVICE, required: true },
-    status: {
-        type: String,
-        enum: Object.values(AppointmentStatusEnum),
-        default: AppointmentStatusEnum.PENDING
-    },
-    payment_status: {
-        type: String,
-        enum: Object.values(PaymentStatusEnum),
-        default: PaymentStatusEnum.UNPAID
-    },
+    slot_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.SLOT },
+    staff_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER },
+    laboratory_technician_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER },
     appointment_date: { type: Date, required: true },
     type: {
         type: String,
@@ -24,8 +17,18 @@ const AppointmentSchemaEntity: Schema<IAppointment> = new Schema({
         required: true
     },
     collection_address: { type: String },
-    staff_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER },
-    slot_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.SLOT },
+    status: {
+        type: String,
+        enum: Object.values(AppointmentStatusEnum),
+        required: true,
+        default: AppointmentStatusEnum.PENDING
+    },
+    payment_status: {
+        type: String,
+        enum: Object.values(PaymentStatusEnum),
+        required: true,
+        default: PaymentStatusEnum.UNPAID
+    },
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }
 });

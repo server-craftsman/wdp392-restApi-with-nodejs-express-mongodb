@@ -315,7 +315,7 @@ export default class PaymentService {
                 return {
                     success: true,
                     payment_status: PaymentStatusEnum.COMPLETED,
-                    appointment_id: payment.appointment_id.toString()
+                    appointment_id: payment.appointment_id || ''
                 };
             }
 
@@ -324,7 +324,7 @@ export default class PaymentService {
             return {
                 success: true,
                 payment_status: payment.status,
-                appointment_id: payment.appointment_id.toString()
+                appointment_id: payment.appointment_id || ''
             };
         } catch (error) {
             if (error instanceof HttpException) {
@@ -394,7 +394,7 @@ export default class PaymentService {
 
             if (!payment.sample_ids || payment.sample_ids.length === 0) {
                 // If no sample IDs are stored in the payment, fetch all samples for the appointment
-                return await this.sampleService.getSamplesByAppointmentId(payment.appointment_id.toString());
+                return await this.sampleService.getSamplesByAppointmentId(payment.appointment_id || '');
             }
 
             // Fetch samples by their IDs

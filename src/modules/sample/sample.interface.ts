@@ -32,8 +32,8 @@ export interface IPersonInfo {
 
 export interface ISample extends Document {
     _id: string;
-    appointment_id: Schema.Types.ObjectId;
-    kit_id: Schema.Types.ObjectId;
+    appointment_id: string | undefined;
+    kit_id: string | undefined;
     type: SampleType | null;
     collection_method: CollectionMethod;
     collection_date: Date;
@@ -43,4 +43,6 @@ export interface ISample extends Document {
     person_info_list?: IPersonInfo[];
     created_at: Date;
     updated_at: Date;
+    created_by?: string;
+    updated_by?: string;
 } 

@@ -12,10 +12,10 @@ export interface IResultData {
 
 export interface IResult extends Document {
     _id: string;
-    sample_ids: Schema.Types.ObjectId[];
-    customer_id: Schema.Types.ObjectId;
-    appointment_id: Schema.Types.ObjectId;
-    laboratory_technician_id: Schema.Types.ObjectId;
+    sample_ids: string[] | undefined;
+    customer_id: string | undefined;
+    appointment_id: string | undefined;
+    laboratory_technician_id: string | undefined;
     is_match: boolean;
     result_data: IResultData | null;
     report_url: string | null;

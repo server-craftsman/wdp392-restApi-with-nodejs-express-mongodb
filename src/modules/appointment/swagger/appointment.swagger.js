@@ -176,7 +176,14 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AssignStaffDto'
+ *             type: object
+ *             required:
+ *               - staff_id
+ *             properties:
+ *               staff_id:
+ *                 type: string
+ *                 description: ID of the staff member to assign
+ *                 example: "60d0fe4f5311236168a109ca"
  *     responses:
  *       200:
  *         description: Staff assigned successfully
@@ -202,7 +209,7 @@
  *   put:
  *     tags:
  *       - appointments
- *     summary: Confirm appointment and assign kit to laboratory technician (Staff only)
+ *     summary: Confirm appointment (Staff only)
  *     description: Confirm an appointment, assign a testing kit to a laboratory technician, and update appointment status to 'confirmed'
  *     operationId: confirmAppointment
  *     security:
@@ -220,7 +227,14 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/ConfirmAppointmentDto'
+ *             type: object
+ *             required:
+ *               - slot_id
+ *             properties:
+ *               slot_id:
+ *                 type: string
+ *                 description: ID of the time slot for the appointment
+ *                 example: "60d0fe4f5311236168a109cd"
  *     responses:
  *       200:
  *         description: Appointment confirmed successfully
@@ -347,4 +361,272 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ */
+
+/**
+ * @swagger
+ * /api/appointment/staff/assigned:
+ *   get:
+ *     tags: [appointments]
+ *     summary: Get appointments assigned to staff member (Staff only)
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: List of assigned appointments
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AppointmentListResponse'
+ *       401:
+ *         description: Unauthorized
+ *
+ * /api/appointment/lab-tech/assigned:
+ *   get:
+ *     tags: [appointments]
+ *     summary: Get appointments assigned to laboratory technician (Lab technician only)
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: List of assigned appointments
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AppointmentListResponse'
+ *       401:
+ *         description: Unauthorized
+ *
+ * /api/appointment/{id}/assign-lab-tech:
+ *   post:
+ *     tags: [appointments]
+ *     summary: Assign a laboratory technician to an appointment (Staff only)
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Appointment ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AssignLabTechRequest'
+ *     responses:
+ *       200:
+ *         description: Laboratory technician assigned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AppointmentResponse'
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Appointment or laboratory technician not found
+ */
+
+/**
+ * @swagger
+ * /api/appointment/staff/available:
+ *   get:
+ *     tags: [appointments]
+ *     summary: Get available staff (Manager only)
+ *     description: Retrieve list of staff members with their roles and departments
+ *     security:
+ *       - Bearer: []
+ *     responses:
+ *       200:
+ *         description: Staff roles retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Staff user ID
+ *                       first_name:
+ *                         type: string
+ *                         description: Staff first name
+ *                       last_name:
+ *                         type: string
+ *                         description: Staff last name
+ *                       email:
+ *                         type: string
+ *                         description: Staff email
+ *                       phone_number:
+ *                         type: string
+ *                         description: Staff phone number
+ *                       staff_profile:
+ *                         type: object
+ *                         properties:
+ *                           status:
+ *                             type: string
+ *                             enum: [ACTIVE, INACTIVE]
+ *                             description: Staff profile status
+ *                           department:
+ *                             type: string
+ *                             description: Department ID
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Manager access required
+ *       500:
+ *         description: Internal server error
+ *
+ * /api/appointment/staff/slots:
+ *   get:
+ *     tags: [appointments]
+ *     summary: Get available slots for logged-in staff (Staff only)
+ *     description: Retrieve all available time slots assigned to the logged-in staff member
+ *     security:
+ *       - Bearer: []
+ *     responses:
+ *       200:
+ *         description: Available slots retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Slot ID
+ *                       date:
+ *                         type: string
+ *                         format: date
+ *                         description: Date of the slot
+ *                       time_slots:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             start_time:
+ *                               type: object
+ *                               properties:
+ *                                 hour:
+ *                                   type: integer
+ *                                 minute:
+ *                                   type: integer
+ *                             end_time:
+ *                               type: object
+ *                               properties:
+ *                                 hour:
+ *                                   type: integer
+ *                                 minute:
+ *                                   type: integer
+ *                       status:
+ *                         type: string
+ *                         enum: [AVAILABLE, BOOKED]
+ *                         description: Slot status
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Staff access required
+ *       404:
+ *         description: Staff profile not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment/lab-tech/available:
+ *   get:
+ *     tags: [appointments]
+ *     summary: Get available laboratory technicians (Staff only)
+ *     description: Retrieve list of available laboratory technicians that can be assigned to appointments
+ *     security:
+ *       - Bearer: []
+ *     responses:
+ *       200:
+ *         description: Available laboratory technicians retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Laboratory technician user ID
+ *                       first_name:
+ *                         type: string
+ *                         description: Laboratory technician first name
+ *                       last_name:
+ *                         type: string
+ *                         description: Laboratory technician last name
+ *                       email:
+ *                         type: string
+ *                         description: Laboratory technician email
+ *                       phone_number:
+ *                         type: string
+ *                         description: Laboratory technician phone number
+ *                       staff_profile:
+ *                         type: object
+ *                         properties:
+ *                           status:
+ *                             type: string
+ *                             enum: [ACTIVE, INACTIVE]
+ *                             description: Staff profile status
+ *                           department:
+ *                             type: string
+ *                             description: Department ID
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Staff access required
+ *       500:
+ *         description: Internal server error
  */

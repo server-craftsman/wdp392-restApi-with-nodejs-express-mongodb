@@ -4,10 +4,10 @@ import { CollectionType } from '../appointment/appointment.interface';
 
 export interface IAppointmentLog extends Document {
     _id: string;
-    customer_id: Schema.Types.ObjectId;
-    staff_id: Schema.Types.ObjectId;
-    laboratory_technician_id: Schema.Types.ObjectId;
-    appointment_id: Schema.Types.ObjectId;
+    customer_id: string | undefined;
+    staff_id: string | undefined;
+    laboratory_technician_id: string | undefined;
+    appointment_id: string | undefined;
     old_status: AppointmentLogTypeEnum;
     new_status: AppointmentLogTypeEnum;
     type: CollectionType;

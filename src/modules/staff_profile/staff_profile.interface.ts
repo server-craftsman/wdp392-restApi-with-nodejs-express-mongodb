@@ -16,8 +16,8 @@ export interface IQualification {
 
 export interface IStaffProfile extends Document {
     _id: string;
-    user_id: string;
-    department_id: string;
+    user_id: string | undefined;
+    department_id: string | undefined;
     job_title: string;
     hire_date: Date;
     employee_id: string; //unique

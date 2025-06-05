@@ -73,7 +73,7 @@ export default class AppointmentRepository {
             // Group samples by appointment ID
             const samplesByAppointment: Record<string, any[]> = {};
             allSamples.forEach(sample => {
-                const appointmentId = sample.appointment_id.toString();
+                const appointmentId = sample.appointment_id || '';
                 if (!samplesByAppointment[appointmentId]) {
                     samplesByAppointment[appointmentId] = [];
                 }
@@ -82,7 +82,7 @@ export default class AppointmentRepository {
 
             // Add samples to each appointment
             appointments.forEach(appointment => {
-                const appointmentId = appointment._id.toString();
+                const appointmentId = appointment._id || '';
                 if (samplesByAppointment[appointmentId]) {
                     (appointment as any).samples = samplesByAppointment[appointmentId];
                 }

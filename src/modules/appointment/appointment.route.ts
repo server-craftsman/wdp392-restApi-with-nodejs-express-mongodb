@@ -70,9 +70,9 @@ export default class AppointmentRoute implements IRoute {
             this.appointmentController.getAppointmentPrice
         );
 
-        // GET: domain:/api/appointment/staff/roles -> Get staff roles
+        // GET: domain:/api/appointment/staff/available -> Get available staff
         this.router.get(
-            `${this.path}/staff/roles`,
+            `${this.path}/staff/available`,
             authMiddleWare([UserRoleEnum.MANAGER]),
             this.appointmentController.getStaffRoles
         );
@@ -82,6 +82,34 @@ export default class AppointmentRoute implements IRoute {
             `${this.path}/staff/slots`,
             authMiddleWare([UserRoleEnum.STAFF]),
             this.appointmentController.getStaffAvailableSlots
+        );
+
+        // GET: domain: /api/appointments/staff/assigned -> Get appointments assigned to staff
+        this.router.get(
+            `${this.path}/staff/assigned`,
+            authMiddleWare([UserRoleEnum.STAFF]),
+            this.appointmentController.getStaffAssignedAppointments
+        );
+
+        // GET: domain: /api/appointments/lab-tech/assigned -> Get appointments assigned to laboratory technician
+        this.router.get(
+            `${this.path}/lab-tech/assigned`,
+            authMiddleWare([UserRoleEnum.LABORATORY_TECHNICIAN]),
+            this.appointmentController.getLabTechAssignedAppointments
+        );
+
+        // POST: domain: /api/appointments/:id/assign-lab-tech -> Assign laboratory technician to appointment
+        this.router.post(
+            `${this.path}/:id/assign-lab-tech`,
+            authMiddleWare([UserRoleEnum.STAFF]),
+            this.appointmentController.assignLabTechnician
+        );
+
+        // GET: domain: /api/appointment/lab-tech/available -> Get available laboratory technicians
+        this.router.get(
+            `${this.path}/lab-tech/available`,
+            authMiddleWare([UserRoleEnum.STAFF]),
+            this.appointmentController.getAvailableLabTechnicians
         );
     }
 } 

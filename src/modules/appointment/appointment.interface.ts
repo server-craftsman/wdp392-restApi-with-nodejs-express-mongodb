@@ -1,4 +1,4 @@
-import { Document, Schema } from 'mongoose';
+import { Document } from 'mongoose';
 import { AppointmentStatusEnum, TypeEnum, PaymentStatusEnum } from './appointment.enum';
 import { ISample } from '../sample/sample.interface';
 
@@ -21,21 +21,21 @@ export interface ISampleInfo {
     _id: string;
     type: string;
     status: string;
-    kit_id: Schema.Types.ObjectId;
+    kit_id: string;
 }
 
 export interface IAppointment extends Document {
     _id: string;
-    user_id: Schema.Types.ObjectId;
-    service_id: Schema.Types.ObjectId;
-    status: AppointmentStatus;
-    payment_status: PaymentStatusEnum;
+    user_id: string | undefined;
+    service_id: string | undefined;
+    slot_id?: string | undefined;
+    staff_id?: string | undefined;
+    laboratory_technician_id?: string | undefined;
     appointment_date: Date;
-    type: CollectionType;
+    type: TypeEnum;
     collection_address?: string;
-    staff_id?: Schema.Types.ObjectId;
-    slot_id?: Schema.Types.ObjectId;
-    samples?: ISampleInfo[];
+    status: AppointmentStatusEnum;
+    payment_status: PaymentStatusEnum;
     created_at: Date;
     updated_at: Date;
 }

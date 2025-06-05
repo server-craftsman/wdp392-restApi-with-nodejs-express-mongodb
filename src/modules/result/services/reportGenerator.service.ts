@@ -55,13 +55,13 @@ export default class ReportGeneratorService {
         const primarySample = samples[0];
 
         // Get appointment data
-        const appointment = await this.appointmentService.getAppointmentById(result.appointment_id.toString());
+        const appointment = await this.appointmentService.getAppointmentById(result.appointment_id?.toString() || '');
         if (!appointment) {
             throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
         }
 
         // Get customer data
-        const customer = await this.userService.getUserById(result.customer_id.toString());
+        const customer = await this.userService.getUserById(result.customer_id?.toString() || '');
         if (!customer) {
             throw new HttpException(HttpStatus.NotFound, 'Customer not found');
         }

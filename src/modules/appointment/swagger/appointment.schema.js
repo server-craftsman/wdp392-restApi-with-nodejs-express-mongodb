@@ -9,43 +9,39 @@
  *           type: string
  *           description: Appointment ID
  *         user_id:
- *           type: object
- *           properties:
- *             _id:
- *               type: string
- *             first_name:
- *               type: string
- *             last_name:
- *               type: string
- *         service_id:
- *           type: object
- *           properties:
- *             _id:
- *               type: string
- *             name:
- *               type: string
- *         status:
  *           type: string
- *           enum: [pending, confirmed, sample_collected, sample_received, testing, completed, cancelled]
+ *           description: ID of the user who made the appointment
+ *         service_id:
+ *           type: string
+ *           description: ID of the service
+ *         slot_id:
+ *           type: string
+ *           description: ID of the selected time slot
+ *         staff_id:
+ *           type: string
+ *           description: ID of the assigned staff member
+ *         laboratory_technician_id:
+ *           type: string
+ *           description: ID of the assigned laboratory technician
  *         appointment_date:
  *           type: string
  *           format: date-time
+ *           description: Date and time of the appointment
  *         type:
  *           type: string
- *           enum: [self, facility, home]
+ *           enum: [FACILITY, HOME]
+ *           description: Type of appointment
  *         collection_address:
  *           type: string
- *         staff_id:
- *           type: object
- *           properties:
- *             _id:
- *               type: string
- *             first_name:
- *               type: string
- *             last_name:
- *               type: string
- *         slot_id:
- *           type: object
+ *           description: Address for home collection
+ *         status:
+ *           type: string
+ *           enum: [PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED]
+ *           description: Current status of the appointment
+ *         payment_status:
+ *           type: string
+ *           enum: [UNPAID, PAID, REFUNDED]
+ *           description: Payment status of the appointment
  *         created_at:
  *           type: string
  *           format: date-time
@@ -62,9 +58,6 @@
  *           type: string
  *         slot_id:
  *           type: string
- *         appointment_date:
- *           type: string
- *           format: date-time
  *         type:
  *           type: string
  *           enum: [self, facility, home]
@@ -75,9 +68,41 @@
  *       properties:
  *         success:
  *           type: boolean
- *         data:
- *           $ref: '#/components/schemas/Appointment'
  *         message:
  *           type: string
- *     // ... các schema khác như SampleResponse, ErrorResponse, v.v.
+ *         data:
+ *           $ref: '#/components/schemas/Appointment'
+ *     AppointmentListResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *         message:
+ *           type: string
+ *         data:
+ *           type: object
+ *           properties:
+ *             pageData:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Appointment'
+ *             pageInfo:
+ *               type: object
+ *               properties:
+ *                 totalItems:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
+ *                 pageNum:
+ *                   type: integer
+ *                 pageSize:
+ *                   type: integer
+ *     AssignLabTechRequest:
+ *       type: object
+ *       required:
+ *         - lab_tech_id
+ *       properties:
+ *         lab_tech_id:
+ *           type: string
+ *           description: ID of the laboratory technician to assign
  */

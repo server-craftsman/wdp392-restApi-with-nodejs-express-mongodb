@@ -666,4 +666,165 @@
  *         description: Forbidden - Only laboratory technicians and staff can access this endpoint
  *       500:
  *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/samples/collect:
+ *   post:
+ *     tags: [samples]
+ *     summary: Collect sample at facility (Staff only)
+ *     description: Staff collects a sample at the medical facility and records the information
+ *     security:
+ *       - Bearer: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - appointment_id
+ *               - type
+ *               - person_info
+ *             properties:
+ *               appointment_id:
+ *                 type: string
+ *                 description: ID of the appointment
+ *                 example: "60d21b4667d0d8992e610c85"
+ *               type:
+ *                 type: array
+ *                 description: Types of samples collected
+ *                 items:
+ *                   type: string
+ *                   enum: [SALIVA, BLOOD, HAIR, OTHER]
+ *                 example: ["BLOOD", "SALIVA"]
+ *               person_info:
+ *                 type: array
+ *                 description: Information about the persons from whom samples were collected
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                       description: Full name of the person
+ *                       example: "Thích Tâm Phúc"
+ *                     dob:
+ *                       type: string
+ *                       format: date
+ *                       description: Date of birth
+ *                       example: "1983-03-08"
+ *                     relationship:
+ *                       type: string
+ *                       description: Relationship to the primary patient
+ *                       example: "Self"
+ *                     nationality:
+ *                       type: string
+ *                       description: Nationality of the person
+ *                       example: "Vietnamese"
+ *                     identity_document:
+ *                       type: string
+ *                       description: ID document number
+ *                       example: "1234567890"
+ *                 example:
+ *                   - name: "Thích Tâm Phúc"
+ *                     dob: "1983-03-08"
+ *                     relationship: "Self"
+ *                     nationality: "Vietnamese"
+ *                     identity_document: "1234567890"
+ *                   - name: "Nguyễn Đan Huy"
+ *                     dob: "2003-10-15"
+ *                     relationship: "Self"
+ *                     nationality: "Vietnamese"
+ *                     identity_document: "1234567890"
+ *     responses:
+ *       201:
+ *         description: Sample collected successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Sample collected successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "60d21b4667d0d8992e610c86"
+ *                       appointment_id:
+ *                         type: string
+ *                         example: "60d21b4667d0d8992e610c85"
+ *                       type:
+ *                         type: string
+ *                         example: "BLOOD"
+ *                       collection_method:
+ *                         type: string
+ *                         example: "FACILITY"
+ *                       collection_date:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2023-06-15T10:30:00Z"
+ *                       status:
+ *                         type: string
+ *                         example: "PENDING"
+ *                       person_info:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           dob:
+ *                             type: string
+ *                             format: date
+ *                             example: "1990-01-15"
+ *                           relationship:
+ *                             type: string
+ *                             example: "Self"
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Appointment must be confirmed before collecting sample
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Staff not authenticated
+ *       404:
+ *         description: Appointment not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Appointment not found
  */ 

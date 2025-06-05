@@ -80,7 +80,7 @@ export default class ResultController {
 
             // If user is customer, check if they have access to this result
             if (req.user.role === UserRoleEnum.CUSTOMER &&
-                result.customer_id.toString() !== req.user.id) {
+                result.customer_id?.toString() !== req.user.id) {
                 throw new HttpException(HttpStatus.Forbidden, 'You do not have access to this result');
             }
 
@@ -100,7 +100,7 @@ export default class ResultController {
 
             // If user is customer, check if they have access to this result
             if (req.user.role === UserRoleEnum.CUSTOMER &&
-                result.customer_id.toString() !== req.user.id) {
+                result.customer_id?.toString() !== req.user.id) {
                 throw new HttpException(HttpStatus.Forbidden, 'You do not have access to this result');
             }
 
@@ -120,7 +120,7 @@ export default class ResultController {
 
             // If user is customer, check if they have access to this result
             if (req.user.role === UserRoleEnum.CUSTOMER &&
-                result.customer_id.toString() !== req.user.id) {
+                result.customer_id?.toString() !== req.user.id) {
                 throw new HttpException(HttpStatus.Forbidden, 'You do not have access to this result');
             }
 

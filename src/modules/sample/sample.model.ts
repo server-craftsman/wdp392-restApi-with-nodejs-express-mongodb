@@ -36,7 +36,9 @@ const SampleSchemaEntity: Schema<ISample> = new Schema({
     person_info: { type: PersonInfoSchema },
     person_info_list: { type: [PersonInfoSchema] },
     created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
+    updated_at: { type: Date, default: Date.now },
+    created_by: { type: String },
+    updated_by: { type: String }
 });
 
 const SampleSchema = mongoose.model<ISample & mongoose.Document>(COLLECTION_NAME.SAMPLE, SampleSchemaEntity);

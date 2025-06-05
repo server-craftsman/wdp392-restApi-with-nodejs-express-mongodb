@@ -100,7 +100,7 @@ export default class AppointmentService {
                 }
 
             } else if (!appointmentData.appointment_date) {
-                throw new HttpException(HttpStatus.BadRequest, 'Either slot_id or appointment_date must be provided');
+                appointmentData.appointment_date = new Date();
             }
 
             // Đối với dịch vụ thu thập tại nhà, địa chỉ thu thập là bắt buộc
@@ -117,7 +117,7 @@ export default class AppointmentService {
                 service_id: appointmentData.service_id as any,
                 slot_id: appointmentData.slot_id as any,
                 staff_id: staffId as any, // Thêm staff_id nếu có
-                appointment_date: appointmentData.appointment_date,
+                appointment_date: new Date(appointmentData.appointment_date),
                 type: appointmentData.type,
                 collection_address: appointmentData.collection_address,
                 status: AppointmentStatusEnum.PENDING,
@@ -254,15 +254,24 @@ export default class AppointmentService {
         }
 
         // Lấy thông tin user trước
-        const staffUser = await UserSchema.findById(assignStaffData.staff_id);
+        const staffUser = await UserSchema.findOne({
+            _id: assignStaffData.staff_id,
+            role: UserRoleEnum.STAFF
+        });
         if (!staffUser) {
             throw new HttpException(HttpStatus.NotFound, 'Staff user not found');
         }
 
         // Kiểm tra staff profile liên kết với user
-        const staffProfile = await StaffProfileSchema.findOne({ user_id: staffUser._id });
+        const staffProfile = await StaffProfileSchema.findOne({
+            user_id: assignStaffData.staff_id
+        });
+
         if (!staffProfile) {
-            throw new HttpException(HttpStatus.NotFound, 'Staff profile not found');
+            throw new HttpException(
+                HttpStatus.NotFound,
+                `Staff profile not found for user ID: ${staffUser._id}`
+            );
         }
 
         if (staffProfile.status !== StaffStatusEnum.ACTIVE) {
@@ -270,7 +279,7 @@ export default class AppointmentService {
         }
 
         // Kiểm tra xem user có liên kết với staff profile này không
-        if (staffProfile.user_id.toString() !== staffUser._id.toString()) {
+        if (staffProfile.user_id?.toString() !== staffUser._id.toString()) {
             throw new HttpException(HttpStatus.BadRequest, 'Staff profile is not linked to the correct user');
         }
 
@@ -627,17 +636,21 @@ export default class AppointmentService {
                 user_id: { $in: staffUsers.map(user => user._id) }
             }).select('user_id status department');
 
-            // Combine user and profile information
-            const staffWithRoles = staffUsers.map(user => {
-                const profile = staffProfiles.find(p => p.user_id.toString() === user._id.toString());
-                return {
-                    ...user.toObject(),
-                    staff_profile: profile ? {
-                        status: profile.status,
-                        department: profile.department_id
-                    } : null
-                };
-            });
+            // Combine user and profile information, only include staff with profiles
+            const staffWithRoles = staffUsers
+                .map(user => {
+                    const profile = staffProfiles.find(p => p.user_id?.toString() === user._id.toString());
+                    if (!profile) return null;
+
+                    return {
+                        ...user.toObject(),
+                        staff_profile: {
+                            status: profile.status,
+                            department: profile.department_id
+                        }
+                    };
+                })
+                .filter(staff => staff !== null);
 
             return staffWithRoles;
         } catch (error) {
@@ -671,6 +684,148 @@ export default class AppointmentService {
                 throw error;
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error getting staff available slots');
+        }
+    }
+
+    /**
+     * Get appointments assigned to a staff member
+     */
+    public async getStaffAssignedAppointments(
+        staffId: string,
+        queryParams: any = {}
+    ): Promise<SearchPaginationResponseModel<IAppointment>> {
+        try {
+            const query = {
+                staff_id: new mongoose.Types.ObjectId(staffId),
+                ...this.processQueryParams(queryParams)
+            };
+            return this.searchAppointments(query, UserRoleEnum.STAFF, staffId);
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error getting staff assigned appointments');
+        }
+    }
+
+    /**
+     * Get appointments assigned to a laboratory technician in appointment collection
+     */
+    /**
+     * Get appointments assigned to a laboratory technician
+     */
+    public async getLabTechAssignedAppointments(
+        labTechId: string,
+        queryParams: any = {}
+    ): Promise<SearchPaginationResponseModel<IAppointment>> {
+        try {
+            const query = {
+                laboratory_technician_id: {
+                    $exists: true,
+                    $ne: null,
+                    $eq: new mongoose.Types.ObjectId(labTechId)
+                },
+                ...this.processQueryParams(queryParams)
+            };
+            return this.searchAppointments(query, UserRoleEnum.LABORATORY_TECHNICIAN, labTechId);
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error getting laboratory technician assigned appointments');
+        }
+    }
+
+    /**
+     * Assign laboratory technician to an appointment
+     */
+    public async assignLabTechnician(
+        appointmentId: string,
+        labTechId: string
+    ): Promise<IAppointment> {
+        try {
+            // Validate appointment exists
+            const appointment = await this.getAppointmentById(appointmentId);
+            if (!appointment) {
+                throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
+            }
+
+            // Validate lab technician exists and has correct role
+            const labTech = await UserSchema.findOne({
+                _id: labTechId,
+                role: UserRoleEnum.LABORATORY_TECHNICIAN
+            });
+            if (!labTech) {
+                throw new HttpException(HttpStatus.NotFound, 'Laboratory technician not found');
+            }
+
+            // Update appointment with lab technician
+            const updatedAppointment = await this.appointmentRepository.findByIdAndUpdate(
+                appointmentId,
+                {
+                    laboratory_technician_id: labTechId,
+                    updated_at: new Date()
+                },
+                { new: true }
+            );
+
+            if (!updatedAppointment) {
+                throw new HttpException(HttpStatus.InternalServerError, 'Failed to assign laboratory technician');
+            }
+
+            // Log the assignment
+            try {
+                await this.appointmentLogService.logAppointmentCreation(updatedAppointment);
+            } catch (logError) {
+                console.error('Failed to create appointment log for lab tech assignment:', logError);
+            }
+
+            return updatedAppointment;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error assigning laboratory technician');
+        }
+    }
+
+    /**
+     * Get available laboratory technicians
+     */
+    public async getAvailableLabTechnicians(): Promise<any[]> {
+        try {
+            // Get all laboratory technician users
+            const labTechUsers = await UserSchema.find({ role: UserRoleEnum.LABORATORY_TECHNICIAN })
+                .select('_id first_name last_name email phone_number');
+
+            // Get staff profiles for these users
+            const labTechProfiles = await StaffProfileSchema.find({
+                user_id: { $in: labTechUsers.map(user => user._id) },
+                status: StaffStatusEnum.ACTIVE
+            }).select('user_id status department');
+
+            // Only include users who have a staff profile
+            const availableLabTechs = labTechUsers
+                .map(user => {
+                    const profile = labTechProfiles.find(p => p.user_id?.toString() === user._id.toString());
+                    if (!profile) return null;
+
+                    return {
+                        ...user.toObject(),
+                        staff_profile: {
+                            status: profile.status,
+                            department: profile.department_id
+                        }
+                    };
+                })
+                .filter(tech => tech !== null);
+
+            return availableLabTechs;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error getting available laboratory technicians');
         }
     }
 }

@@ -222,4 +222,109 @@
  *           description: List of person information corresponding to each sample type
  *           items:
  *             $ref: '#/components/schemas/PersonInfoDto'
+ *
+ *     PersonInfo:
+ *       type: object
+ *       required:
+ *         - name
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: Full name of the person
+ *         gender:
+ *           type: string
+ *           description: Gender of the person
+ *         phone_number:
+ *           type: string
+ *           description: Phone number of the person
+ *         dob:
+ *           type: string
+ *           format: date
+ *           description: Date of birth
+ *         relationship:
+ *           type: string
+ *           description: Relationship to the patient
+ *         birth_place:
+ *           type: string
+ *           description: Place of birth
+ *         nationality:
+ *           type: string
+ *           description: Nationality
+ *         identity_document:
+ *           type: string
+ *           description: Identity document number
+ *
+ *     CollectSampleRequest:
+ *       type: object
+ *       required:
+ *         - appointment_id
+ *         - type
+ *         - collection_date
+ *         - person_info
+ *       properties:
+ *         appointment_id:
+ *           type: string
+ *           description: ID of the appointment
+ *         type:
+ *           type: array
+ *           items:
+ *             type: string
+ *             enum: [SALIVA, BLOOD, HAIR, OTHER]
+ *           description: Types of samples to collect
+ *         collection_date:
+ *           type: string
+ *           format: date-time
+ *           description: Date and time of sample collection
+ *         person_info:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/PersonInfo'
+ *           description: Information for each person providing a sample
+ *
+ *     CollectSampleResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
+ *           type: string
+ *           example: Samples collected successfully
+ *         data:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               _id:
+ *                 type: string
+ *                 description: Sample ID
+ *               appointment_id:
+ *                 type: string
+ *                 description: ID of the appointment
+ *               type:
+ *                 type: string
+ *                 enum: [SALIVA, BLOOD, HAIR, OTHER]
+ *                 description: Type of sample
+ *               collection_method:
+ *                 type: string
+ *                 enum: [FACILITY]
+ *                 description: Method of collection
+ *               collection_date:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Date and time of collection
+ *               status:
+ *                 type: string
+ *                 enum: [PENDING]
+ *                 description: Status of the sample
+ *               person_info:
+ *                 $ref: '#/components/schemas/PersonInfo'
+ *               created_at:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Creation timestamp
+ *               updated_at:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Last update timestamp
  */ 

@@ -13,8 +13,8 @@ export type PaymentStatus =
 
 export interface IPayment extends Document {
     _id: string;
-    appointment_id: Schema.Types.ObjectId;
-    sample_ids?: Schema.Types.ObjectId[];
+    appointment_id: string | undefined;
+    sample_ids?: string[] | undefined;
     amount: number;
     payment_no?: string;
     payment_method: PaymentMethod;
