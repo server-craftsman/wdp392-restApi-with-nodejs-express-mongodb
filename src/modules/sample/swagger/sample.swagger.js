@@ -697,8 +697,8 @@
  *                 description: Types of samples collected
  *                 items:
  *                   type: string
- *                   enum: [SALIVA, BLOOD, HAIR, OTHER]
- *                 example: ["BLOOD", "SALIVA"]
+ *                   enum: [blood, saliva, hair, other]
+ *                 example: ["blood", "saliva"]
  *               person_info:
  *                 type: array
  *                 description: Information about the persons from whom samples were collected
@@ -718,6 +718,18 @@
  *                       type: string
  *                       description: Relationship to the primary patient
  *                       example: "Self"
+ *                     gender:
+ *                       type: string
+ *                       description: Gender of the person
+ *                       example: "Male"
+ *                     phone_number:
+ *                       type: string
+ *                       description: Phone number of the person
+ *                       example: "0909090909"
+ *                     birth_place:
+ *                       type: string
+ *                       description: Birth place of the person
+ *                       example: "Vietnam"
  *                     nationality:
  *                       type: string
  *                       description: Nationality of the person
@@ -730,11 +742,17 @@
  *                   - name: "Thích Tâm Phúc"
  *                     dob: "1983-03-08"
  *                     relationship: "Self"
+ *                     gender: "Male"
+ *                     phone_number: "0909090909"
+ *                     birth_place: "Vietnam"
  *                     nationality: "Vietnamese"
  *                     identity_document: "1234567890"
  *                   - name: "Nguyễn Đan Huy"
  *                     dob: "2003-10-15"
  *                     relationship: "Self"
+ *                     gender: "Male"
+ *                     phone_number: "0909090909"
+ *                     birth_place: "Vietnam"
  *                     nationality: "Vietnamese"
  *                     identity_document: "1234567890"
  *     responses:

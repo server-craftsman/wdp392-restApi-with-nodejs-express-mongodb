@@ -1278,15 +1278,36 @@ export default class SampleService {
             throw new HttpException(HttpStatus.BadRequest, 'Number of sample types must match number of person information entries');
         }
 
+        // Get available kits
+        const availableKits = await this.kitService.getAvailableKits();
+        if (availableKits.length < model.type.length) {
+            throw new HttpException(
+                HttpStatus.BadRequest,
+                `Not enough available kits. Need ${model.type.length} but only ${availableKits.length} available.`
+            );
+        }
+
         const samples: ISample[] = [];
 
         // Create a sample for each type and person info
         for (let i = 0; i < model.type.length; i++) {
+            // Get an available kit
+            const kit = availableKits[i];
+
+            // Update kit status to ASSIGNED
+            await this.kitService.changeKitStatus(kit._id.toString(), KitStatusEnum.ASSIGNED);
+
+            // Validate the collection date is valid before creating the sample
+            if (model.collection_date && isNaN(new Date(model.collection_date).getTime())) {
+                throw new HttpException(HttpStatus.BadRequest, 'collection_date must be a valid ISO 8601 date string');
+            }
+
             const sampleData: Partial<ISample> = {
                 appointment_id: model.appointment_id,
+                kit_id: kit._id.toString(),
                 type: model.type[i],
                 collection_method: CollectionMethodEnum.FACILITY,
-                collection_date: new Date(model.collection_date),
+                collection_date: model.collection_date ? new Date(model.collection_date) : new Date(),
                 status: SampleStatusEnum.PENDING,
                 person_info: model.person_info[i] as IPersonInfo,
                 created_at: new Date(),
@@ -1299,7 +1320,7 @@ export default class SampleService {
             samples.push(sample);
         }
 
-        // Update appointment status to IN_PROGRESS
+        // Update appointment status to SAMPLE_COLLECTED
         await this.appointmentService.updateAppointmentStatus(
             model.appointment_id,
             AppointmentStatusEnum.SAMPLE_COLLECTED

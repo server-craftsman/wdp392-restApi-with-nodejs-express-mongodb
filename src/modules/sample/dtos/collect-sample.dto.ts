@@ -38,8 +38,8 @@ export class CollectSampleDto {
     @IsEnum(SampleTypeEnum, { each: true })
     type!: SampleTypeEnum[];
 
-    @IsDateString()
-    collection_date!: string;
+    @Type(() => Date)
+    collection_date?: Date;
 
     @IsArray()
     @ValidateNested({ each: true })
