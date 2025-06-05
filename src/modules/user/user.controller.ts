@@ -148,8 +148,8 @@ export default class UserController {
     public getStaffAndLabTechUsers = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const userRole = req.user.role;
-            if (userRole !== UserRoleEnum.MANAGER) {
-                throw new HttpException(HttpStatus.Forbidden, 'Only managers can view staff and laboratory technician users');
+            if (userRole !== UserRoleEnum.MANAGER && userRole !== UserRoleEnum.ADMIN) {
+                throw new HttpException(HttpStatus.Forbidden, 'Only Admin and Managers can view staff and laboratory technician users');
             }
 
             const users = await this.userService.getStaffAndLabTechUsers();
