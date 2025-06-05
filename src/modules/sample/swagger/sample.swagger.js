@@ -670,7 +670,7 @@
 
 /**
  * @swagger
- * /api/samples/collect:
+ * /api/sample/collect:
  *   post:
  *     tags: [samples]
  *     summary: Collect sample at facility (Staff only)
