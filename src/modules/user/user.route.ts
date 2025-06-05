@@ -53,8 +53,35 @@ export default class UserRoute implements IRoute {
             this.userController.getUsers,
         );
 
+        // PUT domain:/api/users/review-profile-account -> Review profile account
+        this.router.put(
+            API_PATH.REVIEW_PROFILE_ACCOUNT,
+            authMiddleWare([UserRoleEnum.ADMIN]),
+            validationMiddleware(ReviewProfileDto),
+            this.userController.reviewProfileAccount,
+        );
+
+        // GET: domain:/api/users/staff-lab-tech -> Get staff and laboratory technician users
+        this.router.get(
+            `${this.path}/staff-lab-tech`,
+            authMiddleWare([UserRoleEnum.MANAGER]),
+            this.userController.getStaffAndLabTechUsers
+        );
+
         // GET domain:/api/users/:id -> Get user by id
         this.router.get(`${this.path}/:id`, authMiddleWare([], true), this.userController.getUserById);
+
+        // PUT domain:/api/users/:id -> Update user
+        this.router.put(
+            `${this.path}/:id`,
+            authMiddleWare(),
+            uploadSingleFile('avatar_image', false),
+            validationMiddleware(UpdateUserDto),
+            this.userController.updateUser,
+        );
+
+        // POST domain:/api/users/:id -> Delete user logic
+        this.router.delete(`${this.path}/:id`, authMiddleWare([UserRoleEnum.ADMIN]), this.userController.deleteUser);
 
         // PUT domain:/api/users/change-password -> Change password
         this.router.put(
@@ -79,25 +106,5 @@ export default class UserRoute implements IRoute {
             validationMiddleware(ChangeRoleDto),
             this.userController.changeRole,
         );
-
-        // PUT domain:/api/users/review-profile-account -> Review profile account
-        this.router.put(
-            API_PATH.REVIEW_PROFILE_ACCOUNT,
-            authMiddleWare([UserRoleEnum.ADMIN]),
-            validationMiddleware(ReviewProfileDto),
-            this.userController.reviewProfileAccount,
-        );
-
-        // PUT domain:/api/users/:id -> Update user
-        this.router.put(
-            `${this.path}/:id`,
-            authMiddleWare(),
-            uploadSingleFile('avatar_image', false),
-            validationMiddleware(UpdateUserDto),
-            this.userController.updateUser,
-        );
-
-        // POST domain:/api/users/:id -> Delete user logic
-        this.router.delete(`${this.path}/:id`, authMiddleWare([UserRoleEnum.ADMIN]), this.userController.deleteUser);
     }
 }

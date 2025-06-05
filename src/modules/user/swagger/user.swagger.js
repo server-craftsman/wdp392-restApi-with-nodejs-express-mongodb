@@ -430,3 +430,65 @@
  *       404:
  *         description: User not found
  */
+
+/**
+ * @swagger
+ * /api/users/staff-lab-tech:
+ *   get:
+ *     tags: [users]
+ *     summary: Get staff and laboratory technician users (Manager only)
+ *     description: Retrieve list of all staff and laboratory technician users with their profiles
+ *     security:
+ *       - Bearer: []
+ *     responses:
+ *       200:
+ *         description: Users retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: User ID
+ *                       first_name:
+ *                         type: string
+ *                         description: User's first name
+ *                       last_name:
+ *                         type: string
+ *                         description: User's last name
+ *                       email:
+ *                         type: string
+ *                         description: User's email
+ *                       phone_number:
+ *                         type: string
+ *                         description: User's phone number
+ *                       role:
+ *                         type: string
+ *                         enum: [STAFF, LABORATORY_TECHNICIAN]
+ *                         description: User's role
+ *                       staff_profile:
+ *                         type: object
+ *                         properties:
+ *                           status:
+ *                             type: string
+ *                             enum: [ACTIVE, INACTIVE]
+ *                             description: Staff profile status
+ *                           department:
+ *                             type: string
+ *                             description: Department ID
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Manager access required
+ *       500:
+ *         description: Internal server error
+ */

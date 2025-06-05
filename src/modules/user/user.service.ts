@@ -24,7 +24,7 @@ import UpdateUserDto from './dtos/updateUser.dto';
 import { UserReviewStatusEnum, UserRoleEnum } from './user.enum';
 import { IUser } from './user.interface';
 import UserSchema from './user.model';
-import { StaffProfileSchema } from '../staff_profile';
+import { StaffProfileSchema, StaffStatusEnum } from '../staff_profile';
 // import { SubscriptionSchema } from '../subscription';
 import { DataStoredInToken, UserInfoInTokenDefault } from '../auth';
 import UserRepository from './user.repository';
@@ -449,5 +449,59 @@ export default class UserService {
             newUser.google_id = payload.sub!;
         }
         return newUser;
+    }
+
+    /**
+     * Get staff and laboratory technician users
+     */
+    public async getStaffAndLabTechUsers(): Promise<any[]> {
+        try {
+            // Get users with STAFF or LABORATORY_TECHNICIAN role
+            const users = await UserSchema.find({
+                role: { $in: [UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN] },
+                is_deleted: { $ne: true } // Exclude deleted users
+            }).select('_id first_name last_name email phone_number role').lean();
+
+            if (!users || users.length === 0) {
+                return [];
+            }
+
+            // Get staff profiles for these users
+            const userIds = users.map(user => user._id);
+            const staffProfiles = await StaffProfileSchema.find({
+                user_id: { $in: userIds },
+                status: StaffStatusEnum.ACTIVE
+            }).lean().select('user_id status department');
+
+            // Combine user and profile information
+            const usersWithProfiles = users.map(user => {
+                const profile = staffProfiles.find(p =>
+                    p.user_id &&
+                    user._id &&
+                    p.user_id.toString() === user._id.toString()
+                );
+
+                return {
+                    _id: user._id,
+                    first_name: user.first_name,
+                    last_name: user.last_name,
+                    email: user.email,
+                    phone_number: user.phone_number,
+                    role: user.role,
+                    staff_profile: profile ? {
+                        status: profile.status,
+                        department: profile.department_id
+                    } : null
+                };
+            });
+
+            return usersWithProfiles;
+        } catch (error) {
+            console.error('Error in getStaffAndLabTechUsers:', error);
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error getting staff and laboratory technician users');
+        }
     }
 }

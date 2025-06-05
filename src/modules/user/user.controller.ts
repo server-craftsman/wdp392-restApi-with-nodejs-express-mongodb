@@ -13,6 +13,7 @@ import { UserRoleEnum } from './user.enum';
 import { IUser } from './user.interface';
 import UserService from './user.service';
 import ReviewProfileDto from './dtos/reviewProfileDto';
+import { HttpException } from '../../core/exceptions';
 
 export default class UserController {
     private userService = new UserService();
@@ -140,4 +141,21 @@ export default class UserController {
             next(error);
         }
     };
+
+    /**
+     * Get staff and laboratory technician users
+     */
+    public getStaffAndLabTechUsers = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userRole = req.user.role;
+            if (userRole !== UserRoleEnum.MANAGER) {
+                throw new HttpException(HttpStatus.Forbidden, 'Only managers can view staff and laboratory technician users');
+            }
+
+            const users = await this.userService.getStaffAndLabTechUsers();
+            res.status(HttpStatus.Success).json(formatResponse<any[]>(users));
+        } catch (error) {
+            next(error);
+        }
+    }
 }
