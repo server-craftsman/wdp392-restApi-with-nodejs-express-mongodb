@@ -111,5 +111,20 @@ export default class AppointmentRoute implements IRoute {
             authMiddleWare([UserRoleEnum.STAFF]),
             this.appointmentController.getAvailableLabTechnicians
         );
+
+        // PUT domain:/api/appointment/:id/assign-staff -> Assign staff to an appointment
+        this.router.put(
+            `${this.path}/:id/assign-staff`,
+            authMiddleWare([UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]),
+            validationMiddleware(AssignStaffDto),
+            this.appointmentController.assignStaff
+        );
+
+        // PUT domain:/api/appointment/:id/unassign-staff -> Unassign staff from an appointment
+        this.router.put(
+            `${this.path}/:id/unassign-staff`,
+            authMiddleWare([UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]),
+            this.appointmentController.unassignStaff
+        );
     }
 } 

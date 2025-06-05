@@ -105,4 +105,53 @@
  *         lab_tech_id:
  *           type: string
  *           description: ID of the laboratory technician to assign
+ *     SlotWithAppointmentLimit:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Slot ID
+ *         staff_profile_ids:
+ *           type: array
+ *           description: List of staff profile IDs assigned to this slot
+ *           items:
+ *             type: string
+ *         appointment_limit:
+ *           type: integer
+ *           description: Maximum number of appointments a staff member can handle in this slot
+ *           example: 3
+ *         assigned_count:
+ *           type: integer
+ *           description: Current number of appointments assigned to this slot
+ *           example: 1
+ *         time_slots:
+ *           type: array
+ *           description: Time slots details
+ *           items:
+ *             type: object
+ *             properties:
+ *               year:
+ *                 type: integer
+ *               month:
+ *                 type: integer
+ *               day:
+ *                 type: integer
+ *               start_time:
+ *                 type: object
+ *                 properties:
+ *                   hour:
+ *                     type: integer
+ *                   minute:
+ *                     type: integer
+ *               end_time:
+ *                 type: object
+ *                 properties:
+ *                   hour:
+ *                     type: integer
+ *                   minute:
+ *                     type: integer
+ *         status:
+ *           type: string
+ *           enum: [AVAILABLE, BOOKED, UNAVAILABLE]
+ *           description: Current status of the slot
  */

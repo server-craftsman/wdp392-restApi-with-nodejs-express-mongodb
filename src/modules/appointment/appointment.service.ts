@@ -264,7 +264,7 @@ export default class AppointmentService {
 
         // Kiểm tra staff profile liên kết với user
         const staffProfile = await StaffProfileSchema.findOne({
-            user_id: assignStaffData.staff_id
+            user_id: new mongoose.Types.ObjectId(assignStaffData.staff_id)
         });
 
         if (!staffProfile) {
@@ -281,6 +281,86 @@ export default class AppointmentService {
         // Kiểm tra xem user có liên kết với staff profile này không
         if (staffProfile.user_id?.toString() !== staffUser._id.toString()) {
             throw new HttpException(HttpStatus.BadRequest, 'Staff profile is not linked to the correct user');
+        }
+
+        // Kiểm tra slot nếu có
+        if (appointment.slot_id) {
+            const slot = await SlotSchema.findById(appointment.slot_id);
+            if (slot) {
+                // Kiểm tra xem staff có trong danh sách staff của slot không
+                if (!slot.staff_profile_ids?.some(id => id.toString() === staffProfile._id.toString())) {
+                    throw new HttpException(
+                        HttpStatus.BadRequest,
+                        'Staff is not assigned to this slot'
+                    );
+                }
+
+                // Kiểm tra giới hạn số lượng appointment cho staff trong slot này
+                const appointmentsInSlot = await this.appointmentRepository.countAppointmentsByStaffAndSlot(
+                    staffUser._id.toString(),
+                    slot._id.toString()
+                );
+
+                if (appointmentsInSlot >= slot.appointment_limit) {
+                    // Tìm staff khác trong slot chưa đạt giới hạn
+                    const alternativeStaff = await this.findAvailableStaffInSlot(slot);
+
+                    if (alternativeStaff) {
+                        // Gợi ý staff thay thế
+                        throw new HttpException(
+                            HttpStatus.BadRequest,
+                            `Staff has reached appointment limit for this slot. Consider assigning to ${alternativeStaff.first_name} ${alternativeStaff.last_name} (ID: ${alternativeStaff._id})`
+                        );
+                    } else {
+                        throw new HttpException(
+                            HttpStatus.BadRequest,
+                            'Staff has reached appointment limit for this slot and no alternative staff is available'
+                        );
+                    }
+                }
+
+                // Cập nhật thông tin slot nếu cần
+                try {
+                    // Kiểm tra xem slot có đang theo dõi số lượng appointment đã gán không
+                    if (!slot.assigned_count) {
+                        // Nếu không có trường assigned_count, thêm vào và đặt giá trị là 1
+                        await SlotSchema.findByIdAndUpdate(
+                            slot._id,
+                            {
+                                $set: { assigned_count: 1 },
+                                updated_at: new Date()
+                            },
+                            { new: true }
+                        );
+                    } else {
+                        // Nếu đã có trường assigned_count, tăng giá trị lên 1
+                        await SlotSchema.findByIdAndUpdate(
+                            slot._id,
+                            {
+                                $inc: { assigned_count: 1 }, // $inc ~ increment
+                                updated_at: new Date()
+                            },
+                            { new: true }
+                        );
+                    }
+
+                    // Nếu số lượng đã gán bằng với giới hạn, đánh dấu slot là BOOKED
+                    const updatedSlot = await SlotSchema.findById(slot._id);
+                    if (updatedSlot && updatedSlot?.assigned_count && updatedSlot?.assigned_count >= updatedSlot?.appointment_limit) {
+                        await SlotSchema.findByIdAndUpdate(
+                            slot._id,
+                            {
+                                status: SlotStatusEnum.BOOKED,
+                                updated_at: new Date()
+                            },
+                            { new: true }
+                        );
+                    }
+                } catch (error) {
+                    console.error('Failed to update slot assigned count:', error);
+                    // Không fail quá trình gán staff nếu cập nhật slot thất bại
+                }
+            }
         }
 
         // Cập nhật appointment với ID của user (không phải staff profile)
@@ -309,6 +389,46 @@ export default class AppointmentService {
         }
 
         return updatedAppointment;
+    }
+
+    /**
+     * Find available staff in a slot that hasn't reached appointment limit
+     */
+    private async findAvailableStaffInSlot(slot: any): Promise<any> {
+        // Lấy danh sách staff profile từ slot
+        const staffProfileIds = slot.staff_profile_ids;
+        if (!staffProfileIds || staffProfileIds.length === 0) {
+            return null;
+        }
+
+        // Lấy thông tin staff profile
+        const staffProfiles = await StaffProfileSchema.find({
+            _id: { $in: staffProfileIds },
+            status: StaffStatusEnum.ACTIVE
+        });
+
+        // Lấy user_id từ staff profile
+        const staffUserIds = staffProfiles.map(profile => profile.user_id);
+
+        // Lấy thông tin user
+        const staffUsers = await UserSchema.find({
+            _id: { $in: staffUserIds },
+            role: UserRoleEnum.STAFF
+        });
+
+        // Kiểm tra số lượng appointment của mỗi staff trong slot này
+        for (const staffUser of staffUsers) {
+            const appointmentsCount = await this.appointmentRepository.countAppointmentsByStaffAndSlot(
+                staffUser._id.toString(),
+                slot._id.toString()
+            );
+
+            if (appointmentsCount < slot.appointment_limit) {
+                return staffUser; // Trả về staff đầu tiên chưa đạt giới hạn
+            }
+        }
+
+        return null; // Không tìm thấy staff nào có thể nhận thêm appointment
     }
 
     /**
@@ -489,7 +609,7 @@ export default class AppointmentService {
             const sort = { appointment_date: -1 };
 
             // Fetch appointments with pagination
-            const appointments = await this.appointmentRepository.findWithPopulate(
+            const appointments = await this.appointmentRepository.findWithPaginationAndPopulate(
                 query,
                 sort,
                 skip,
@@ -827,5 +947,76 @@ export default class AppointmentService {
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error getting available laboratory technicians');
         }
+    }
+
+    /**
+     * Unassign staff from an appointment
+     * This method is used when you need to change the assigned staff
+     * or when an appointment is cancelled
+     */
+    public async unassignStaff(appointmentId: string): Promise<IAppointment> {
+        // Kiểm tra appointment có tồn tại
+        const appointment = await this.getAppointmentById(appointmentId);
+
+        // Nếu không có staff_id hoặc slot_id, không cần xử lý
+        if (!appointment.staff_id || !appointment.slot_id) {
+            return appointment;
+        }
+
+        // Cập nhật slot để giảm assigned_count
+        try {
+            const slot = await SlotSchema.findById(appointment.slot_id);
+            if (slot) {
+                // Giảm assigned_count nếu có
+                if (slot.assigned_count && slot.assigned_count > 0) {
+                    await SlotSchema.findByIdAndUpdate(
+                        slot._id,
+                        {
+                            $inc: { assigned_count: -1 },
+                            updated_at: new Date()
+                        },
+                        { new: true }
+                    );
+                }
+
+                // Nếu slot đang ở trạng thái BOOKED và assigned_count < appointment_limit
+                // thì đặt lại trạng thái là AVAILABLE
+                const updatedSlot = await SlotSchema.findById(slot._id);
+                const assignedCount = updatedSlot?.assigned_count || 0;
+                const appointmentLimit = updatedSlot?.appointment_limit || 1;
+                if (updatedSlot &&
+                    updatedSlot.status === SlotStatusEnum.BOOKED &&
+                    assignedCount < appointmentLimit) {
+                    await SlotSchema.findByIdAndUpdate(
+                        slot._id,
+                        {
+                            status: SlotStatusEnum.AVAILABLE,
+                            updated_at: new Date()
+                        },
+                        { new: true }
+                    );
+                }
+            }
+        } catch (error) {
+            console.error('Failed to update slot assigned count during unassign:', error);
+            // Không fail quá trình unassign nếu cập nhật slot thất bại
+        }
+
+        // Xóa staff_id khỏi appointment bằng cách sử dụng mongoose update operators
+        const updatedAppointment = await this.appointmentRepository.findByIdAndUpdate(
+            appointmentId,
+            {
+                // Sử dụng type assertion để tránh lỗi TypeScript
+                staff_id: undefined as unknown as string,
+                updated_at: new Date()
+            },
+            { new: true }
+        );
+
+        if (!updatedAppointment) {
+            throw new HttpException(HttpStatus.InternalServerError, 'Failed to unassign staff from appointment');
+        }
+
+        return updatedAppointment;
     }
 }

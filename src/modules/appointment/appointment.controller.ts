@@ -88,31 +88,39 @@ export default class AppointmentController {
     };
 
     /**
-     * Assign staff to an appointment (by department manager)
+     * Assign staff to appointment
+     * @route PUT /api/appointment/:id/assign-staff
      */
     public assignStaff = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const userId = req.user.id;
-            const userRole = req.user.role;
-
-            if (!userId) {
-                throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
-            }
-
-            // Only department managers can assign staff
-            if (userRole !== UserRoleEnum.MANAGER) {
-                throw new HttpException(HttpStatus.Forbidden, 'Only department managers can assign staff');
+            // Kiểm tra quyền truy cập
+            if (req.user.role !== UserRoleEnum.MANAGER && req.user.role !== UserRoleEnum.ADMIN) {
+                throw new HttpException(HttpStatus.Forbidden, 'Only managers and admins can assign staff to appointments');
             }
 
             const appointmentId = req.params.id;
             const assignStaffData: AssignStaffDto = req.body;
 
-            const updatedAppointment = await this.appointmentService.assignStaff(
-                appointmentId,
-                assignStaffData
-            );
+            try {
+                const appointment = await this.appointmentService.assignStaff(appointmentId, assignStaffData);
+                res.status(HttpStatus.Success).json(formatResponse<IAppointment>(appointment));
+            } catch (error) {
+                // Kiểm tra nếu lỗi liên quan đến giới hạn số lượng cuộc hẹn
+                if (error instanceof HttpException &&
+                    error.status === HttpStatus.BadRequest &&
+                    error.message.includes('appointment limit')) {
 
-            res.status(HttpStatus.Success).json(formatResponse<IAppointment>(updatedAppointment));
+                    // Trả về lỗi với gợi ý về nhân viên thay thế
+                    res.status(error.status).json({
+                        success: false,
+                        message: error.message,
+                        suggestion: 'Consider using another staff member who has not reached their appointment limit'
+                    });
+                } else {
+                    // Trả về lỗi thông thường
+                    next(error);
+                }
+            }
         } catch (error) {
             next(error);
         }
@@ -269,5 +277,25 @@ export default class AppointmentController {
             next(error);
         }
     }
+
+    /**
+     * Unassign staff from appointment
+     * @route PUT /api/appointment/:id/unassign-staff
+     */
+    public unassignStaff = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            // Kiểm tra quyền truy cập
+            if (req.user.role !== UserRoleEnum.MANAGER && req.user.role !== UserRoleEnum.ADMIN) {
+                throw new HttpException(HttpStatus.Forbidden, 'Only managers and admins can unassign staff from appointments');
+            }
+
+            const appointmentId = req.params.id;
+            const appointment = await this.appointmentService.unassignStaff(appointmentId);
+
+            res.status(HttpStatus.Success).json(formatResponse<IAppointment>(appointment, true, 'Staff unassigned successfully'));
+        } catch (error) {
+            next(error);
+        }
+    };
 
 }

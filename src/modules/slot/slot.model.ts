@@ -21,6 +21,7 @@ const SlotSchemaEntity: Schema<ISlot> = new Schema({
     staff_profile_ids: { type: [Schema.Types.ObjectId], ref: COLLECTION_NAME.STAFF_PROFILE, required: true },
     appointment_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.APPOINTMENT },
     appointment_limit: { type: Number, required: true, default: 1 },
+    assigned_count: { type: Number, default: 0 },
     time_slots: { type: [TimeSlotSchema], required: true },
     status: {
         type: String,

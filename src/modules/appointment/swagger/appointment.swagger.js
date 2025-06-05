@@ -159,7 +159,7 @@
  *     tags:
  *       - appointments
  *     summary: Assign staff to appointment (Manager only)
- *     description: Assign a staff member to an existing appointment
+ *     description: Assign a staff member to an existing appointment. The system checks if the staff is assigned to the slot and if they haven't reached their appointment limit for that slot.
  *     operationId: assignStaffToAppointment
  *     security:
  *       - Bearer: []
@@ -192,7 +192,18 @@
  *             schema:
  *               $ref: '#/components/schemas/AppointmentResponse'
  *       400:
- *         description: Invalid input data or appointment ID format
+ *         description: Invalid input data, appointment ID format, or staff has reached appointment limit for this slot
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Staff has reached appointment limit for this slot. Consider assigning to John Doe (ID: 60d0fe4f5311236168a109cb)"
  *       401:
  *         description: Unauthorized - Authentication required
  *       403:
@@ -629,4 +640,112 @@
  *         description: Forbidden - Staff access required
  *       500:
  *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment/staff/available-for-slot/{slotId}:
+ *   get:
+ *     tags: [appointments]
+ *     summary: Get available staff for a specific slot (Manager only)
+ *     description: Retrieve list of staff members assigned to a slot who haven't reached their appointment limit
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: slotId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Slot ID
+ *         example: "60d0fe4f5311236168a109ce"
+ *     responses:
+ *       200:
+ *         description: Available staff for slot retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Staff user ID
+ *                       first_name:
+ *                         type: string
+ *                         description: Staff first name
+ *                       last_name:
+ *                         type: string
+ *                         description: Staff last name
+ *                       email:
+ *                         type: string
+ *                         description: Staff email
+ *                       appointment_count:
+ *                         type: integer
+ *                         description: Current number of appointments assigned to this staff in this slot
+ *                         example: 2
+ *                       appointment_limit:
+ *                         type: integer
+ *                         description: Maximum number of appointments this staff can handle in this slot
+ *                         example: 3
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Manager access required
+ *       404:
+ *         description: Slot not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment/{id}/unassign-staff:
+ *   put:
+ *     tags:
+ *       - appointments
+ *     summary: Unassign staff from appointment (Manager/Admin only)
+ *     description: Remove the assigned staff from an appointment and update the slot's assigned_count
+ *     operationId: unassignStaffFromAppointment
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Appointment ID
+ *         example: "60d0fe4f5311236168a109ce"
+ *     responses:
+ *       200:
+ *         description: Staff unassigned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/AppointmentResponse'
+ *                 message:
+ *                   type: string
+ *                   example: "Staff unassigned successfully"
+ *       400:
+ *         description: Invalid appointment ID format
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Manager/Admin access required
+ *       404:
+ *         description: Appointment not found
  */

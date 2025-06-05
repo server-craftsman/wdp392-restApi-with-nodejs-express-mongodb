@@ -25,6 +25,7 @@ export interface ISlot extends Document {
     staff_profile_ids: string[] | undefined;
     appointment_id?: string | undefined;
     appointment_limit: number; //max appointment per slot
+    assigned_count?: number; // current count of appointments assigned to this slot
     time_slots?: ITimeSlot[];
     status: SlotStatus | string;
     created_at: Date;
