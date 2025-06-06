@@ -23,7 +23,8 @@ export const s3Client = new S3Client({
 export const s3Folders = {
     personImages: 'person-sample-images',
     resultReports: 'result-reports',
+    blogImages: 'blog-images',
 };
 
 // Export bucket name
-export const bucketName = s3Config.bucket; 
+export const bucketName = s3Config.bucket;

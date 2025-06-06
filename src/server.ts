@@ -16,6 +16,9 @@ import { KitRoute } from './modules/kit';
 import { SampleRoute } from './modules/sample';
 import { ResultRoute } from './modules/result';
 import { RegistrationFormRoute } from './modules/registration_form';
+import { BlogRoute } from './modules/blog';
+import { BlogCategoryRoute } from './modules/blog_category';
+import { LogRoute } from './modules/blog/log';
 
 dotenv.config();
 validateEnv();
@@ -35,7 +38,10 @@ const routes = [
     new KitRoute(),
     new SampleRoute(),
     new ResultRoute(),
-    new RegistrationFormRoute()
+    new RegistrationFormRoute(),
+    new BlogRoute(),
+    new BlogCategoryRoute(),
+    new LogRoute()
 ];
 
 const app = new App(routes);

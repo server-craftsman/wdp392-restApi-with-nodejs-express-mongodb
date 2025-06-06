@@ -2,6 +2,8 @@ export const COLLECTION_NAME = {
     SETTING: 'Setting',
     USER: 'User',
     BLOG: 'Blog',
+    BLOG_LOG: 'Blog_Log',
+    BLOG_CATEGORY: 'Blog_Category',
     SERVICE: 'Service',
     APPOINTMENT: 'Appointment',
     REVIEW: 'Review',

@@ -129,4 +129,19 @@ export const API_PATH = {
     APPROVE_REFUND: '/api/refund/approve',
     REJECT_REFUND: '/api/refund/reject',
     COMPLETE_REFUND: '/api/refund/complete',
+
+    // Blog
+    BLOG: '/api/blog',
+    BLOG_SEARCH: '/api/blog/search',
+    BLOG_CREATE: '/api/blog/create',
+    BLOG_UPDATE: '/api/blog/:id',
+    BLOG_LOGS: '/api/blog/:id/logs',
+    BLOG_DELETE: '/api/blog/:id',
+
+    // Blog Category
+    BLOG_CATEGORY: '/api/blog-category',
+    BLOG_CATEGORY_SEARCH: '/api/blog-category/search',
+    BLOG_CATEGORY_CREATE: '/api/blog-category/create',
+    BLOG_CATEGORY_UPDATE: '/api/blog-category/:id',
+    BLOG_CATEGORY_DELETE: '/api/blog-category/:id',
 };
