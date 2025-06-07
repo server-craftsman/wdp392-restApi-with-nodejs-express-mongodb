@@ -13,6 +13,9 @@ import { AppointmentStatusEnum, PaymentStatusEnum } from '../appointment/appoint
 import { AppointmentLogService } from '../appointment_log';
 import { AppointmentLogTypeEnum } from '../appointment_log/appointment_log.enum';
 import ReportGeneratorService from './services/reportGenerator.service';
+import { sendMail, createNotificationEmailTemplate } from '../../core/utils';
+import { ISendMailDetail } from '../../core/interfaces';
+import UserSchema from '../user/user.model';
 
 export default class ResultService {
     private resultRepository = new ResultRepository();
@@ -259,6 +262,13 @@ export default class ResultService {
                     console.error('Failed to create appointment log for result creation:', logError);
                 }
 
+                // Send result notification email
+                try {
+                    await this.sendResultReadyEmail(result, appointment);
+                } catch (emailError) {
+                    console.error('Failed to send result ready email:', emailError);
+                }
+
                 return result;
             } catch (createError: any) {
                 console.error('Error creating result document:', createError);
@@ -339,6 +349,18 @@ export default class ResultService {
                     .catch(error => {
                         console.error('Failed to regenerate PDF report:', error);
                     });
+
+                // Send result updated email
+                try {
+                    if (updatedResult.appointment_id) {
+                        const appointment = await this.appointmentService.getAppointmentById(updatedResult.appointment_id.toString());
+                        await this.sendResultUpdatedEmail(updatedResult, appointment);
+                    } else {
+                        console.error('Cannot send result updated email: appointment_id is undefined');
+                    }
+                } catch (emailError) {
+                    console.error('Failed to send result updated email:', emailError);
+                }
             }
 
             return updatedResult;
@@ -473,6 +495,13 @@ export default class ResultService {
                 } catch (logError) {
                     console.error('Failed to create appointment log for testing start:', logError);
                 }
+
+                // Send testing started email
+                try {
+                    await this.sendTestingStartedEmail(sample, appointment);
+                } catch (emailError) {
+                    console.error('Failed to send testing started email:', emailError);
+                }
             }
         } catch (error) {
             console.error('Error in startTesting:', error);
@@ -480,6 +509,203 @@ export default class ResultService {
                 throw error;
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error starting testing process');
+        }
+    }
+
+    /**
+     * Send email notification when test result is ready
+     */
+    private async sendResultReadyEmail(result: IResult, appointment: any): Promise<void> {
+        try {
+            // Get user details
+            let userId = result.customer_id;
+            if (!userId && appointment && appointment.user_id) {
+                userId = appointment.user_id;
+            }
+
+            if (!userId) {
+                console.error('Cannot send email: User ID not found');
+                return;
+            }
+
+            const user = await UserSchema.findById(userId);
+            if (!user || !user.email) {
+                console.error('Cannot send email: User not found or no email address');
+                return;
+            }
+
+            // Get service details if available
+            let serviceName = 'DNA Testing Service';
+            if (appointment && appointment.service_id) {
+                try {
+                    const service = await mongoose.model('Service').findById(appointment.service_id);
+                    if (service && service.name) {
+                        serviceName = service.name;
+                    }
+                } catch (error) {
+                    console.error('Error fetching service details:', error);
+                }
+            }
+
+            const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+
+            const title = 'Your Test Results Are Ready';
+            const message = `
+                Your test results for ${serviceName} are now ready.
+                <br><br>
+                <strong>Result Details:</strong>
+                <br>
+                Result ID: ${result._id}
+                <br>
+                Date Completed: ${result.completed_at ? new Date(result.completed_at).toLocaleString() : new Date().toLocaleString()}
+                <br><br>
+                ${result.is_match !== undefined ? `<strong>Result Match:</strong> ${result.is_match ? 'Positive' : 'Negative'}<br><br>` : ''}
+                You can view your detailed results by logging into your account and accessing the Results section.
+                ${result.report_url ? `<br><br>A detailed report has been generated and is available for viewing.` : ''}
+                <br><br>
+                If you have any questions about your results, please contact our medical team for assistance.
+            `;
+
+            const emailDetails: ISendMailDetail = {
+                toMail: user.email,
+                subject: 'Test Results Ready - Bloodline DNA Testing Service',
+                html: createNotificationEmailTemplate(userName, title, message)
+            };
+
+            await sendMail(emailDetails);
+            console.log(`Result ready email sent to ${user.email}`);
+        } catch (error) {
+            console.error('Error sending result ready email:', error);
+        }
+    }
+
+    /**
+     * Send email notification when test result is updated
+     */
+    private async sendResultUpdatedEmail(result: IResult, appointment: any): Promise<void> {
+        try {
+            // Get user details
+            let userId = result.customer_id;
+            if (!userId && appointment && appointment.user_id) {
+                userId = appointment.user_id;
+            }
+
+            if (!userId) {
+                console.error('Cannot send email: User ID not found');
+                return;
+            }
+
+            const user = await UserSchema.findById(userId);
+            if (!user || !user.email) {
+                console.error('Cannot send email: User not found or no email address');
+                return;
+            }
+
+            // Get service details if available
+            let serviceName = 'DNA Testing Service';
+            if (appointment && appointment.service_id) {
+                try {
+                    const service = await mongoose.model('Service').findById(appointment.service_id);
+                    if (service && service.name) {
+                        serviceName = service.name;
+                    }
+                } catch (error) {
+                    console.error('Error fetching service details:', error);
+                }
+            }
+
+            const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+
+            const title = 'Your Test Results Have Been Updated';
+            const message = `
+                Your test results for ${serviceName} have been updated.
+                <br><br>
+                <strong>Result Details:</strong>
+                <br>
+                Result ID: ${result._id}
+                <br>
+                Last Updated: ${result.updated_at ? new Date(result.updated_at).toLocaleString() : new Date().toLocaleString()}
+                <br><br>
+                ${result.is_match !== undefined ? `<strong>Result Match:</strong> ${result.is_match ? 'Positive' : 'Negative'}<br><br>` : ''}
+                Please log into your account to view the updated results.
+                ${result.report_url ? `<br><br>An updated report has been generated and is available for viewing.` : ''}
+                <br><br>
+                If you have any questions about these changes, please contact our medical team for assistance.
+            `;
+
+            const emailDetails: ISendMailDetail = {
+                toMail: user.email,
+                subject: 'Test Results Updated - Bloodline DNA Testing Service',
+                html: createNotificationEmailTemplate(userName, title, message)
+            };
+
+            await sendMail(emailDetails);
+            console.log(`Result updated email sent to ${user.email}`);
+        } catch (error) {
+            console.error('Error sending result updated email:', error);
+        }
+    }
+
+    /**
+     * Send email notification when testing process starts
+     */
+    private async sendTestingStartedEmail(sample: any, appointment: any): Promise<void> {
+        try {
+            // Get user details from appointment
+            const userId = appointment.user_id;
+            if (!userId) {
+                console.error('Cannot send email: User ID not found in appointment');
+                return;
+            }
+
+            const user = await UserSchema.findById(userId);
+            if (!user || !user.email) {
+                console.error('Cannot send email: User not found or no email address');
+                return;
+            }
+
+            // Get service details if available
+            let serviceName = 'DNA Testing Service';
+            if (appointment && appointment.service_id) {
+                try {
+                    const service = await mongoose.model('Service').findById(appointment.service_id);
+                    if (service && service.name) {
+                        serviceName = service.name;
+                    }
+                } catch (error) {
+                    console.error('Error fetching service details:', error);
+                }
+            }
+
+            const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+
+            const title = 'Sample Testing Started';
+            const message = `
+                We are pleased to inform you that the laboratory has started processing your sample for ${serviceName}.
+                <br><br>
+                <strong>Testing Details:</strong>
+                <br>
+                Sample ID: ${sample._id}
+                <br>
+                Sample Type: ${sample.sample_type || 'DNA Sample'}
+                <br>
+                Testing Started: ${new Date().toLocaleString()}
+                <br><br>
+                The testing process typically takes 3-5 business days to complete. We will notify you as soon as your results are ready.
+                <br><br>
+                If you have any questions during this process, please don't hesitate to contact our customer support team.
+            `;
+
+            const emailDetails: ISendMailDetail = {
+                toMail: user.email,
+                subject: 'Sample Testing Started - Bloodline DNA Testing Service',
+                html: createNotificationEmailTemplate(userName, title, message)
+            };
+
+            await sendMail(emailDetails);
+            console.log(`Testing started email sent to ${user.email}`);
+        } catch (error) {
+            console.error('Error sending testing started email:', error);
         }
     }
 } 

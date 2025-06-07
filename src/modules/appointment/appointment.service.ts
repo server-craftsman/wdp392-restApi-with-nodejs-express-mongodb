@@ -22,6 +22,8 @@ import UserSchema from '../user/user.model';
 import { UserRoleEnum } from '../user/user.enum';
 import SampleService from '../sample/sample.service';
 import { ISample } from '../sample/sample.interface';
+import { sendMail, createNotificationEmailTemplate } from '../../core/utils';
+import { ISendMailDetail } from '../../core/interfaces';
 
 export default class AppointmentService {
     private readonly appointmentRepository: AppointmentRepository;
@@ -150,6 +152,13 @@ export default class AppointmentService {
                 await this.appointmentLogService.logAppointmentCreation(appointment);
             } catch (logError) {
                 console.error('Failed to create appointment log:', logError);
+            }
+
+            // Send email notification to user
+            try {
+                await this.sendAppointmentCreationEmail(appointment);
+            } catch (emailError) {
+                console.error('Failed to send appointment creation email:', emailError);
             }
 
             return appointment;
@@ -524,6 +533,13 @@ export default class AppointmentService {
             console.error('Failed to create appointment log for confirmation:', logError);
         }
 
+        // Send confirmation email to user
+        try {
+            await this.sendAppointmentConfirmationEmail(updatedAppointment);
+        } catch (emailError) {
+            console.error('Failed to send appointment confirmation email:', emailError);
+        }
+
         return updatedAppointment;
     }
 
@@ -695,6 +711,13 @@ export default class AppointmentService {
             );
         } catch (logError) {
             console.error('Failed to create appointment log for status change:', logError);
+        }
+
+        // Send status update email to user
+        try {
+            await this.sendAppointmentStatusUpdateEmail(updatedAppointment, oldStatus);
+        } catch (emailError) {
+            console.error('Failed to send appointment status update email:', emailError);
         }
 
         return updatedAppointment;
@@ -1018,5 +1041,215 @@ export default class AppointmentService {
         }
 
         return updatedAppointment;
+    }
+
+    /**
+     * Send email notification for appointment creation
+     */
+    private async sendAppointmentCreationEmail(appointment: IAppointment): Promise<void> {
+        try {
+            // Get user details
+            const user = await UserSchema.findById(appointment.user_id);
+            if (!user || !user.email) {
+                console.error('Cannot send email: User not found or no email address');
+                return;
+            }
+
+            // Get service details
+            const service = await ServiceSchema.findById(appointment.service_id);
+            if (!service) {
+                console.error('Cannot send email: Service not found');
+                return;
+            }
+
+            const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+            const appointmentDate = appointment.appointment_date
+                ? new Date(appointment.appointment_date).toLocaleString()
+                : 'To be confirmed';
+
+            const title = 'Appointment Created Successfully';
+            const message = `
+                Your appointment for ${service.name} has been created successfully.
+                <br><br>
+                <strong>Appointment Details:</strong>
+                <br>
+                Service: ${service.name}
+                <br>
+                Date: ${appointmentDate}
+                <br>
+                Type: ${appointment.type}
+                <br>
+                Status: ${appointment.status}
+                <br><br>
+                We will notify you once your appointment is confirmed by our staff.
+            `;
+
+            const emailDetails: ISendMailDetail = {
+                toMail: user.email,
+                subject: 'Appointment Created - Bloodline DNA Testing Service',
+                html: createNotificationEmailTemplate(userName, title, message)
+            };
+
+            await sendMail(emailDetails);
+            console.log(`Appointment creation email sent to ${user.email}`);
+        } catch (error) {
+            console.error('Error sending appointment creation email:', error);
+        }
+    }
+
+    /**
+     * Send email notification for appointment confirmation
+     */
+    private async sendAppointmentConfirmationEmail(appointment: IAppointment): Promise<void> {
+        try {
+            // Get user details
+            const user = await UserSchema.findById(appointment.user_id);
+            if (!user || !user.email) {
+                console.error('Cannot send email: User not found or no email address');
+                return;
+            }
+
+            // Get service details
+            const service = await ServiceSchema.findById(appointment.service_id);
+            if (!service) {
+                console.error('Cannot send email: Service not found');
+                return;
+            }
+
+            // Get slot details if available
+            let slotDetails = 'Not specified';
+            if (appointment.slot_id) {
+                const slot = await SlotSchema.findById(appointment.slot_id);
+                if (slot && slot.time_slots && slot.time_slots.length > 0) {
+                    const timeSlot = slot.time_slots[0];
+                    const date = new Date(timeSlot.year, timeSlot.month - 1, timeSlot.day);
+                    const formattedDate = date.toLocaleDateString();
+                    const startTime = `${timeSlot.start_time.hour}:${timeSlot.start_time.minute.toString().padStart(2, '0')}`;
+                    const endTime = `${timeSlot.end_time.hour}:${timeSlot.end_time.minute.toString().padStart(2, '0')}`;
+                    slotDetails = `${formattedDate} from ${startTime} to ${endTime}`;
+                }
+            }
+
+            const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+
+            const title = 'Appointment Confirmed';
+            const message = `
+                Your appointment for ${service.name} has been confirmed.
+                <br><br>
+                <strong>Appointment Details:</strong>
+                <br>
+                Service: ${service.name}
+                <br>
+                Scheduled Time: ${slotDetails}
+                <br>
+                Type: ${appointment.type}
+                <br>
+                Status: ${appointment.status}
+                <br><br>
+                ${appointment.type === TypeEnum.HOME ?
+                    `Our staff will visit your location at the scheduled time.` :
+                    `Please arrive at our facility at the scheduled time.`}
+                <br><br>
+                If you need to reschedule or cancel your appointment, please contact us as soon as possible.
+            `;
+
+            const emailDetails: ISendMailDetail = {
+                toMail: user.email,
+                subject: 'Appointment Confirmed - Bloodline DNA Testing Service',
+                html: createNotificationEmailTemplate(userName, title, message)
+            };
+
+            await sendMail(emailDetails);
+            console.log(`Appointment confirmation email sent to ${user.email}`);
+        } catch (error) {
+            console.error('Error sending appointment confirmation email:', error);
+        }
+    }
+
+    /**
+     * Send email notification for appointment status update
+     */
+    private async sendAppointmentStatusUpdateEmail(appointment: IAppointment, oldStatus: AppointmentStatusEnum): Promise<void> {
+        try {
+            // Get user details
+            const user = await UserSchema.findById(appointment.user_id);
+            if (!user || !user.email) {
+                console.error('Cannot send email: User not found or no email address');
+                return;
+            }
+
+            // Get service details
+            const service = await ServiceSchema.findById(appointment.service_id);
+            if (!service) {
+                console.error('Cannot send email: Service not found');
+                return;
+            }
+
+            const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+            const appointmentDate = appointment.appointment_date
+                ? new Date(appointment.appointment_date).toLocaleString()
+                : 'To be confirmed';
+
+            let title = 'Appointment Status Updated';
+            let message = `
+                Your appointment for ${service.name} has been updated from ${oldStatus} to ${appointment.status}.
+                <br><br>
+                <strong>Appointment Details:</strong>
+                <br>
+                Service: ${service.name}
+                <br>
+                Date: ${appointmentDate}
+                <br>
+                Type: ${appointment.type}
+                <br>
+                Status: ${appointment.status}
+                <br><br>
+            `;
+
+            // Add specific messages based on the new status
+            switch (appointment.status) {
+                case AppointmentStatusEnum.COMPLETED:
+                    message += 'Your appointment has been completed. Thank you for using our services.';
+                    title = 'Appointment Completed';
+                    break;
+                case AppointmentStatusEnum.CANCELLED:
+                    message += 'Your appointment has been cancelled. If you did not request this cancellation, please contact us.';
+                    title = 'Appointment Cancelled';
+                    break;
+                case AppointmentStatusEnum.PENDING:
+                    message += 'Your appointment is now in progress.';
+                    title = 'Appointment In Progress';
+                    break;
+                case AppointmentStatusEnum.SAMPLE_COLLECTED:
+                    message += 'Your samples have been collected. They will be processed by our laboratory.';
+                    title = 'Samples Collected';
+                    break;
+                case AppointmentStatusEnum.CONFIRMED:
+                    message += 'Your appointment has been confirmed. Please prepare for the appointment.';
+                    title = 'Appointment Confirmed';
+                    break;
+                case AppointmentStatusEnum.SAMPLE_RECEIVED:
+                    message += 'Your samples have been received by our laboratory. They will be processed soon.';
+                    title = 'Samples Received';
+                    break;
+                case AppointmentStatusEnum.TESTING:
+                    message += 'Your samples are now being tested by our laboratory.';
+                    title = 'Samples Testing';
+                    break;
+                default:
+                    message += 'If you have any questions about your appointment, please contact us.';
+            }
+
+            const emailDetails: ISendMailDetail = {
+                toMail: user.email,
+                subject: `${title} - Bloodline DNA Testing Service`,
+                html: createNotificationEmailTemplate(userName, title, message)
+            };
+
+            await sendMail(emailDetails);
+            console.log(`Appointment status update email sent to ${user.email}`);
+        } catch (error) {
+            console.error('Error sending appointment status update email:', error);
+        }
     }
 }
