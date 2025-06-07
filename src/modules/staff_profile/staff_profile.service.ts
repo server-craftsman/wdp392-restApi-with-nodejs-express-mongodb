@@ -66,7 +66,7 @@ export default class StaffProfileService {
     }
 
     /**
-     * Tạo employee_id duy nhất
+     * Tạo employee_id duy nhất 
      */
     private async generateEmployeeId(): Promise<string> {
         const prefix = 'EMP';
@@ -78,8 +78,19 @@ export default class StaffProfileService {
         });
 
         // Format: EMP23001, EMP23002, ...
-        const sequenceNumber = (count + 1).toString().padStart(3, '0');
-        return `${prefix}${currentYear}${sequenceNumber}`;
+        let sequenceNumber = (count + 1).toString().padStart(3, '0');
+        let employeeId = `${prefix}${currentYear}${sequenceNumber}`;
+
+        // Kiểm tra xem ID đã tồn tại chưa để đảm bảo tính duy nhất
+        let existingProfile = await this.staffProfileRepository.findOne({ employee_id: employeeId });
+        while (existingProfile) {
+            // Nếu ID đã tồn tại, tăng số thứ tự và thử lại
+            sequenceNumber = (parseInt(sequenceNumber) + 1).toString().padStart(3, '0');
+            employeeId = `${prefix}${currentYear}${sequenceNumber}`;
+            existingProfile = await this.staffProfileRepository.findOne({ employee_id: employeeId });
+        }
+
+        return employeeId;
     }
 
     /**
@@ -216,7 +227,7 @@ export default class StaffProfileService {
             id,
             {
                 ...model,
-                user_id: model.user_id,
+                // user_id: model.user_id,
                 department_id: model.department_id,
                 updated_at: new Date()
             },

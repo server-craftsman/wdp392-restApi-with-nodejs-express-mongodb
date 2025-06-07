@@ -1,4 +1,4 @@
-import { IsArray, IsDate, IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsArray, IsDate, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { IQualification } from "../staff_profile.interface";
 import { Type } from "class-transformer";
 
@@ -19,7 +19,7 @@ export default class UpdateStaffProfileDto {
         this.qualifications = qualifications;
     }
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     public user_id: string;
 
