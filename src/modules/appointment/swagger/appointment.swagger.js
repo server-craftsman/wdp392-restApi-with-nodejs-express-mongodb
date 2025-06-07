@@ -46,6 +46,8 @@
  *     tags: [appointments]
  *     summary: Search appointments
  *     description: Search and filter appointments with pagination
+ *     security:
+ *       - Bearer: []
  *     parameters:
  *       - in: query
  *         name: pageNum
