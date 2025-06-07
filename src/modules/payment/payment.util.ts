@@ -1,5 +1,6 @@
 import PayOS from '@payos/node';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 dotenv.config();
 
@@ -26,7 +27,7 @@ export async function createPayosPayment(
     buyerName?: string,
     buyerEmail?: string,
     buyerPhone?: string
-    
+
 ): Promise<{ checkoutUrl: string }> {
     try {
         // Validate input
@@ -93,7 +94,99 @@ export async function createPayosPayment(
  * Verify webhook signature
  */
 export function verifyPayosWebhook(data: any, receivedSignature: string): boolean {
-    // Implement actual signature verification
-    console.warn('Webhook verification is not implemented');
-    return true;
+    try {
+        // For debugging purposes - log the received data and signature
+        console.log('Webhook verification - Received data:', JSON.stringify(data));
+        console.log('Webhook verification - Received signature:', receivedSignature);
+
+        if (!checksumKey || !receivedSignature) {
+            console.error('Missing checksum key or signature');
+            return false;
+        }
+
+        // For testing/debugging purposes - allow a specific test signature
+        // REMOVE THIS IN PRODUCTION
+        if (process.env.NODE_ENV !== 'production' && receivedSignature === 'test_signature_for_debugging') {
+            console.warn('WARNING: Accepting test signature - DO NOT USE IN PRODUCTION');
+            return true;
+        }
+
+        // Create a copy of data without the signature field
+        const { signature, ...dataWithoutSignature } = data;
+
+        // Sort keys alphabetically
+        const sortedData = Object.keys(dataWithoutSignature)
+            .sort()
+            .reduce((obj: any, key: string) => {
+                obj[key] = dataWithoutSignature[key];
+                return obj;
+            }, {});
+
+        // Convert to JSON string
+        const jsonString = JSON.stringify(sortedData);
+        console.log('Webhook verification - Data for signature calculation:', jsonString);
+
+        // Create HMAC signature using SHA256
+        const hmac = crypto.createHmac('sha256', checksumKey);
+        hmac.update(jsonString);
+        const calculatedSignature = hmac.digest('hex');
+        console.log('Webhook verification - Calculated signature:', calculatedSignature);
+
+        // Compare signatures
+        const isValid = calculatedSignature === receivedSignature;
+
+        if (!isValid) {
+            console.error('Signature verification failed', {
+                received: receivedSignature,
+                calculated: calculatedSignature,
+                data: jsonString
+            });
+        } else {
+            console.log('Signature verification successful');
+        }
+
+        return isValid;
+    } catch (error) {
+        console.error('Error verifying webhook signature:', error);
+        return false;
+    }
+}
+
+/**
+ * Generate a test signature for webhook data
+ * This is for testing purposes only
+ */
+export function generateTestSignature(data: any): string {
+    try {
+        if (!checksumKey) {
+            console.error('Missing checksum key');
+            return '';
+        }
+
+        // Remove any existing signature field
+        const { signature, ...dataWithoutSignature } = data;
+
+        // Sort keys alphabetically
+        const sortedData = Object.keys(dataWithoutSignature)
+            .sort()
+            .reduce((obj: any, key: string) => {
+                obj[key] = dataWithoutSignature[key];
+                return obj;
+            }, {});
+
+        // Convert to JSON string
+        const jsonString = JSON.stringify(sortedData);
+        console.log('Test signature - Data for signature calculation:', jsonString);
+
+        // Create HMAC signature using SHA256
+        const hmac = crypto.createHmac('sha256', checksumKey);
+        hmac.update(jsonString);
+        const calculatedSignature = hmac.digest('hex');
+        console.log('Test signature generated:', calculatedSignature);
+
+        return calculatedSignature;
+    } catch (error) {
+        console.error('Error generating test signature:', error);
+        return '';
+    }
 }

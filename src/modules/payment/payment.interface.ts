@@ -9,6 +9,7 @@ export type PaymentStatus =
     PaymentStatusEnum.PENDING |
     PaymentStatusEnum.COMPLETED |
     PaymentStatusEnum.FAILED |
+    PaymentStatusEnum.CANCELLED |
     PaymentStatusEnum.REFUNDED;
 
 export interface IPayment extends Document {
@@ -27,11 +28,12 @@ export interface IPayment extends Document {
     payos_payment_status_code?: string;
     payos_payment_status_detail?: string;
     payos_payment_status_time?: Date;
+    payos_webhook_received_at?: Date;
 
-    // demo payOs
-    order_code?: string;
-    order_id?: string;
-    // end demo payOs
+    // // demo payOs
+    // order_code?: string;
+    // order_id?: string;
+    // // end demo payOs
 
     created_at: Date;
     updated_at: Date;

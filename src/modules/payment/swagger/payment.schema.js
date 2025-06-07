@@ -28,7 +28,7 @@
  *           example: "pay_os"
  *         status:
  *           type: string
- *           enum: [pending, completed, failed, refunded]
+ *           enum: [pending, processing, completed, cancelled, failed, refunded]
  *           example: "completed"
  *         balance_origin:
  *           type: number
@@ -41,7 +41,15 @@
  *           example: "https://pay.payos.vn/web/payment/12345"
  *         payos_payment_status:
  *           type: string
- *           example: "PAID"
+ *           example: "success"
+ *         payos_payment_status_time:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-01-01T00:00:00.000Z"
+ *         payos_webhook_received_at:
+ *           type: string
+ *           format: date-time
+ *           example: "2023-01-01T00:00:00.000Z"
  *         order_code:
  *           type: string
  *           example: "PAY-12345-123456"
@@ -172,24 +180,25 @@
  *     PaymentWebhookRequest:
  *       type: object
  *       properties:
- *         orderCode:
+ *         payment_no:
  *           type: string
- *           description: Order code
+ *           description: Payment number
  *           example: "PAY-12345-123456"
  *         amount:
- *           type: number
+ *           type: string
  *           description: Payment amount
- *           example: 100000
+ *           example: "100000"
  *         status:
  *           type: string
  *           description: Payment status
- *           example: "PAID"
+ *           enum: [pending, processing, success, failed, cancelled]
+ *           example: "success"
  *         signature:
  *           type: string
- *           description: Signature for verification
- *           example: "abc123"
+ *           description: HMAC signature for verification
+ *           example: "abc123def456"
  *       required:
- *         - orderCode
+ *         - payment_no
  *         - amount
  *         - status
  *         - signature

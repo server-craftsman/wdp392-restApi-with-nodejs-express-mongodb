@@ -16,6 +16,7 @@ import ServiceSchema from '../service/service.model';
 import UserService from '../user/user.service';
 import { sendMail, createNotificationEmailTemplate } from '../../core/utils';
 import { ISendMailDetail } from '../../core/interfaces';
+import { TransactionStatusEnum } from '../transaction/transaction.enum';
 
 export default class PaymentService {
     private paymentSchema = PaymentSchema;
@@ -31,68 +32,119 @@ export default class PaymentService {
         const receivedSignature = data.signature || '';
         const isValidSignature = verifyPayosWebhook(data, receivedSignature);
         if (!isValidSignature) {
+            console.error('PayOS Webhook: Invalid signature received');
             return { success: false, message: 'Invalid signature' };
         }
 
         const { payment_no, amount, status } = data as CreateWebhookDto;
+        console.log(`Processing PayOS webhook for payment ${payment_no} with status ${status}`);
 
+        // Find the payment by payment_no
         const payment = await this.paymentSchema.findOne({
             $or: [
-                { order_code: payment_no },
                 { payment_no: payment_no }
             ],
-            status: PaymentStatusEnum.PENDING
+            status: { $in: [PaymentStatusEnum.PENDING] }
         });
 
         if (!payment) {
-            return { success: false, message: 'Order not found' };
+            console.error(`PayOS Webhook: Payment not found or not in pending status: ${payment_no}`);
+            return { success: false, message: 'Order not found or already processed' };
         }
 
         if (payment.amount !== Number(amount)) {
+            console.error(`PayOS Webhook: Amount mismatch. Expected: ${payment.amount}, Received: ${amount}`);
             return { success: false, message: 'Invalid amount' };
         }
 
-        if (status === 'PAID') {
+        // Update payment with webhook received timestamp
+        payment.payos_webhook_received_at = new Date();
+
+        if (status === TransactionStatusEnum.SUCCESS) {
+            console.log(`Payment ${payment_no} successful, updating status to COMPLETED`);
+
+            // Update payment status
             payment.status = PaymentStatusEnum.COMPLETED;
-            payment.payos_payment_status = 'PAID';
+            payment.payos_payment_status = TransactionStatusEnum.SUCCESS;
             payment.payos_payment_status_time = new Date();
             payment.updated_at = new Date();
             await payment.save();
 
+            // Update appointment payment status
             const appointment = await this.appointmentSchema.findByIdAndUpdate(
                 payment.appointment_id,
-                { payment_status: AppointmentPaymentStatusEnum.PAID },
+                {
+                    payment_status: AppointmentPaymentStatusEnum.PAID,
+                    status: AppointmentStatusEnum.CONFIRMED
+                },
                 { new: true }
             );
 
-            // Create a transaction for each sample
-            if (payment.sample_ids && payment.sample_ids.length > 0) {
-                for (const sampleId of payment.sample_ids) {
-                    await this.transactionSchema.create({
-                        payment_id: payment._id,
-                        receipt_number: `${payment_no}-${sampleId.toString().substring(0, 6)}`,
-                        transaction_date: new Date(),
-                        sample_id: sampleId,
-                        payos_transaction_id: payment.payos_payment_id,
-                        payos_payment_status: 'PAID',
-                        payos_payment_status_time: new Date(),
-                        created_at: new Date(),
-                        updated_at: new Date(),
-                    });
-                }
-                console.log(`Created ${payment.sample_ids.length} transactions for payment ${payment_no}`);
+            if (!appointment) {
+                console.error(`PayOS Webhook: Appointment not found for payment ${payment_no}`);
             } else {
-                // Fallback if no samples
-                await this.transactionSchema.create({
-                    payment_id: payment._id,
-                    receipt_number: payment_no,
-                    transaction_date: new Date(),
-                    payos_transaction_id: payment.payos_payment_id,
-                    payos_payment_status: 'PAID',
-                    payos_payment_status_time: new Date(),
-                    created_at: new Date(),
-                    updated_at: new Date(),
+                console.log(`Updated appointment ${appointment._id} status to CONFIRMED and payment_status to PAID`);
+            }
+
+            // Create transactions for each sample
+            if (payment.sample_ids && payment.sample_ids.length > 0) {
+                const transactionPromises = payment.sample_ids.map(async (sampleId) => {
+                    const transaction = await this.transactionSchema.findOneAndUpdate(
+                        {
+                            payment_id: payment._id,
+                            sample_id: sampleId
+                        },
+                        {
+                            payment_id: payment._id,
+                            receipt_number: `${payment_no}-${sampleId.toString().substring(0, 6)}`,
+                            transaction_date: new Date(),
+                            sample_id: sampleId,
+                            payos_transaction_id: payment.payos_payment_id,
+                            payos_payment_status: TransactionStatusEnum.SUCCESS,
+                            payos_payment_status_time: new Date(),
+                            payos_webhook_received_at: new Date(),
+                            updated_at: new Date(),
+                        },
+                        {
+                            upsert: true,
+                            new: true,
+                            setDefaultsOnInsert: true
+                        }
+                    );
+                    return transaction;
                 });
+
+                try {
+                    const transactions = await Promise.all(transactionPromises);
+                    console.log(`Created/updated ${transactions.length} transactions for payment ${payment_no}`);
+                } catch (transactionError) {
+                    console.error(`Error creating transactions for payment ${payment_no}:`, transactionError);
+                }
+            } else {
+                // Fallback if no samples - create a single transaction
+                try {
+                    await this.transactionSchema.findOneAndUpdate(
+                        { payment_id: payment._id },
+                        {
+                            payment_id: payment._id,
+                            receipt_number: payment_no,
+                            transaction_date: new Date(),
+                            payos_transaction_id: payment.payos_payment_id,
+                            payos_payment_status: TransactionStatusEnum.SUCCESS,
+                            payos_payment_status_time: new Date(),
+                            payos_webhook_received_at: new Date(),
+                            updated_at: new Date(),
+                        },
+                        {
+                            upsert: true,
+                            new: true,
+                            setDefaultsOnInsert: true
+                        }
+                    );
+                    console.log(`Created fallback transaction for payment ${payment_no}`);
+                } catch (transactionError) {
+                    console.error(`Error creating fallback transaction for payment ${payment_no}:`, transactionError);
+                }
             }
 
             // Send payment success email
@@ -106,6 +158,9 @@ export default class PaymentService {
 
             return { success: true, message: 'Payment successful' };
         } else {
+            console.log(`Payment ${payment_no} failed or cancelled with status ${status}`);
+
+            // Update payment status
             payment.status = PaymentStatusEnum.FAILED;
             payment.payos_payment_status = status;
             payment.payos_payment_status_time = new Date();
@@ -118,6 +173,19 @@ export default class PaymentService {
                 { payment_status: AppointmentPaymentStatusEnum.FAILED },
                 { new: true }
             );
+
+            // Update any existing transactions to failed status
+            if (payment.sample_ids && payment.sample_ids.length > 0) {
+                await this.transactionSchema.updateMany(
+                    { payment_id: payment._id },
+                    {
+                        payos_payment_status: TransactionStatusEnum.FAILED,
+                        payos_payment_status_time: new Date(),
+                        payos_webhook_received_at: new Date(),
+                        updated_at: new Date(),
+                    }
+                );
+            }
 
             // Send payment failed email
             try {
@@ -280,7 +348,7 @@ export default class PaymentService {
             const payment = await this.paymentSchema.findOne({
                 $or: [
                     { payment_no: paymentNo },
-                    { order_code: paymentNo }
+                    // { order_code: paymentNo }
                 ]
             });
 
@@ -313,7 +381,7 @@ export default class PaymentService {
                             transaction_date: new Date(),
                             sample_id: sampleId,
                             payos_transaction_id: payment.payos_payment_id,
-                            payos_payment_status: 'PAID',
+                            payos_payment_status: TransactionStatusEnum.SUCCESS,
                             payos_payment_status_time: new Date(),
                             payos_payment_status_code: 'PAID',
                             payos_payment_status_message: 'Thanh toán thành công',
@@ -330,7 +398,7 @@ export default class PaymentService {
                         receipt_number: payment.payment_no || paymentNo,
                         transaction_date: new Date(),
                         payos_transaction_id: payment.payos_payment_id,
-                        payos_payment_status: 'PAID',
+                        payos_payment_status: TransactionStatusEnum.SUCCESS,
                         payos_payment_status_time: new Date(),
                         payos_payment_status_code: 'PAID',
                         payos_payment_status_message: 'Thanh toán thành công',

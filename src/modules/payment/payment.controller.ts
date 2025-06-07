@@ -76,41 +76,65 @@ export default class PaymentController {
     public handlePaymentSuccess = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { orderCode, amount, status } = req.query;
+            console.log('Payment success handler called with:', { orderCode, amount, status });
 
-            // Verify the payment status
-            if (orderCode) {
-                const result = await this.paymentService.verifyPaymentStatus(orderCode.toString());
-
-                if (result.success && result.payment_status === 'completed') {
-                    res.status(HttpStatus.Success).json(
-                        formatResponse(result, true, 'Payment completed successfully')
-                    );
-                    return;
-                }
+            if (!orderCode) {
+                console.error('Missing orderCode in payment success callback');
+                return res.redirect(process.env.FRONTEND_PAYMENT_FAILED_URL || '/payment/failed');
             }
 
-            res.status(HttpStatus.Success).json(
-                formatResponse({ status: 'pending' }, true, 'Payment status pending verification')
-            );
+            // Verify the payment status
+            const result = await this.paymentService.verifyPaymentStatus(orderCode.toString());
+
+            if (result.success && result.payment_status === 'completed') {
+                console.log(`Payment ${orderCode} verified as completed`);
+
+                // Get frontend success URL from environment or use default
+                const successUrl = process.env.FRONTEND_PAYMENT_SUCCESS_URL || '/payment/success';
+
+                // Add payment info to URL if needed
+                const redirectUrl = `${successUrl}?orderCode=${orderCode}&status=success`;
+
+                // Redirect to frontend success page
+                return res.redirect(redirectUrl);
+            } else {
+                console.log(`Payment ${orderCode} verification failed or payment not completed`);
+
+                // If payment verification failed, check if we should retry
+                if (result.payment_status === 'pending') {
+                    // Payment is still pending, we can show a processing page
+                    const pendingUrl = process.env.FRONTEND_PAYMENT_PENDING_URL || '/payment/pending';
+                    return res.redirect(`${pendingUrl}?orderCode=${orderCode}`);
+                } else {
+                    // Payment failed or was cancelled
+                    const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payment/failed';
+                    return res.redirect(`${failedUrl}?orderCode=${orderCode}&status=${result.payment_status}`);
+                }
+            }
         } catch (error) {
-            next(error);
+            console.error('Error in handlePaymentSuccess:', error);
+            const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payment/failed';
+            return res.redirect(`${failedUrl}?error=internal`);
         }
     };
 
     public handlePaymentFailure = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { orderCode } = req.query;
+            console.log('Payment failure handler called with:', { orderCode });
 
             if (orderCode) {
                 // Cancel the payment if it exists
                 await this.paymentService.cancelPayment(orderCode.toString());
             }
 
-            res.status(HttpStatus.Success).json(
-                formatResponse({ status: 'failed' }, true, 'Payment was cancelled or failed')
-            );
+            // Redirect to frontend failed page
+            const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payment/failed';
+            return res.redirect(`${failedUrl}?orderCode=${orderCode || 'unknown'}&status=cancelled`);
         } catch (error) {
-            next(error);
+            console.error('Error in handlePaymentFailure:', error);
+            const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payment/failed';
+            return res.redirect(`${failedUrl}?error=internal`);
         }
     };
 

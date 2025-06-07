@@ -26,10 +26,6 @@ const PaymentSchemaEntity: Schema<IPayment> = new Schema({
     payos_payment_status_code: { type: String },
     payos_payment_status_detail: { type: String },
     payos_payment_status_time: { type: Date },
-
-    // demo payOs
-    order_code: { type: String },
-    order_id: { type: String },
     // end demo payOs
 
     created_at: { type: Date, default: Date.now },

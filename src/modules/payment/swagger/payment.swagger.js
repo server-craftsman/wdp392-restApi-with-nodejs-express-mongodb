@@ -5,7 +5,17 @@
  *     tags:
  *       - payment
  *     summary: PayOS webhook
- *     description: Endpoint to receive payment notifications from PayOS
+ *     description: |
+ *       Endpoint to receive payment notifications from PayOS.
+ *       
+ *       The webhook processes payment status updates with the following flow:
+ *       1. Verifies the webhook signature using HMAC-SHA256
+ *       2. Validates the payment exists and amount matches
+ *       3. Updates payment status and related appointment status
+ *       4. Creates or updates transactions for each sample
+ *       5. Sends email notifications based on payment status
+ *       
+ *       For more details, see the payment-webhook.md documentation.
  *     requestBody:
  *       required: true
  *       content:
@@ -30,7 +40,7 @@
  *                   type: string
  *                   example: "Payment successful"
  *       '400':
- *         description: Bad request
+ *         description: Bad request (invalid signature, payment not found, or amount mismatch)
  *         content:
  *           application/json:
  *             schema:
@@ -99,7 +109,14 @@
  *     tags:
  *       - payment
  *     summary: Verify payment status (All authenticated users)
- *     description: Verify the status of a payment by payment number
+ *     description: |
+ *       Verify the status of a payment by payment number.
+ *       
+ *       The verification process:
+ *       1. Checks if the payment exists
+ *       2. Verifies if there are any successful transactions for this payment
+ *       3. If payment is completed but appointment status is not updated, updates it
+ *       4. Returns the current payment status and appointment ID
  *     security:
  *       - Bearer: []
  *     parameters:
@@ -203,7 +220,7 @@
  *     tags:
  *       - payment
  *     summary: Handle successful payment redirect
- *     description: Endpoint for handling successful payment redirects from payment gateway
+ *     description: Endpoint for handling successful payment redirects from payment gateway. Redirects to frontend success page.
  *     parameters:
  *       - name: orderCode
  *         in: query
@@ -224,25 +241,14 @@
  *         schema:
  *           type: string
  *     responses:
- *       '200':
- *         description: Payment success handler
- *         content:
- *           application/json:
+ *       '302':
+ *         description: Redirects to frontend success page
+ *         headers:
+ *           Location:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     status:
- *                       type: string
- *                       example: "completed"
- *                 message:
- *                   type: string
- *                   example: "Payment completed successfully"
+ *               type: string
+ *             description: URL to redirect to (configured via FRONTEND_PAYMENT_SUCCESS_URL environment variable)
+ *             example: "/payment/success?orderCode=PAY-12345-123456&status=success"
  *       '500':
  *         description: Internal server error
  *         content:
@@ -258,7 +264,7 @@
  *     tags:
  *       - payment
  *     summary: Handle failed payment redirect
- *     description: Endpoint for handling failed payment redirects from payment gateway
+ *     description: Endpoint for handling failed payment redirects from payment gateway. Redirects to frontend failed page.
  *     parameters:
  *       - name: orderCode
  *         in: query
@@ -267,25 +273,14 @@
  *         schema:
  *           type: string
  *     responses:
- *       '200':
- *         description: Payment failure handler
- *         content:
- *           application/json:
+ *       '302':
+ *         description: Redirects to frontend failed page
+ *         headers:
+ *           Location:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     status:
- *                       type: string
- *                       example: "failed"
- *                 message:
- *                   type: string
- *                   example: "Payment was cancelled or failed"
+ *               type: string
+ *             description: URL to redirect to (configured via FRONTEND_PAYMENT_FAILED_URL environment variable)
+ *             example: "/payment/failed?orderCode=PAY-12345-123456&status=cancelled"
  *       '500':
  *         description: Internal server error
  *         content:
