@@ -1,5 +1,6 @@
 export const COLLECTION_NAME = {
     SETTING: 'Setting',
+    ADMINISTRATIVE_CASE: 'Administrative_Case',
     USER: 'User',
     BLOG: 'Blog',
     BLOG_LOG: 'Blog_Log',
