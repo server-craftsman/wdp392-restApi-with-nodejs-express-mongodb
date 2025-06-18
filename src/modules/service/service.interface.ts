@@ -19,4 +19,6 @@ export interface IService extends Document {
     is_deleted: boolean;
     created_at?: Date;
     updated_at?: Date;
+    average_rating?: number;
+    review_count?: number;
 } 

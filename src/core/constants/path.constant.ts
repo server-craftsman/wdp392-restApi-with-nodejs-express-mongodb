@@ -144,4 +144,9 @@ export const API_PATH = {
     BLOG_CATEGORY_CREATE: '/api/blog-category/create',
     BLOG_CATEGORY_UPDATE: '/api/blog-category/:id',
     BLOG_CATEGORY_DELETE: '/api/blog-category/:id',
+
+    // Review
+    REVIEW: '/api/review',
+    REVIEW_SEARCH: '/api/review/search',
+
 };

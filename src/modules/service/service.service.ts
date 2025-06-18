@@ -10,6 +10,7 @@ import AppointmentSchema from '../appointment/appointment.model';
 import ServiceRepository from './service.repository';
 import { uploadFileToS3 } from "../../core/utils/s3Upload";
 import { s3Folders } from "../../core/utils/aws.config";
+import ReviewSchema from '../review/review.model';
 
 export default class ServiceService {
     private appointmentSchema = AppointmentSchema;
@@ -181,7 +182,7 @@ export default class ServiceService {
     /**
      * Lấy danh sách dịch vụ với các bộ lọc tùy chọn và phân trang
      */
-    public async getServices(queryParams: any = {}): Promise<SearchPaginationResponseModel<IService>> {
+    public async getServices(queryParams: any = {}): Promise<SearchPaginationResponseModel<IService & { average_rating?: number, review_count?: number }>> {
         try {
             const query: any = { is_deleted: false };
 
@@ -250,11 +251,17 @@ export default class ServiceService {
             // Lấy dữ liệu với phân trang và sắp xếp
             const items = await this.serviceRepository.find(query, sortOptions, skip, limit);
 
+            // For each service, get average_rating and review_count
+            const itemsWithStats = await Promise.all(items.map(async (service) => {
+                const { average_rating, review_count } = await this.getServiceReviewStats(service._id);
+                return { ...service.toObject(), average_rating, review_count };
+            }));
+
             // Tính toán thông tin phân trang
             const totalPages = Math.ceil(totalItems / limit);
             // Trả về kết quả theo định dạng SearchPaginationResponseModel
             return {
-                pageData: items,
+                pageData: itemsWithStats,
                 pageInfo: {
                     totalItems,
                     totalPages,
@@ -452,12 +459,14 @@ export default class ServiceService {
     /**
      * Tìm dịch vụ theo ID
      */
-    public async getServiceById(id: string): Promise<IService> {
+    public async getServiceById(id: string): Promise<IService & { average_rating?: number, review_count?: number }> {
         const service = await this.serviceRepository.findById(id);
         if (!service) {
             throw new HttpException(HttpStatus.NotFound, 'Service not found');
         }
-        return service;
+        // Calculate average rating and review count
+        const { average_rating, review_count } = await this.getServiceReviewStats(service._id);
+        return { ...service.toObject(), average_rating, review_count };
     }
 
     /**
@@ -883,11 +892,26 @@ export default class ServiceService {
      * @param slug The slug of the service to retrieve
      * @returns The service with the specified slug
      */
-    public async getServiceBySlug(slug: string): Promise<IService> {
+    public async getServiceBySlug(slug: string): Promise<IService & { average_rating?: number, review_count?: number }> {
         const service = await this.serviceRepository.findBySlug(slug);
         if (!service) {
             throw new HttpException(HttpStatus.NotFound, `Service with slug '${slug}' not found`);
         }
-        return service;
+        const { average_rating, review_count } = await this.getServiceReviewStats(service._id);
+        return { ...service.toObject(), average_rating, review_count };
+    }
+
+    private async getServiceReviewStats(serviceId: string) {
+        // Find all appointments for this service
+        const appointments = await this.appointmentSchema.find({ service_id: serviceId }, '_id');
+        const appointmentIds = appointments.map(a => a._id);
+        if (appointmentIds.length === 0) return { average_rating: 0, review_count: 0 };
+        // Aggregate reviews for these appointments
+        const result = await ReviewSchema.aggregate([
+            { $match: { appointment_id: { $in: appointmentIds }, is_deleted: { $ne: true } } },
+            { $group: { _id: null, average_rating: { $avg: '$rating' }, review_count: { $sum: 1 } } }
+        ]);
+        if (result.length === 0) return { average_rating: 0, review_count: 0 };
+        return { average_rating: result[0].average_rating, review_count: result[0].review_count };
     }
 }

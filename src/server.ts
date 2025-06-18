@@ -19,6 +19,7 @@ import { RegistrationFormRoute } from './modules/registration_form';
 import { BlogRoute } from './modules/blog';
 import { BlogCategoryRoute } from './modules/blog_category';
 import { LogRoute } from './modules/blog/log';
+import { ReviewRoute } from './modules/review';
 
 dotenv.config();
 validateEnv();
@@ -41,7 +42,8 @@ const routes = [
     new RegistrationFormRoute(),
     new BlogRoute(),
     new BlogCategoryRoute(),
-    new LogRoute()
+    new LogRoute(),
+    new ReviewRoute()
 ];
 
 const app = new App(routes);
