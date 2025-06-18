@@ -299,7 +299,7 @@ export default class PaymentService {
                 const user = await this.userService.getUserById(userId);
 
                 const description = `Thanh toán ${paymentNo}`;
-                const { checkoutUrl } = await createPayosPayment(
+                const { checkoutUrl, orderCode } = await createPayosPayment(
                     amount,
                     paymentNo,
                     description,
@@ -308,12 +308,15 @@ export default class PaymentService {
                     user.phone_number || ''
                 );
 
-                // Update payment with PayOS info
+                const payosWebId = checkoutUrl.split('/web/')[1];
+
                 await this.paymentSchema.findByIdAndUpdate(
                     payment._id,
                     {
                         payos_payment_url: checkoutUrl,
-                        payment_no: paymentNo
+                        payment_no: paymentNo,
+                        payos_order_code: orderCode,
+                        payos_web_id: payosWebId
                     },
                     { new: true }
                 );
@@ -336,21 +339,26 @@ export default class PaymentService {
 
     /**
      * Verify payment status (for manual verification or after redirect)
-     * @param paymentNo Payment number to verify
+     * @param paymentIdentifier Payment number or PayOS order code to verify
      * @returns Updated payment status
      */
-    public async verifyPaymentStatus(paymentNo: string): Promise<{
+    public async verifyPaymentStatus(paymentIdentifier: string): Promise<{
         success: boolean;
         payment_status: string;
         appointment_id: string;
     }> {
         try {
-            const payment = await this.paymentSchema.findOne({
-                $or: [
-                    { payment_no: paymentNo },
-                    // { order_code: paymentNo }
-                ]
-            });
+            // Check if the identifier is numeric (PayOS orderCode) or string (your payment_no)
+            const isNumeric = /^\d+$/.test(paymentIdentifier);
+            const query: any = {};
+
+            if (isNumeric) {
+                query.payos_order_code = parseInt(paymentIdentifier, 10);
+            } else {
+                query.payment_no = paymentIdentifier;
+            }
+
+            const payment = await this.paymentSchema.findOne(query);
 
             if (!payment) {
                 throw new HttpException(HttpStatus.NotFound, 'Payment not found');
@@ -377,7 +385,7 @@ export default class PaymentService {
                     for (const sampleId of payment.sample_ids) {
                         await this.transactionSchema.create({
                             payment_id: payment._id,
-                            receipt_number: `${payment.payment_no || paymentNo}-${sampleId.toString().substring(0, 6)}`,
+                            receipt_number: `${payment.payment_no || paymentIdentifier}-${sampleId.toString().substring(0, 6)}`,
                             transaction_date: new Date(),
                             sample_id: sampleId,
                             payos_transaction_id: payment.payos_payment_id,
@@ -390,12 +398,12 @@ export default class PaymentService {
                             updated_at: new Date(),
                         });
                     }
-                    console.log(`Created ${payment.sample_ids.length} transactions for payment ${paymentNo}`);
+                    console.log(`Created ${payment.sample_ids.length} transactions for payment ${paymentIdentifier}`);
                 } else {
                     // Fallback if no samples
                     await this.transactionSchema.create({
                         payment_id: payment._id,
-                        receipt_number: payment.payment_no || paymentNo,
+                        receipt_number: payment.payment_no || paymentIdentifier,
                         transaction_date: new Date(),
                         payos_transaction_id: payment.payos_payment_id,
                         payos_payment_status: TransactionStatusEnum.SUCCESS,
@@ -530,6 +538,10 @@ export default class PaymentService {
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error fetching samples for payment');
         }
+    }
+
+    public async findPaymentByOrderCode(orderCode: number) {
+        return this.paymentSchema.findOne({ payos_order_code: orderCode });
     }
 
     /**

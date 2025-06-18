@@ -20,6 +20,8 @@ const PaymentSchemaEntity: Schema<IPayment> = new Schema({
     },
     balance_origin: { type: Number, default: 0 },
     payos_payment_id: { type: String },
+    payos_order_code: { type: Number },
+    payos_web_id: { type: String },
     payos_payment_url: { type: String },
     payos_payment_status: { type: String },
     payos_payment_status_message: { type: String },

@@ -24,6 +24,8 @@ export interface IPayment extends Document {
     payos_payment_id?: string;
     payos_payment_url?: string;
     payos_payment_status?: string;
+    payos_order_code?: number;
+    payos_web_id?: string;
     payos_payment_status_message?: string;
     payos_payment_status_code?: string;
     payos_payment_status_detail?: string;

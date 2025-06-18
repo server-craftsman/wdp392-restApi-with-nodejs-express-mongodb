@@ -22,6 +22,63 @@ export default class PaymentController {
         }
     };
 
+    // public handlePayosReturn = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    //     try {
+    //         const { payment_no } = req.query;
+    //         if (!payment_no) {
+    //             res.status(HttpStatus.BadRequest).json({ message: 'Missing payment_no' });
+    //             return;
+    //         }
+
+    //         // Call the verifyPaymentStatus service to check and update the payment status
+    //         const result = await this.paymentService.verifyPaymentStatus(payment_no.toString());
+
+    //         // Redirect or respond as needed (e.g., redirect to frontend with status)
+    //         // Example: redirect to frontend with status as query param
+    //         const frontendUrl = process.env.DOMAIN_FE || '/';
+    //         res.redirect(`${frontendUrl}?payment_no=${payment_no}&status=${result.payment_status}`);
+    //         return;
+    //     } catch (error) {
+    //         next(error);
+    //     }
+    // };
+
+    public handlePayosReturn = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const { orderCode } = req.query;
+            if (!orderCode) {
+                res.status(HttpStatus.BadRequest).json({ message: 'Missing orderCode' });
+                return;
+            }
+
+            // Find the payment by orderCode
+            const payment = await this.paymentService.findPaymentByOrderCode(Number(orderCode));
+            if (!payment) {
+                res.status(HttpStatus.NotFound).json({ message: 'Payment not found' });
+                return;
+            }
+
+            // Now you have payos_web_id
+            const idWebPayOs = payment.payos_web_id;
+
+            const result = await this.paymentService.verifyPaymentStatus(orderCode.toString());
+
+            // Redirect to frontend with /payos path
+            const frontendUrl = process.env.DOMAIN_FE || '/';
+            const params = new URLSearchParams([
+                ['code', '00'],
+                ['id', idWebPayOs || ''],
+                ['orderCode', orderCode.toString()],
+                ['status', result.payment_status || payment.status || '']
+            ]);
+            // Add /payos after the domain
+            res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
+            return;
+        } catch (error) {
+            next(error);
+        }
+    };
+
     public createAppointmentPayment = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;

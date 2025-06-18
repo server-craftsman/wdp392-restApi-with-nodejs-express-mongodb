@@ -27,8 +27,7 @@ export async function createPayosPayment(
     buyerName?: string,
     buyerEmail?: string,
     buyerPhone?: string
-
-): Promise<{ checkoutUrl: string }> {
+): Promise<{ checkoutUrl: string, orderCode: number }> {
     try {
         // Validate input
         if (!amount || amount < 1000) {
@@ -75,11 +74,11 @@ export async function createPayosPayment(
 
         console.log('PayOS Response:', response);
 
-        if (response && response.checkoutUrl) {
-            return { checkoutUrl: response.checkoutUrl };
+        if (response && response.checkoutUrl && response.orderCode) {
+            return { checkoutUrl: response.checkoutUrl, orderCode: response.orderCode };
         }
 
-        throw new Error('Invalid PayOS response: Missing checkoutUrl');
+        throw new Error('Invalid PayOS response: Missing checkoutUrl or orderCode');
     } catch (error: any) {
         console.error('PayOS Error:', {
             message: error.message,

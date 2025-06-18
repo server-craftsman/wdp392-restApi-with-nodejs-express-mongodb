@@ -25,6 +25,12 @@ export default class PaymentRoute implements IRoute {
             this.paymentController.handlePayosWebhook
         );
 
+        // GET: domain:/api/payment/payos-return -> Handle PayOS return
+        this.router.get(
+            `${this.path}/payos-return`,
+            this.paymentController.handlePayosReturn.bind(this.paymentController)
+        );
+
         // POST: domain:/api/payment/appointment -> Create a payment for an appointment with selected payment method
         this.router.post(
             `${this.path}/appointment`,
