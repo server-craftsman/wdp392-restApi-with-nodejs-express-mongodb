@@ -130,11 +130,31 @@ export default class AppointmentService {
 
             // Chỉ cập nhật status slot sau khi appointment được tạo thành công
             if (appointmentData.slot_id && slot) {
-                await SlotSchema.findByIdAndUpdate(
+                // Atomically increment assigned_count
+                const updatedSlot = await SlotSchema.findByIdAndUpdate(
                     appointmentData.slot_id,
-                    { status: SlotStatusEnum.BOOKED },
+                    { $inc: { assigned_count: 1 } }, // $inc ~ increment
                     { new: true }
                 );
+                if (!updatedSlot) {
+                    throw new HttpException(HttpStatus.InternalServerError, 'Failed to update slot');
+                }
+
+                // If assigned_count reaches appointment_limit, set status to BOOKED
+                if (updatedSlot && updatedSlot.assigned_count !== undefined && updatedSlot.assigned_count >= updatedSlot.appointment_limit) {
+                    await SlotSchema.findByIdAndUpdate(
+                        appointmentData.slot_id,
+                        { status: SlotStatusEnum.BOOKED },
+                        { new: true }
+                    );
+                } else if (updatedSlot.status !== SlotStatusEnum.AVAILABLE) {
+                    // If not yet full, ensure status is AVAILABLE
+                    await SlotSchema.findByIdAndUpdate(
+                        appointmentData.slot_id,
+                        { status: SlotStatusEnum.AVAILABLE },
+                        { new: true }
+                    );
+                }
             }
 
             // tạo mẫu cho appointment nếu có mẫu được cung cấp
