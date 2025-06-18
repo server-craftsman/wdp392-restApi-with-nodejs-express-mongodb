@@ -1,6 +1,7 @@
 export enum AppointmentStatusEnum {
     PENDING = 'pending',
     CONFIRMED = 'confirmed',
+    SAMPLE_ASSIGNED = 'sample_assigned',
     SAMPLE_COLLECTED = 'sample_collected',
     SAMPLE_RECEIVED = 'sample_received',
     TESTING = 'testing',

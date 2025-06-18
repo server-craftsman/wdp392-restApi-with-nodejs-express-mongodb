@@ -665,6 +665,23 @@ export default class SampleService {
             // Log the sample addition
             await this.appointmentLogService.logSampleCreation(appointment, samples);
 
+            // Change appointment status to SAMPLE_ASSIGNED if not already
+            if (appointment.status !== AppointmentStatusEnum.SAMPLE_ASSIGNED) {
+                await this.appointmentService.updateAppointmentStatus(
+                    addSampleData.appointment_id,
+                    AppointmentStatusEnum.SAMPLE_ASSIGNED
+                );
+                // Optionally, log the status change if you have a log method for this
+                try {
+                    await this.appointmentLogService.logStatusChange(
+                        appointment,
+                        AppointmentLogTypeEnum.SAMPLE_ASSIGNED
+                    );
+                } catch (logError) {
+                    console.error('Failed to create appointment log for SAMPLE_ASSIGNED:', logError);
+                }
+            }
+
             return samples;
         } catch (error) {
             if (error instanceof HttpException) {
