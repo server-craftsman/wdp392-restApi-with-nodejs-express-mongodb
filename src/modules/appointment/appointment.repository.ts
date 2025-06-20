@@ -50,6 +50,8 @@ export default class AppointmentRepository {
             .populate('service_id', 'name price')
             .populate('staff_id', 'first_name last_name email phone_number')
             .populate('slot_id')
+            .populate('administrative_case_id', 'case_number authorization_code agency_contact_email agency_contact_name agency_contact_phone')
+            .populate('payment_status')
             .populate('laboratory_technician_id', 'first_name last_name email phone_number');
     }
 

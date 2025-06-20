@@ -58,6 +58,7 @@ const UserSchemaEntity: Schema<IUser> = new Schema({
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now },
     is_deleted: { type: Boolean, default: false },
+    administrative_cases: [{ type: String }],
 });
 
 // Thêm virtual field vào UserSchema - virtual field là một trường ảo, không được lưu trữ trong database

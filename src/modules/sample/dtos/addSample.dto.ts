@@ -57,4 +57,8 @@ export class AddSampleDto {
     @ValidateNested({ each: true })
     @Type(() => PersonInfoDto)
     person_info_list?: PersonInfoDto[];
+
+    @IsOptional()
+    @IsString()
+    collection_method?: string;
 } 

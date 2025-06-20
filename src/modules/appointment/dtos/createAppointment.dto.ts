@@ -36,4 +36,19 @@ export class CreateAppointmentDto {
     @Type(() => SampleSelectionDto)
     @IsOptional()
     samples?: SampleSelectionDto[] = [];
+
+    @IsOptional()
+    administrative_case_id?: string;
+
+    @IsString()
+    @IsOptional()
+    agency_contact_email?: string;
+
+    @IsString()
+    @IsOptional()
+    case_number?: string;
+
+    @IsString()
+    @IsOptional()
+    authorization_code?: string;
 }

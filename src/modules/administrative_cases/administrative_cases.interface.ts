@@ -21,8 +21,18 @@ export interface IAdministrativeCase extends Document {
     authorization_code: string; // số phép
 
     status: AdministrativeCaseStatusType;
+    // cơ quan thẩm quyền
+    agency_contact_email: string;
+    agency_contact_name: string;
+    agency_contact_phone: string;
+
+    // người gửi - admin, manager
     applicant_name: string;
-    applicant_id: string;
+    applicant_email: string;
+    applicant_id: string | undefined;
+
     created_at: Date;
     updated_at: Date;
+    is_deleted: boolean;
+
 }

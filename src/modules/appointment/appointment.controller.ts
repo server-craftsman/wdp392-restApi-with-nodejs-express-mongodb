@@ -147,7 +147,7 @@ export default class AppointmentController {
                 userRole
             );
 
-            res.status(HttpStatus.Success).json(formatResponse<IAppointment>(updatedAppointment));
+            res.status(HttpStatus.Success).json(formatResponse<IAppointment>(updatedAppointment as IAppointment));
         } catch (error) {
             next(error);
         }

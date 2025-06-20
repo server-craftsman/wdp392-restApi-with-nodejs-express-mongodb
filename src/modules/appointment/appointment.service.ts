@@ -24,6 +24,10 @@ import SampleService from '../sample/sample.service';
 import { ISample } from '../sample/sample.interface';
 import { sendMail, createNotificationEmailTemplate } from '../../core/utils';
 import { ISendMailDetail } from '../../core/interfaces';
+import { AdministrativeCaseSchema } from '../administrative_cases/administrative_cases.model';
+import { AdministrativeCaseStatus } from '../administrative_cases/administrative_cases.enum';
+import { ServiceTypeEnum } from '../service/service.enum';
+import PaymentService from '../payment/payment.service';
 
 export default class AppointmentService {
     private readonly appointmentRepository: AppointmentRepository;
@@ -50,14 +54,37 @@ export default class AppointmentService {
      * Create a new appointment
      */
     public async createAppointment(userId: string, appointmentData: CreateAppointmentDto): Promise<IAppointment> {
+        let appointment: IAppointment | null = null;
+        let service: any = null;
+        let slot: any = null;
+        let staffId: any = null;
+        let administrative_case_id: string | undefined;
+
         try {
-            const service = await ServiceSchema.findById(appointmentData.service_id);
+            service = await ServiceSchema.findById(appointmentData.service_id);
             if (!service) {
                 throw new HttpException(HttpStatus.NotFound, 'Service not found');
             }
 
-            let slot;
-            let staffId;
+            // ADMINISTRATIVE logic
+            if (service.type === ServiceTypeEnum.ADMINISTRATIVE) {
+                // Validate
+                if (!appointmentData.case_number || !appointmentData.authorization_code) {
+                    throw new HttpException(HttpStatus.BadRequest, 'case_number and authorization_code are required for ADMINISTRATIVE service');
+                }
+                // Chỉ tìm administrative_case, không được tạo mới
+                const adminCase = await AdministrativeCaseSchema.findOne({
+                    case_number: appointmentData.case_number,
+                    authorization_code: appointmentData.authorization_code
+                });
+                if (!adminCase) {
+                    throw new HttpException(HttpStatus.NotFound, 'Administrative case not found or invalid');
+                }
+                administrative_case_id = (adminCase._id as any).toString();
+                // Ép type = FACILITY
+                appointmentData.type = TypeEnum.FACILITY;
+            }
+
             // Nếu có slot_id, kiểm tra slot và lấy staff_id
             if (appointmentData.slot_id) {
                 slot = await SlotSchema.findById(appointmentData.slot_id);
@@ -113,8 +140,27 @@ export default class AppointmentService {
                 );
             }
 
+            // Kiểm tra xem có agency_contact_email không
+            if (service.type === ServiceTypeEnum.ADMINISTRATIVE && !appointmentData.agency_contact_email) {
+                throw new HttpException(HttpStatus.BadRequest, 'agency_contact_email is required for ADMINISTRATIVE service');
+            }
+
+            // set agency_contact_email to appointment entity bằng cách copy từ administrative_case
+            if (service.type === ServiceTypeEnum.ADMINISTRATIVE && appointmentData.agency_contact_email) {
+
+                const adminCase = await AdministrativeCaseSchema.findOne({
+                    case_number: appointmentData.case_number,
+                    authorization_code: appointmentData.authorization_code
+                });
+                if (!adminCase) {
+                    throw new HttpException(HttpStatus.NotFound, 'Administrative case not found or invalid');
+                }
+                administrative_case_id = (adminCase._id as any).toString();
+                appointmentData.agency_contact_email = adminCase.agency_contact_email;
+            }
+
             // Tạo appointment với staff_id nếu có
-            const appointment = await this.appointmentRepository.create({
+            appointment = await this.appointmentRepository.create({
                 user_id: userId as any,
                 service_id: appointmentData.service_id as any,
                 slot_id: appointmentData.slot_id as any,
@@ -123,10 +169,25 @@ export default class AppointmentService {
                 type: appointmentData.type,
                 collection_address: appointmentData.collection_address,
                 status: AppointmentStatusEnum.PENDING,
-                payment_status: PaymentStatusEnum.UNPAID,
+                payment_status: service.type === ServiceTypeEnum.ADMINISTRATIVE ? PaymentStatusEnum.PAID : PaymentStatusEnum.UNPAID,
+                administrative_case_id,
+                agency_contact_email: service.type === ServiceTypeEnum.ADMINISTRATIVE ? appointmentData.agency_contact_email : undefined,
                 created_at: new Date(),
                 updated_at: new Date()
             });
+
+            // Nếu là ADMINISTRATIVE, tạo payment PAID, amount=0, method=GOVERNMENT
+            if (service.type === ServiceTypeEnum.ADMINISTRATIVE) {
+                try {
+                    const paymentService = new PaymentService();
+                    await paymentService.createAdministrativePayment(appointment._id.toString(), userId);
+                } catch (paymentError) {
+                    // Nếu lỗi khi tạo payment cho ADMINISTRATIVE, log lỗi nhưng KHÔNG throw 500
+                    console.error('Failed to create administrative payment:', paymentError);
+                    // Có thể thêm thông tin vào appointment để trả về cho client biết payment chưa được tạo
+                    (appointment as any).paymentError = 'Failed to create administrative payment. Please contact support.';
+                }
+            }
 
             // Chỉ cập nhật status slot sau khi appointment được tạo thành công
             if (appointmentData.slot_id && slot) {
@@ -185,6 +246,18 @@ export default class AppointmentService {
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error;
+            }
+            // Nếu là ADMINISTRATIVE thì không trả về 500 mà trả về 200 với appointment đã tạo (nếu có)
+            if (
+                service &&
+                service.type === ServiceTypeEnum.ADMINISTRATIVE &&
+                appointment
+            ) {
+                // Log the error
+                console.error('Error after creating ADMINISTRATIVE appointment:', error);
+                // Có thể thêm thông tin lỗi vào appointment để client biết
+                (appointment as any).creationError = 'An error occurred after appointment creation. Please contact support.';
+                return appointment;
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error creating appointment');
         }
@@ -277,74 +350,90 @@ export default class AppointmentService {
             );
         }
 
-        // Kiểm tra nhân viên có tồn tại và hoạt động
-        if (!mongoose.Types.ObjectId.isValid(assignStaffData.staff_id)) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid staff ID');
+        // Validate staff IDs
+        if (!assignStaffData.staff_ids || assignStaffData.staff_ids.length === 0) {
+            throw new HttpException(HttpStatus.BadRequest, 'At least one staff ID is required');
         }
 
-        // Lấy thông tin user trước
-        const staffUser = await UserSchema.findOne({
-            _id: assignStaffData.staff_id,
+        // Validate all staff IDs
+        for (const staffId of assignStaffData.staff_ids) {
+            if (!mongoose.Types.ObjectId.isValid(staffId)) {
+                throw new HttpException(HttpStatus.BadRequest, `Invalid staff ID: ${staffId}`);
+            }
+        }
+
+        // Lấy thông tin user cho tất cả staff
+        const staffUsers = await UserSchema.find({
+            _id: { $in: assignStaffData.staff_ids },
             role: UserRoleEnum.STAFF
         });
-        if (!staffUser) {
-            throw new HttpException(HttpStatus.NotFound, 'Staff user not found');
+
+        if (staffUsers.length !== assignStaffData.staff_ids.length) {
+            throw new HttpException(HttpStatus.NotFound, 'One or more staff users not found');
         }
 
         // Kiểm tra staff profile liên kết với user
-        const staffProfile = await StaffProfileSchema.findOne({
-            user_id: new mongoose.Types.ObjectId(assignStaffData.staff_id)
+        const staffProfiles = await StaffProfileSchema.find({
+            user_id: { $in: assignStaffData.staff_ids }
         });
 
-        if (!staffProfile) {
+        if (staffProfiles.length !== assignStaffData.staff_ids.length) {
             throw new HttpException(
                 HttpStatus.NotFound,
-                `Staff profile not found for user ID: ${staffUser._id}`
+                'One or more staff profiles not found'
             );
         }
 
-        if (staffProfile.status !== StaffStatusEnum.ACTIVE) {
-            throw new HttpException(HttpStatus.BadRequest, 'Staff is not active');
-        }
-
-        // Kiểm tra xem user có liên kết với staff profile này không
-        if (staffProfile.user_id?.toString() !== staffUser._id.toString()) {
-            throw new HttpException(HttpStatus.BadRequest, 'Staff profile is not linked to the correct user');
+        // Kiểm tra tất cả staff có active không
+        for (const profile of staffProfiles) {
+            if (profile.status !== StaffStatusEnum.ACTIVE) {
+                const staffUser = staffUsers.find(u => u._id.toString() === profile.user_id?.toString());
+                throw new HttpException(
+                    HttpStatus.BadRequest,
+                    `Staff ${staffUser?.first_name} ${staffUser?.last_name} is not active`
+                );
+            }
         }
 
         // Kiểm tra slot nếu có
         if (appointment.slot_id) {
             const slot = await SlotSchema.findById(appointment.slot_id);
             if (slot) {
-                // Kiểm tra xem staff có trong danh sách staff của slot không
-                if (!slot.staff_profile_ids?.some(id => id.toString() === staffProfile._id.toString())) {
+                // Kiểm tra xem tất cả staff có trong danh sách staff của slot không
+                const slotStaffProfileIds = slot.staff_profile_ids?.map(id => id.toString()) || [];
+                const assignedStaffProfileIds = staffProfiles.map(profile => profile._id.toString());
+
+                const missingStaff = assignedStaffProfileIds.filter(id => !slotStaffProfileIds.includes(id));
+                if (missingStaff.length > 0) {
                     throw new HttpException(
                         HttpStatus.BadRequest,
-                        'Staff is not assigned to this slot'
+                        'One or more staff are not assigned to this slot'
                     );
                 }
 
-                // Kiểm tra giới hạn số lượng appointment cho staff trong slot này
-                const appointmentsInSlot = await this.appointmentRepository.countAppointmentsByStaffAndSlot(
-                    staffUser._id.toString(),
-                    slot._id.toString()
-                );
+                // Kiểm tra giới hạn số lượng appointment cho tất cả staff trong slot này
+                for (const staffUser of staffUsers) {
+                    const appointmentsInSlot = await this.appointmentRepository.countAppointmentsByStaffAndSlot(
+                        staffUser._id.toString(),
+                        slot._id.toString()
+                    );
 
-                if (appointmentsInSlot >= slot.appointment_limit) {
-                    // Tìm staff khác trong slot chưa đạt giới hạn
-                    const alternativeStaff = await this.findAvailableStaffInSlot(slot);
+                    if (appointmentsInSlot >= slot.appointment_limit) {
+                        // Tìm staff khác trong slot chưa đạt giới hạn
+                        const alternativeStaff = await this.findAvailableStaffInSlot(slot);
 
-                    if (alternativeStaff) {
-                        // Gợi ý staff thay thế
-                        throw new HttpException(
-                            HttpStatus.BadRequest,
-                            `Staff has reached appointment limit for this slot. Consider assigning to ${alternativeStaff.first_name} ${alternativeStaff.last_name} (ID: ${alternativeStaff._id})`
-                        );
-                    } else {
-                        throw new HttpException(
-                            HttpStatus.BadRequest,
-                            'Staff has reached appointment limit for this slot and no alternative staff is available'
-                        );
+                        if (alternativeStaff) {
+                            // Gợi ý staff thay thế
+                            throw new HttpException(
+                                HttpStatus.BadRequest,
+                                `Staff ${staffUser.first_name} ${staffUser.last_name} has reached appointment limit for this slot. Consider assigning to ${alternativeStaff.first_name} ${alternativeStaff.last_name} (ID: ${alternativeStaff._id})`
+                            );
+                        } else {
+                            throw new HttpException(
+                                HttpStatus.BadRequest,
+                                `Staff ${staffUser.first_name} ${staffUser.last_name} has reached appointment limit for this slot and no alternative staff is available`
+                            );
+                        }
                     }
                 }
 
@@ -384,6 +473,16 @@ export default class AppointmentService {
                             },
                             { new: true }
                         );
+                    } else if (updatedSlot && updatedSlot?.status !== SlotStatusEnum.AVAILABLE) {
+                        // Nếu chưa đạt giới hạn nhưng slot không ở trạng thái AVAILABLE, đặt lại trạng thái
+                        await SlotSchema.findByIdAndUpdate(
+                            slot._id,
+                            {
+                                status: SlotStatusEnum.AVAILABLE,
+                                updated_at: new Date()
+                            },
+                            { new: true }
+                        );
                     }
                 } catch (error) {
                     console.error('Failed to update slot assigned count:', error);
@@ -392,12 +491,12 @@ export default class AppointmentService {
             }
         }
 
-        // Cập nhật appointment với ID của user (không phải staff profile)
+        // Cập nhật appointment với array của user IDs
         const oldStatus = appointment.status;
         const updatedAppointment = await this.appointmentRepository.findByIdAndUpdate(
             appointmentId,
             {
-                staff_id: staffUser._id as any,
+                staff_id: assignStaffData.staff_ids as any,
                 updated_at: new Date()
             },
             { new: true }
@@ -468,7 +567,7 @@ export default class AppointmentService {
         confirmData: ConfirmAppointmentDto,
         staffId: string,
         userRole: UserRoleEnum
-    ): Promise<IAppointment> {
+    ): Promise<IAppointment | undefined> {
         const appointment = await this.getAppointmentById(appointmentId);
 
         // Only staff can confirm appointments
@@ -536,31 +635,84 @@ export default class AppointmentService {
             throw new HttpException(HttpStatus.InternalServerError, 'Failed to confirm appointment');
         }
 
-        // Update slot status to BOOKED
-        await SlotSchema.findByIdAndUpdate(
-            confirmData.slot_id,
-            { status: SlotStatusEnum.BOOKED },
-            { new: true }
-        );
+        // // Update slot status to BOOKED
+        // await SlotSchema.findByIdAndUpdate(
+        //     confirmData.slot_id,
+        //     { status: SlotStatusEnum.BOOKED },
+        //     { new: true }
+        // );
 
-        // Log the confirmation
+        // Cập nhật thông tin slot nếu cần
         try {
-            await this.appointmentLogService.logStatusChange(
-                updatedAppointment,
-                oldStatus as unknown as AppointmentLogTypeEnum
-            );
-        } catch (logError) {
-            console.error('Failed to create appointment log for confirmation:', logError);
-        }
+            // Kiểm tra xem slot có đang theo dõi số lượng appointment đã gán không
+            if (!slot.assigned_count) {
+                // Nếu không có trường assigned_count, thêm vào và đặt giá trị là 1
+                await SlotSchema.findByIdAndUpdate(
+                    slot._id,
+                    {
+                        $set: { assigned_count: 1 },
+                        updated_at: new Date()
+                    },
+                    { new: true }
+                );
+            } else {
+                // Nếu đã có trường assigned_count, tăng giá trị lên 1
+                await SlotSchema.findByIdAndUpdate(
+                    slot._id,
+                    {
+                        $inc: { assigned_count: 1 }, // $inc ~ increment
+                        updated_at: new Date()
+                    },
+                    { new: true }
+                );
+            }
 
-        // Send confirmation email to user
-        try {
-            await this.sendAppointmentConfirmationEmail(updatedAppointment);
-        } catch (emailError) {
-            console.error('Failed to send appointment confirmation email:', emailError);
-        }
+            // Nếu số lượng đã gán bằng với giới hạn, đánh dấu slot là BOOKED
+            const updatedSlot = await SlotSchema.findById(slot._id);
+            if (updatedSlot && updatedSlot?.assigned_count && updatedSlot?.assigned_count >= updatedSlot?.appointment_limit) {
+                await SlotSchema.findByIdAndUpdate(
+                    slot._id,
+                    {
+                        status: SlotStatusEnum.BOOKED,
+                        updated_at: new Date()
+                    },
+                    { new: true }
+                );
+            } else if (updatedSlot && updatedSlot?.status !== SlotStatusEnum.AVAILABLE) {
+                // Nếu chưa đạt giới hạn nhưng slot không ở trạng thái AVAILABLE, đặt lại trạng thái
+                await SlotSchema.findByIdAndUpdate(
+                    slot._id,
+                    {
+                        status: SlotStatusEnum.AVAILABLE,
+                        updated_at: new Date()
+                    },
+                    { new: true }
+                );
+            }
 
-        return updatedAppointment;
+            // Log the confirmation
+            try {
+                await this.appointmentLogService.logStatusChange(
+                    updatedAppointment,
+                    oldStatus as unknown as AppointmentLogTypeEnum
+                );
+            } catch (logError) {
+                console.error('Failed to create appointment log for confirmation:', logError);
+            }
+
+            // Send confirmation email to user
+            try {
+                await this.sendAppointmentConfirmationEmail(updatedAppointment);
+            } catch (emailError) {
+                console.error('Failed to send appointment confirmation email:', emailError);
+            }
+
+            return updatedAppointment;
+        }
+        catch (error) {
+            console.error('Failed to update slot assigned count:', error);
+            // Không fail quá trình xác nhận nếu cập nhật slot thất bại
+        }
     }
 
     /**

@@ -15,6 +15,9 @@ import { TypeEnum } from '../appointment/appointment.enum';
 import { AddSampleDto } from './dtos/addSample.dto';
 import { SearchPaginationResponseModel } from "../../core/models";
 import { CollectSampleDto } from './dtos/collect-sample.dto';
+import AppointmentSchema from '../appointment/appointment.model';
+import ServiceSchema from '../service/service.model';
+import { ServiceTypeEnum } from '../service/service.enum';
 
 /**
  * Helper function to compare MongoDB ObjectIds or strings
@@ -621,6 +624,17 @@ export default class SampleService {
             }
 
             const samples: ISample[] = [];
+
+            // Kiểm tra appointment
+            const appointmentSchema = await AppointmentSchema.findById(addSampleData.appointment_id);
+            if (!appointmentSchema) throw new Error('Appointment not found');
+            // Lấy service để kiểm tra loại
+            const service = await ServiceSchema.findById(appointmentSchema.service_id);
+            if (service && service.type === ServiceTypeEnum.ADMINISTRATIVE) {
+                if (addSampleData.collection_method !== 'FACILITY') {
+                    throw new Error('ADMINISTRATIVE chỉ cho phép thu mẫu tại cơ sở (FACILITY)');
+                }
+            }
 
             // Process each sample type
             for (let i = 0; i < addSampleData.sample_types.length; i++) {

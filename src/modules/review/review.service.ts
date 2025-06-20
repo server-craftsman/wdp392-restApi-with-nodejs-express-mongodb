@@ -9,6 +9,8 @@ import { ResultSchema } from '../result';
 import { CreateReviewDto, UpdateReviewDto } from './dtos'
 import UserSchema from '../user/user.model';
 import { UserRoleEnum } from '../user/user.enum';
+import ServiceSchema from '../service/service.model';
+import { ServiceTypeEnum } from '../service/service.enum';
 
 export default class ReviewService {
     private readonly reviewRepository: typeof reviewRepository;
@@ -27,7 +29,7 @@ export default class ReviewService {
     /**
      * Create a review
      */
-    public async createReview(reviewData: CreateReviewDto): Promise<IReview> {
+    public async createReview(user: any, reviewData: any): Promise<IReview> {
         try {
             // Check if a result exists for the appointment and customer
             const result = await this.resultSchema.findOne({
@@ -36,6 +38,13 @@ export default class ReviewService {
             });
             if (!result) {
                 throw new HttpException(HttpStatus.NotFound, 'Result not found');
+            }
+
+            const service = await ServiceSchema.findById(reviewData.service_id);
+            if (service && service.type === ServiceTypeEnum.ADMINISTRATIVE) {
+                if (user.role !== UserRoleEnum.ADMIN && user.role !== UserRoleEnum.MANAGER) {
+                    throw new Error('Only ADMIN or MANAGER can review ADMINISTRATIVE services');
+                }
             }
 
             // Create the review
