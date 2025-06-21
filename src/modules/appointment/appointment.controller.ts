@@ -225,8 +225,25 @@ export default class AppointmentController {
     public getStaffAssignedAppointments = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const staffId = req.user.id;
-            const queryParams = req.query;
-            const appointments = await this.appointmentService.getStaffAssignedAppointments(staffId, queryParams);
+            if (!staffId) {
+                throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
+            }
+
+            // Convert query parameters to SearchAppointmentDto format
+            const searchParams: SearchAppointmentDto = {
+                pageNum: req.query.pageNum ? parseInt(req.query.pageNum as string) : 1,
+                pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,
+                user_id: req.query.user_id as string,
+                service_id: req.query.service_id as string,
+                status: req.query.status as any,
+                type: req.query.type as any,
+                staff_id: req.query.staff_id as string,
+                start_date: req.query.start_date as string,
+                end_date: req.query.end_date as string,
+                search_term: req.query.search_term as string
+            };
+
+            const appointments = await this.appointmentService.getStaffAssignedAppointments(staffId, searchParams);
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IAppointment>>(appointments));
         } catch (error) {
             next(error);
@@ -239,8 +256,25 @@ export default class AppointmentController {
     public getLabTechAssignedAppointments = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const labTechId = req.user.id;
-            const queryParams = req.query;
-            const appointments = await this.appointmentService.getLabTechAssignedAppointments(labTechId, queryParams);
+            if (!labTechId) {
+                throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
+            }
+
+            // Convert query parameters to SearchAppointmentDto format
+            const searchParams: SearchAppointmentDto = {
+                pageNum: req.query.pageNum ? parseInt(req.query.pageNum as string) : 1,
+                pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 10,
+                user_id: req.query.user_id as string,
+                service_id: req.query.service_id as string,
+                status: req.query.status as any,
+                type: req.query.type as any,
+                staff_id: req.query.staff_id as string,
+                start_date: req.query.start_date as string,
+                end_date: req.query.end_date as string,
+                search_term: req.query.search_term as string
+            };
+
+            const appointments = await this.appointmentService.getLabTechAssignedAppointments(labTechId, searchParams);
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IAppointment>>(appointments));
         } catch (error) {
             next(error);

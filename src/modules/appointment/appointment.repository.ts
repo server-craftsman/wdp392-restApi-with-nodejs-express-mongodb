@@ -66,7 +66,7 @@ export default class AppointmentRepository {
             .skip(skip)
             .limit(limit)
             .populate('user_id', 'first_name last_name email phone_number')
-            .populate('service_id', 'name price')
+            .populate('service_id', 'name price type is_active estimated_time')
             .populate('staff_id', 'first_name last_name email phone_number')
             .populate('slot_id')
             .populate('laboratory_technician_id', 'first_name last_name email phone_number');

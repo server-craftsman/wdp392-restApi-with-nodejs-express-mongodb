@@ -740,6 +740,10 @@ export default class AppointmentService {
             else if (userRole === UserRoleEnum.STAFF && userId) {
                 query.staff_id = new mongoose.Types.ObjectId(userId);
             }
+            // If user is a laboratory technician, they can only see appointments assigned to them
+            else if (userRole === UserRoleEnum.LABORATORY_TECHNICIAN && userId) {
+                query.laboratory_technician_id = new mongoose.Types.ObjectId(userId);
+            }
             // For other roles, apply filters if provided
             else {
                 if (searchParams.user_id) {
@@ -777,7 +781,7 @@ export default class AppointmentService {
                 }
             }
 
-            // Search term for address (if it's a home collection)
+            // Handle search term differently based on type
             if (searchParams.search_term) {
                 const searchRegex = new RegExp(searchParams.search_term, 'i');
 
@@ -785,31 +789,24 @@ export default class AppointmentService {
                 if (searchParams.type === TypeEnum.HOME) {
                     query.collection_address = { $regex: searchRegex };
                 } else {
-                    // For other cases, we'll need to join with the user collection to search in name
-                    // This is handled by the populate in findWithPopulate
+                    // For non-HOME types, we need to search in user names
+                    // This requires a different approach using aggregation or lookup
+                    // For now, we'll handle this by fetching all results and filtering
+                    // This is not ideal for large datasets but works for the current use case
                 }
             }
 
-            // Count total documents matching the query
-            const totalCount = await this.appointmentRepository.countDocuments(query);
+            let appointments: IAppointment[] = [];
+            let totalCount: number = 0;
 
-            // Sort by appointment date (newest first)
-            const sort = { appointment_date: -1 };
-
-            // Fetch appointments with pagination
-            const appointments = await this.appointmentRepository.findWithPaginationAndPopulate(
-                query,
-                sort,
-                skip,
-                pageSize
-            );
-
-            // If there's a search term and we're not specifically searching in collection_address,
-            // filter the results that match the search term in user name
-            let filteredAppointments = appointments;
+            // If we have a search term for non-HOME types, we need to handle it differently
             if (searchParams.search_term && searchParams.type !== TypeEnum.HOME) {
+                // Fetch all appointments matching the base query (without pagination)
+                const allAppointments = await this.appointmentRepository.findWithPopulate(query);
+
+                // Filter by search term
                 const searchRegex = new RegExp(searchParams.search_term, 'i');
-                filteredAppointments = appointments.filter(appointment => {
+                const filteredAppointments = allAppointments.filter(appointment => {
                     const user = appointment.user_id as any;
                     if (user && (user.first_name || user.last_name)) {
                         const fullName = `${user.first_name || ''} ${user.last_name || ''}`;
@@ -817,10 +814,33 @@ export default class AppointmentService {
                     }
                     return false;
                 });
+
+                // Calculate total count from filtered results
+                totalCount = filteredAppointments.length;
+
+                // Apply pagination to filtered results
+                const startIndex = skip;
+                const endIndex = startIndex + pageSize;
+                appointments = filteredAppointments.slice(startIndex, endIndex);
+            } else {
+                // For HOME type searches or no search term, use normal pagination
+                // Count total documents matching the query
+                totalCount = await this.appointmentRepository.countDocuments(query);
+
+                // Sort by appointment date (newest first)
+                const sort = { appointment_date: -1 };
+
+                // Fetch appointments with pagination
+                appointments = await this.appointmentRepository.findWithPaginationAndPopulate(
+                    query,
+                    sort,
+                    skip,
+                    pageSize
+                );
             }
 
             return {
-                pageData: filteredAppointments,
+                pageData: appointments,
                 pageInfo: {
                     totalItems: totalCount,
                     pageNum,
@@ -1007,14 +1027,11 @@ export default class AppointmentService {
      */
     public async getStaffAssignedAppointments(
         staffId: string,
-        queryParams: any = {}
+        searchParams: SearchAppointmentDto
     ): Promise<SearchPaginationResponseModel<IAppointment>> {
         try {
-            const query = {
-                staff_id: new mongoose.Types.ObjectId(staffId),
-                ...this.processQueryParams(queryParams)
-            };
-            return this.searchAppointments(query, UserRoleEnum.STAFF, staffId);
+            // staff_id will be automatically set by role-based filtering in searchAppointments
+            return this.searchAppointments(searchParams, UserRoleEnum.STAFF, staffId);
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error;
@@ -1031,18 +1048,11 @@ export default class AppointmentService {
      */
     public async getLabTechAssignedAppointments(
         labTechId: string,
-        queryParams: any = {}
+        searchParams: SearchAppointmentDto
     ): Promise<SearchPaginationResponseModel<IAppointment>> {
         try {
-            const query = {
-                laboratory_technician_id: {
-                    $exists: true,
-                    $ne: null,
-                    $eq: new mongoose.Types.ObjectId(labTechId)
-                },
-                ...this.processQueryParams(queryParams)
-            };
-            return this.searchAppointments(query, UserRoleEnum.LABORATORY_TECHNICIAN, labTechId);
+            // laboratory_technician_id will be automatically set by role-based filtering in searchAppointments
+            return this.searchAppointments(searchParams, UserRoleEnum.LABORATORY_TECHNICIAN, labTechId);
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error;
