@@ -1,6 +1,7 @@
 export enum PaymentMethodEnum {
     CASH = 'cash',
-    PAY_OS = 'pay_os'
+    PAY_OS = 'pay_os',
+    GOVERNMENT = 'government'
 }
 
 export enum PaymentStatusEnum {

@@ -31,11 +31,14 @@ export interface IAppointment extends Document {
     slot_id?: string | undefined;
     staff_id?: string | undefined;
     laboratory_technician_id?: string | undefined;
+    agency_contact_email?: string;
+    email?: string;
     appointment_date: Date;
     type: TypeEnum;
     collection_address?: string;
     status: AppointmentStatusEnum;
     payment_status: PaymentStatusEnum;
+    administrative_case_id?: string | any;
     created_at: Date;
     updated_at: Date;
 }

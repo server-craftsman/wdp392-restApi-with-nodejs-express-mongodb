@@ -166,7 +166,7 @@ export default class ReportGeneratorService {
      * @param labTechnicianId ID of the laboratory technician generating the report
      * @returns URL of the generated PDF
      */
-    public async generateReport(resultId: string, labTechnicianId: string): Promise<string> {
+    public async generateReport(resultId: string, labTechnicianId: string, reportTemplate?: string): Promise<string> {
         try {
             // Import the PDF generator dynamically to avoid circular dependencies
             const { generateTestResultPDF } = await import('../utils/pdfGenerator.util');
@@ -175,7 +175,7 @@ export default class ReportGeneratorService {
             const reportData = await this.collectReportData(resultId, labTechnicianId);
 
             // Generate the PDF and get the URL
-            const pdfUrl = await generateTestResultPDF(reportData);
+            const pdfUrl = await generateTestResultPDF(reportData, reportTemplate);
 
             // Update the result with the report URL
             await this.resultRepository.findByIdAndUpdate(

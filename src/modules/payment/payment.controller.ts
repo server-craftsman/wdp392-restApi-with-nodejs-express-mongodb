@@ -143,7 +143,7 @@ export default class PaymentController {
             // Verify the payment status
             const result = await this.paymentService.verifyPaymentStatus(orderCode.toString());
 
-            if (result.success && result.payment_status === 'completed') {
+            if (result.payment_status === 'completed') {
                 console.log(`Payment ${orderCode} verified as completed`);
 
                 // Get frontend success URL from environment or use default

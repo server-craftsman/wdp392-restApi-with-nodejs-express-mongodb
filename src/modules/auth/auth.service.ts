@@ -11,6 +11,8 @@ import { TokenData } from './auth.interface';
 import LoginDto from './dtos/login.dto';
 import LoginGoogleDto from './dtos/loginGoogle.dto';
 import AuthRepository from './auth.repository';
+import { AdministrativeCaseSchema } from '../administrative_cases';
+
 
 export default class AuthService {
     public userSchema = UserSchema;
@@ -163,13 +165,30 @@ export default class AuthService {
     }
 
     public async getCurrentLoginUser(userId: string): Promise<IUser> {
-        const user = await this.authRepository.findUserById(userId);
-        // help reduce overhead memory
+        // Lấy user kèm staff_profile (nếu có)
+        const user = await this.userSchema
+            .findById(userId)
+            .populate('staff_profile')
+            .lean({ virtuals: true });
+
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `User is not exists.`);
         }
-        delete user.password;
-        return user;
+
+        // Lấy các administrative cases mà user là applicant_id
+        // Nếu đã có administrative_cases (không phải mảng rỗng), không ghi đè
+        let administrative_cases = user.administrative_cases;
+        if (!Array.isArray(administrative_cases) || administrative_cases.length === 0) {
+            administrative_cases = await AdministrativeCaseSchema.find({ applicant_id: userId });
+        }
+        user.administrative_cases = administrative_cases;
+
+        // Xóa password nếu có
+        if ('password' in user) {
+            delete user.password;
+        }
+
+        return user as IUser;
     }
 
     public async forgotPassword(email: string): Promise<boolean> {

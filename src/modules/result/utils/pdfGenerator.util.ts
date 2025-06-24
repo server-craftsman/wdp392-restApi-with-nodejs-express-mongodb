@@ -80,7 +80,7 @@ export interface TestResultReportData {
 /**
  * Generate a PDF report for a test result in Vietnamese
  */
-export async function generateTestResultPDF(data: TestResultReportData): Promise<string> {
+export async function generateTestResultPDF(data: TestResultReportData, template?: string): Promise<string> {
     // Validate AWS environment variables
     if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_REGION) {
         throw new HttpException(
@@ -116,23 +116,30 @@ export async function generateTestResultPDF(data: TestResultReportData): Promise
         // Pipe the PDF to the file
         doc.pipe(writeStream);
 
-        // Add placeholder for logo instead of loading image
-        // doc.rect(50, 45, 150, 50).stroke('#cccccc');
-        // doc.fontSize(12).fillColor('#999999').text('Logo', 100, 65);
-        const logoUrl = process.env.LOGO_URL;
-        if (logoUrl) {
-            doc.image(logoUrl, 50, 45, { width: 150, height: 50 });
+        // === ADMINISTRATIVE PDF CUSTOMIZATION ===
+        if (template === 'administrative_report_template') {
+            // Watermark
+            doc.fontSize(60).fillColor('#eeeeee').opacity(0.3).text('ADMINISTRATIVE', 100, 300);
+            doc.opacity(1);
+            // Header
+            doc.fontSize(18).fillColor('#cc0000').text('ADMINISTRATIVE DNA TEST REPORT', { align: 'center' });
+            doc.moveDown(0.5);
+            // Số hiệu vụ việc
+            if ((data as any).caseNumber) {
+                doc.fontSize(12).fillColor('#333333').text(`Case Number: ${(data as any).caseNumber}`, { align: 'right' });
+            }
+            // Thêm section xác nhận của cơ quan
+            doc.moveDown(2);
+        } else {
+            // Add decorative line for header
+            doc.lineWidth(1)
+                .moveTo(50, 110)
+                .lineTo(550, 110)
+                .stroke('#0066cc');
+            // Add header with better styling - using ASCII instead of Unicode
+            doc.fontSize(22).fillColor('#0066cc').text('TEST RESULTS REPORT', { align: 'center' });
+            doc.moveDown(0.5);
         }
-
-        // Add decorative line for header
-        doc.lineWidth(1)
-            .moveTo(50, 110)
-            .lineTo(550, 110)
-            .stroke('#0066cc');
-
-        // Add header with better styling - using ASCII instead of Unicode
-        doc.fontSize(22).fillColor('#0066cc').text('TEST RESULTS REPORT', { align: 'center' });
-        doc.moveDown(0.5);
 
         // Add report identification with improved formatting - using ASCII instead of Unicode
         const dateStr = moment().locale('vi').format('DD/MM/YYYY');
@@ -396,6 +403,20 @@ export async function generateTestResultPDF(data: TestResultReportData): Promise
 
             // Delete temporary file
             fs.unlinkSync(tempFilePath);
+
+            // Cuối file, nếu là ADMINISTRATIVE, thêm section xác nhận của cơ quan
+            if (template === 'administrative_report_template') {
+                doc.addPage();
+                doc.fontSize(14).fillColor('#cc0000').text('AGENCY CONFIRMATION', { align: 'center' });
+                doc.moveDown(1);
+                doc.fontSize(12).fillColor('#333333').text('This report is issued for administrative/legal purposes.');
+                doc.moveDown(1);
+                doc.text('Agency Representative: ___________________________');
+                doc.moveDown(0.5);
+                doc.text('Position: _______________________________________');
+                doc.moveDown(0.5);
+                doc.text('Date: ___________________   Signature: ___________________');
+            }
 
             return uploadResult.Location;
         } catch (error: any) {
