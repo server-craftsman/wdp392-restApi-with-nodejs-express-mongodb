@@ -199,15 +199,30 @@ export default class App {
             const start = Date.now(); // Lưu thời gian bắt đầu
             const threshold = parseInt(process.env.RESPONSE_TIME_THRESHOLD || '1000');
 
-            res.on('finish', () => {
-                const duration = Date.now() - start; // Tính thời gian xử lý
-                res.set('X-Response-Time', `${duration}ms`); // Thêm header
+            // Override res.end để capture khi response kết thúc
+            const originalEnd = res.end;
+            let finished = false;
 
-                // Log warning nếu vượt threshold từ env
-                if (duration > threshold) {
-                    logger.warn(`Slow request: ${req.method} ${req.path} took ${duration}ms (threshold: ${threshold}ms)`);
+            res.end = function (chunk?: any, encoding?: any) {
+                if (!finished) {
+                    finished = true;
+                    const duration = Date.now() - start; // Tính thời gian xử lý
+
+                    // Chỉ set header nếu headers chưa được gửi
+                    if (!res.headersSent) {
+                        res.set('X-Response-Time', `${duration}ms`); // Thêm header
+                    }
+
+                    // Log warning nếu vượt threshold từ env
+                    if (duration > threshold) {
+                        logger.warn(`Slow request: ${req.method} ${req.path} took ${duration}ms (threshold: ${threshold}ms)`);
+                    }
                 }
-            });
+
+                // Gọi original end method
+                return originalEnd.call(this, chunk, encoding);
+            };
+
             next();
         });
 

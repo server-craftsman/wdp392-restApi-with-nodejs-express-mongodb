@@ -75,12 +75,12 @@ export default class DocsRoute implements IRoute {
                 },
                 servers: [
                     {
-                        url: "http://localhost:8080/",
-                        description: "Local server"
+                        url: "https://restapi-dnatesting.vercel.app/",
+                        description: "Live server"
                     },
                     {
-                        url: "https://restapi-dna-testing-fwdnadcqc9hsfmbf.canadacentral-01.azurewebsites.net/",
-                        description: "Live server"
+                        url: "http://localhost:6969/",
+                        description: "Local server"
                     },
                 ],
                 components: {
@@ -126,10 +126,10 @@ export default class DocsRoute implements IRoute {
                 operationsSorter: 'alpha'
             },
             customCss: `
-                .swagger-ui .topbar { background-color: rgb(0, 43, 2); }
+                .swagger-ui .topbar { background-color: rgb(0, 0, 0); }
                 .swagger-ui .opblock-tag { font-size: 16px; margin: 10px 0 5px 0; }
                 .swagger-ui .opblock .opblock-summary-description { font-size: 13px; }
-                .swagger-ui .opblock-tag:hover { background-color: rgba(0, 43, 2, 0.1); }
+                .swagger-ui .opblock-tag:hover { background-color: rgba(0, 0, 0, 0.1); }
                 .endpoint-count { 
                     background-color: #49cc90; 
                     color: white; 
