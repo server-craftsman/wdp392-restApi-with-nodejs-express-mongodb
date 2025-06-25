@@ -3,17 +3,7 @@
     "builds": [
         {
             "src": "src/server.ts",
-            "use": "@vercel/node",
-            "config": {
-                "includeFiles": [
-                    "src/**",
-                    "swagger.yaml",
-                    "assets/**",
-                    "public/**",
-                    "node_modules/swagger-ui-dist/**"
-                ],
-                "maxLambdaSize": "50mb"
-            }
+            "use": "@vercel/node"
         }
     ],
     "routes": [
