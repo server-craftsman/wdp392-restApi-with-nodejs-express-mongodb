@@ -114,7 +114,15 @@ export default class App {
         } catch (err) {
             logger.error('Database connection failed:', err);
             cachedConnection = null; // Xóa cache khi thất bại
-            throw err; // Ném lỗi để caller xử lý
+
+            // Trong serverless environment, không nên throw error nếu DB fail
+            // Để app vẫn có thể khởi động và handle requests khác
+            if (process.env.VERCEL) {
+                logger.warn('Running in Vercel - continuing without database connection');
+                return null;
+            } else {
+                throw err; // Ném lỗi để caller xử lý trong local environment
+            }
         }
     }
 
@@ -205,13 +213,58 @@ export default class App {
 
         // Health check endpoint để monitoring
         this.app.get('/health', (req, res) => {
-            res.status(200).json({
-                status: 'healthy',
+            const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+            const isHealthy = dbStatus === 'connected' || process.env.VERCEL; // In Vercel, allow healthy even if DB disconnected temporarily
+
+            res.status(isHealthy ? 200 : 503).json({
+                status: isHealthy ? 'healthy' : 'unhealthy',
                 timestamp: new Date().toISOString(),
                 environment: process.env.NODE_ENV,
-                // Kiểm tra trạng thái database: 1 = connected
-                database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+                database: dbStatus,
+                vercel: !!process.env.VERCEL
             });
+        });
+
+        // Middleware kiểm tra database connection cho API requests
+        this.app.use('/api', (req, res, next) => {
+            // Bỏ qua check cho health endpoint
+            if (req.path === '/health') {
+                return next();
+            }
+
+            // Kiểm tra database connection
+            if (mongoose.connection.readyState !== 1) {
+                // Trong serverless, thử kết nối lại database
+                if (process.env.VERCEL) {
+                    logger.warn(`API request to ${req.path} - Database not connected, attempting reconnection`);
+                    this.connectToDatabase().then(() => {
+                        if (mongoose.connection.readyState === 1) {
+                            next();
+                        } else {
+                            res.status(503).json({
+                                success: false,
+                                message: 'Database service temporarily unavailable',
+                                error: 'DATABASE_CONNECTION_FAILED'
+                            });
+                        }
+                    }).catch(() => {
+                        res.status(503).json({
+                            success: false,
+                            message: 'Database service temporarily unavailable',
+                            error: 'DATABASE_CONNECTION_FAILED'
+                        });
+                    });
+                } else {
+                    // Local environment - trả về lỗi ngay
+                    res.status(503).json({
+                        success: false,
+                        message: 'Database service unavailable',
+                        error: 'DATABASE_CONNECTION_FAILED'
+                    });
+                }
+            } else {
+                next();
+            }
         });
     }
 

@@ -22,9 +22,13 @@ import { LogRoute } from './modules/blog/log';
 import { ReviewRoute } from './modules/review';
 import { AdministrativeCasesRoute } from './modules/administrative_cases';
 
+// Load environment variables
 dotenv.config();
+
+// Validate environment variables
 validateEnv();
 
+// Initialize all routes
 const routes = [
     new IndexRoute(),
     new DocsRoute(),
@@ -48,6 +52,18 @@ const routes = [
     new AdministrativeCasesRoute()
 ];
 
+// Create app instance
 const app = new App(routes);
 
-app.listen();
+// For Vercel serverless deployment, export the Express app
+// The app.listen() is handled by your App class internally for Vercel detection
+if (process.env.VERCEL) {
+    // Export for Vercel serverless functions
+    module.exports = app.app;
+} else {
+    // For local development, start the server
+    app.listen();
+}
+
+// Default export for ES modules compatibility
+export default app.app;

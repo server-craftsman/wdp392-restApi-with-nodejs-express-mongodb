@@ -8,11 +8,7 @@
     ],
     "routes": [
         {
-            "src": "/swagger/(.*)",
-            "dest": "/public/swagger/$1"
-        },
-        {
-            "src": "/(.*)",
+            "src": "/health",
             "dest": "/src/server.ts"
         },
         {
@@ -20,8 +16,23 @@
             "dest": "/src/server.ts"
         },
         {
+            "src": "/swagger/(.*)",
+            "dest": "/src/server.ts"
+        },
+        {
             "src": "/images/(.*)",
-            "dest": "/public/images/$1"
+            "dest": "/src/server.ts"
+        },
+        {
+            "src": "/api/(.*)",
+            "dest": "/src/server.ts"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/src/server.ts"
         }
-    ]
+    ],
+    "env": {
+        "NODE_ENV": "production"
+    }
 }
