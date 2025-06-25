@@ -1,18 +1,5 @@
 {
     "version": 2,
-    "builds": [
-        {
-            "src": "src/server.ts",
-            "use": "@vercel/node",
-            "config": {
-                "includeFiles": [
-                    "src/**",
-                    "swagger.yaml",
-                    "assets/**"
-                ]
-            }
-        }
-    ],
     "routes": [
         {
             "src": "/health",
@@ -93,7 +80,14 @@
     ],
     "functions": {
         "src/server.ts": {
-            "maxDuration": 30
+            "maxDuration": 30,
+            "runtime": "nodejs18.x",
+            "includeFiles": [
+                "src/**",
+                "swagger.yaml",
+                "assets/**",
+                "public/**"
+            ]
         }
     },
     "env": {
@@ -139,5 +133,8 @@
                 }
             ]
         }
-    ]
+    ],
+    "outputDirectory": "dist",
+    "installCommand": "npm install",
+    "buildCommand": "npm run build"
 }
