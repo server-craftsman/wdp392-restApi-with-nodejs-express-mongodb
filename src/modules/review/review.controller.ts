@@ -16,10 +16,13 @@ export default class ReviewController {
      */
     public createReview = async (req: Request, res: Response, next: NextFunction) => {
         try {
+            if (!req.user) {
+                throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
+            }
             const reviewData: CreateReviewDto = req.body;
             // Set customer_id from the logged-in user
             const customer_id = req.user.id;
-            const review = await this.reviewService.createReview({ ...reviewData, customer_id });
+            const review = await this.reviewService.createReview(req.user, { customer_id, ...reviewData, });
             res.status(HttpStatus.Created).json(formatResponse<IReview>(review));
         } catch (error) {
             next(error);

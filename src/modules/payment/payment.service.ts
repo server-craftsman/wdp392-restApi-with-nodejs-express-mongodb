@@ -285,6 +285,11 @@ export default class PaymentService {
                 console.error('Failed to send payment initiated email:', emailError);
             }
 
+            // Immediately verify payment for CASH (and mark as completed, update appointment, create transaction)
+            if (paymentData.payment_method === PaymentMethodEnum.CASH) {
+                await this.verifyPaymentStatus(paymentNo);
+            }
+
             // Return result based on payment method
             const result = {
                 payment_no: paymentNo,
@@ -338,43 +343,56 @@ export default class PaymentService {
     }
 
     /**
-     * Verify payment status (for manual verification or after redirect)
+     * Verify payment status and update Payment & Appointment Schema accordingly.
+     * This method will try to find payment by payment_no first, then by payos_order_code if not found.
+     * After creating a Payment, you can call this to update status for Payment to completed & Appointment to paid,
+     * and create transaction info.
      * @param paymentIdentifier Payment number or PayOS order code to verify
-     * @returns Updated payment status
+     * @returns Updated payment status and appointment id
      */
     public async verifyPaymentStatus(paymentIdentifier: string): Promise<{
-        success: boolean;
         payment_status: string;
         appointment_id: string;
+        paymentNo: string;
     }> {
         try {
-            // Check if the identifier is numeric (PayOS orderCode) or string (your payment_no)
-            const isNumeric = /^\d+$/.test(paymentIdentifier);
-            const query: any = {};
+            // Try to find payment by payment_no first
+            let payment = await this.paymentSchema.findOne({ payment_no: paymentIdentifier });
 
-            if (isNumeric) {
-                query.payos_order_code = parseInt(paymentIdentifier, 10);
-            } else {
-                query.payment_no = paymentIdentifier;
+            // If not found, try by payos_order_code (number)
+            if (!payment && /^\d+$/.test(paymentIdentifier)) {
+                payment = await this.paymentSchema.findOne({ payos_order_code: parseInt(paymentIdentifier, 10) });
             }
-
-            const payment = await this.paymentSchema.findOne(query);
 
             if (!payment) {
                 throw new HttpException(HttpStatus.NotFound, 'Payment not found');
             }
 
-            // For CASH payment, we can mark it as completed here
-            // In real-world scenario, this would be called by staff after receiving cash
+            // If payment is already completed, just return
+            if (payment.status === PaymentStatusEnum.COMPLETED) {
+                return {
+                    paymentNo: payment.payment_no || paymentIdentifier,
+                    payment_status: PaymentStatusEnum.COMPLETED,
+                    appointment_id: payment.appointment_id || ''
+                };
+            }
+
+            // For CASH payment, mark as completed if still pending
             if (payment.payment_method === PaymentMethodEnum.CASH && payment.status === PaymentStatusEnum.PENDING) {
-                payment.status = PaymentStatusEnum.COMPLETED;
-                payment.payos_payment_status = 'PAID';
-                payment.payos_payment_status_time = new Date();
-                payment.updated_at = new Date();
-                await payment.save();
+                // Update payment status
+                const updatedPayment = await this.paymentSchema.findByIdAndUpdate(
+                    payment._id,
+                    {
+                        status: PaymentStatusEnum.COMPLETED,
+                        payos_payment_status: 'PAID',
+                        payos_payment_status_time: new Date(),
+                        updated_at: new Date()
+                    },
+                    { new: true }
+                );
 
                 // Update appointment payment status
-                const appointment = await this.appointmentSchema.findByIdAndUpdate(
+                const updatedAppointment = await this.appointmentSchema.findByIdAndUpdate(
                     payment.appointment_id,
                     { payment_status: AppointmentPaymentStatusEnum.PAID },
                     { new: true }
@@ -398,7 +416,6 @@ export default class PaymentService {
                             updated_at: new Date(),
                         });
                     }
-                    console.log(`Created ${payment.sample_ids.length} transactions for payment ${paymentIdentifier}`);
                 } else {
                     // Fallback if no samples
                     await this.transactionSchema.create({
@@ -418,24 +435,25 @@ export default class PaymentService {
 
                 // Send payment success email
                 try {
-                    if (appointment) {
-                        await this.sendPaymentSuccessEmail(payment, appointment);
+                    if (updatedAppointment) {
+                        await this.sendPaymentSuccessEmail(updatedPayment, updatedAppointment);
                     }
                 } catch (emailError) {
                     console.error('Failed to send payment success email:', emailError);
                 }
 
                 return {
-                    success: true,
+                    paymentNo: payment.payment_no || paymentIdentifier,
                     payment_status: PaymentStatusEnum.COMPLETED,
                     appointment_id: payment.appointment_id || ''
                 };
             }
 
-            // For PayOS, we would check the status from PayOS API
+            // For PayOS or other methods, you may want to check with the payment gateway here
             // For now, just return the current status
+
             return {
-                success: true,
+                paymentNo: payment.payment_no || paymentIdentifier,
                 payment_status: payment.status,
                 appointment_id: payment.appointment_id || ''
             };
@@ -778,5 +796,23 @@ export default class PaymentService {
         } catch (error) {
             console.error('Error sending payment cancelled email:', error);
         }
+    }
+
+    /**
+     * Create payment for ADMINISTRATIVE appointment (government paid)
+     */
+    public async createAdministrativePayment(appointmentId: string, userId: string) {
+        // Kiểm tra đã có payment chưa
+        const existing = await this.paymentSchema.findOne({ appointment_id: appointmentId });
+        if (existing) return existing;
+        return this.paymentSchema.create({
+            appointment_id: appointmentId,
+            user_id: userId,
+            amount: 0,
+            method: PaymentMethodEnum.GOVERNMENT,
+            status: PaymentStatusEnum.COMPLETED,
+            created_at: new Date(),
+            updated_at: new Date()
+        });
     }
 }

@@ -386,12 +386,12 @@
  *       - Bearer: []
  *     parameters:
  *       - in: query
- *         name: page
+ *         name: pageNum
  *         schema:
  *           type: integer
  *         description: Page number
  *       - in: query
- *         name: limit
+ *         name: pageSize
  *         schema:
  *           type: integer
  *         description: Number of items per page
@@ -413,12 +413,12 @@
  *       - Bearer: []
  *     parameters:
  *       - in: query
- *         name: page
+ *         name: pageNum
  *         schema:
  *           type: integer
  *         description: Page number
  *       - in: query
- *         name: limit
+ *         name: pageSize
  *         schema:
  *           type: integer
  *         description: Number of items per page

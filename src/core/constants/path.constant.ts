@@ -8,6 +8,10 @@ export const API_PATH = {
     SETTING: '/api/setting',
     SETTING_DEFAULT: '/api/setting/default',
 
+    // administrative case
+    ADMINISTRATIVE_CASES: '/api/administrative-cases',
+
+
     // auth
     AUTH: '/api/auth',
     AUTH_GOOGLE: '/api/auth/google',

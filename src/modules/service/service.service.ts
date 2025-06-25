@@ -11,6 +11,7 @@ import ServiceRepository from './service.repository';
 import { uploadFileToS3 } from "../../core/utils/s3Upload";
 import { s3Folders } from "../../core/utils/aws.config";
 import ReviewSchema from '../review/review.model';
+import { UserRoleEnum } from '../user/user.enum';
 
 export default class ServiceService {
     private appointmentSchema = AppointmentSchema;
@@ -182,7 +183,7 @@ export default class ServiceService {
     /**
      * Lấy danh sách dịch vụ với các bộ lọc tùy chọn và phân trang
      */
-    public async getServices(queryParams: any = {}): Promise<SearchPaginationResponseModel<IService & { average_rating?: number, review_count?: number }>> {
+    public async getServices(queryParams: any = {}, user?: any): Promise<SearchPaginationResponseModel<IService & { average_rating?: number, review_count?: number }>> {
         try {
             const query: any = { is_deleted: false };
 

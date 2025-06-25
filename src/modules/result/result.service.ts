@@ -16,6 +16,9 @@ import ReportGeneratorService from './services/reportGenerator.service';
 import { sendMail, createNotificationEmailTemplate } from '../../core/utils';
 import { ISendMailDetail } from '../../core/interfaces';
 import UserSchema from '../user/user.model';
+import ServiceSchema from '../service/service.model';
+import AppointmentSchema from '../appointment/appointment.model';
+import { ServiceTypeEnum } from '../service/service.enum';
 
 export default class ResultService {
     private resultRepository = new ResultRepository();
@@ -87,6 +90,20 @@ export default class ResultService {
             const appointment = await this.appointmentService.getAppointmentById(appointmentId);
             if (!appointment) {
                 throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
+            }
+
+            // Lấy service để kiểm tra loại
+            const service = await ServiceSchema.findById(appointment.service_id);
+            let reportTemplate = 'default_report_template';
+            let recipientEmail = undefined;
+            if (service && service.type === ServiceTypeEnum.ADMINISTRATIVE) {
+                reportTemplate = 'administrative_report_template';
+                // Ưu tiên lấy email agency từ appointment, nếu không có thì lấy từ user
+                recipientEmail = appointment.agency_contact_email;
+                if (!recipientEmail) {
+                    const user = await AppointmentSchema.findById(appointment.user_id);
+                    recipientEmail = user?.email;
+                }
             }
 
             let customerId: string;
@@ -207,7 +224,8 @@ export default class ResultService {
                     console.log('Generating PDF report...');
                     const reportUrl = await this.reportGeneratorService.generateReport(
                         result._id.toString(),
-                        laboratoryTechnicianId
+                        laboratoryTechnicianId,
+                        reportTemplate
                     );
 
                     // Update the result with the report URL
@@ -264,7 +282,7 @@ export default class ResultService {
 
                 // Send result notification email
                 try {
-                    await this.sendResultReadyEmail(result, appointment);
+                    await this.sendResultReadyEmail(result, appointment, recipientEmail);
                 } catch (emailError) {
                     console.error('Failed to send result ready email:', emailError);
                 }
@@ -515,7 +533,7 @@ export default class ResultService {
     /**
      * Send email notification when test result is ready
      */
-    private async sendResultReadyEmail(result: IResult, appointment: any): Promise<void> {
+    private async sendResultReadyEmail(result: IResult, appointment: any, recipientEmail?: string): Promise<void> {
         try {
             // Get user details
             let userId = result.customer_id;
@@ -567,13 +585,13 @@ export default class ResultService {
             `;
 
             const emailDetails: ISendMailDetail = {
-                toMail: user.email,
+                toMail: recipientEmail || user.email,
                 subject: 'Test Results Ready - Bloodline DNA Testing Service',
                 html: createNotificationEmailTemplate(userName, title, message)
             };
 
             await sendMail(emailDetails);
-            console.log(`Result ready email sent to ${user.email}`);
+            console.log(`Result ready email sent to ${recipientEmail || user.email}`);
         } catch (error) {
             console.error('Error sending result ready email:', error);
         }

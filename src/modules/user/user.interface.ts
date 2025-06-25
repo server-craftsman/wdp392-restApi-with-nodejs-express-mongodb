@@ -45,4 +45,5 @@ export interface IUser extends Document {
 
     full_name?: string;
     phone?: string;
+    administrative_cases?: any[];
 }

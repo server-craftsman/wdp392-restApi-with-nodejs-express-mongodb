@@ -20,6 +20,7 @@ import { BlogRoute } from './modules/blog';
 import { BlogCategoryRoute } from './modules/blog_category';
 import { LogRoute } from './modules/blog/log';
 import { ReviewRoute } from './modules/review';
+import { AdministrativeCasesRoute } from './modules/administrative_cases';
 
 dotenv.config();
 validateEnv();
@@ -43,7 +44,8 @@ const routes = [
     new BlogRoute(),
     new BlogCategoryRoute(),
     new LogRoute(),
-    new ReviewRoute()
+    new ReviewRoute(),
+    new AdministrativeCasesRoute()
 ];
 
 const app = new App(routes);

@@ -42,6 +42,9 @@
  *           type: string
  *           enum: [UNPAID, PAID, REFUNDED]
  *           description: Payment status of the appointment
+ *         administrative_case_id:
+ *           type: string
+ *           description: ID of the administrative case associated with the appointment
  *         created_at:
  *           type: string
  *           format: date-time
@@ -62,6 +65,10 @@
  *           type: string
  *           enum: [self, facility, home]
  *         collection_address:
+ *           type: string
+ *         case_number:
+ *           type: string
+ *         authorization_code:
  *           type: string
  *     AppointmentResponse:
  *       type: object

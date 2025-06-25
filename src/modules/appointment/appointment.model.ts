@@ -10,7 +10,8 @@ const AppointmentSchemaEntity: Schema<IAppointment> = new Schema({
     slot_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.SLOT },
     staff_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER },
     laboratory_technician_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER },
-    appointment_date: { type: Date, required: true },
+    agency_contact_email: { type: String }, // Thêm trường này để lưu email của agency tại thời điểm tạo appointment
+    appointment_date: { type: Date, required: true }, // Thêm trường này để lưu ngày tạo appointment
     type: {
         type: String,
         enum: Object.values(TypeEnum),
@@ -29,6 +30,7 @@ const AppointmentSchemaEntity: Schema<IAppointment> = new Schema({
         required: true,
         default: PaymentStatusEnum.UNPAID
     },
+    administrative_case_id: { type: Schema.Types.ObjectId, ref: 'administrative_cases', required: false },
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }
 });

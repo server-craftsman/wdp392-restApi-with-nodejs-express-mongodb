@@ -50,7 +50,7 @@ export default class SampleRepository {
      */
     public async findByAppointmentId(appointmentId: string): Promise<ISample[]> {
         return SampleSchema.find({ appointment_id: appointmentId })
-            .populate('appointment_id', '_id user_id service_id status appointment_date type collection_address staff_id slot_id created_at updated_at')
+            .populate('appointment_id', '_id user_id service_id status appointment_date type collection_address staff_id slot_id payment_status created_at updated_at')
             .populate('kit_id', '_id code status created_at updated_at');
     }
 

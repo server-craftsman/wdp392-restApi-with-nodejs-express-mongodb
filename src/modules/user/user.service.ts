@@ -28,6 +28,7 @@ import { StaffProfileSchema, StaffStatusEnum } from '../staff_profile';
 // import { SubscriptionSchema } from '../subscription';
 import { DataStoredInToken, UserInfoInTokenDefault } from '../auth';
 import UserRepository from './user.repository';
+import { AdministrativeCaseSchema } from '../administrative_cases/administrative_cases.model';
 
 export default class UserService {
     private userRepository = new UserRepository();
@@ -197,7 +198,7 @@ export default class UserService {
         userId: string,
         is_deletedPassword = true,
         userData: DataStoredInToken = UserInfoInTokenDefault,
-    ): Promise<IUser> {
+    ): Promise<IUser & { administrative_cases?: any[] }> {
         const user = await this.userRepository.findUserByIdWithStaffProfile(userId);
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `Item is not exists.`);
@@ -210,6 +211,9 @@ export default class UserService {
         if (is_deletedPassword) {
             delete user.password;
         }
+        // Lấy các administrative cases mà user là applicant_id
+        const administrative_cases = await AdministrativeCaseSchema.find({ applicant_id: userId });
+        user.administrative_cases = administrative_cases;
         return user;
     }
 
