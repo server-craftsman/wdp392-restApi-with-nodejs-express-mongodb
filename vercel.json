@@ -3,25 +3,141 @@
     "builds": [
         {
             "src": "src/server.ts",
-            "use": "@vercel/node"
+            "use": "@vercel/node",
+            "config": {
+                "includeFiles": [
+                    "src/**",
+                    "swagger.yaml",
+                    "assets/**"
+                ]
+            }
         }
     ],
     "routes": [
         {
-            "src": "/swagger/(.*)",
-            "dest": "/public/swagger/$1"
-        },
-        {
-            "src": "/(.*)",
+            "src": "/health",
+            "headers": {
+                "cache-control": "public, max-age=0, must-revalidate"
+            },
             "dest": "/src/server.ts"
         },
         {
             "src": "/api-docs",
+            "headers": {
+                "cache-control": "public, max-age=300, s-maxage=600"
+            },
             "dest": "/src/server.ts"
         },
         {
+            "src": "/swagger/(.*)",
+            "headers": {
+                "cache-control": "public, max-age=31536000, immutable"
+            },
+            "dest": "/public/swagger/$1"
+        },
+        {
             "src": "/images/(.*)",
+            "headers": {
+                "cache-control": "public, max-age=31536000, immutable"
+            },
             "dest": "/public/images/$1"
+        },
+        {
+            "src": "/api/auth/(.*)",
+            "headers": {
+                "cache-control": "private, no-cache, no-store, must-revalidate"
+            },
+            "dest": "/src/server.ts"
+        },
+        {
+            "src": "/api/service",
+            "methods": [
+                "GET"
+            ],
+            "headers": {
+                "cache-control": "public, max-age=300, s-maxage=600"
+            },
+            "dest": "/src/server.ts"
+        },
+        {
+            "src": "/api/department",
+            "methods": [
+                "GET"
+            ],
+            "headers": {
+                "cache-control": "public, max-age=300, s-maxage=600"
+            },
+            "dest": "/src/server.ts"
+        },
+        {
+            "src": "/api/blog/(.*)",
+            "methods": [
+                "GET"
+            ],
+            "headers": {
+                "cache-control": "public, max-age=180, s-maxage=300"
+            },
+            "dest": "/src/server.ts"
+        },
+        {
+            "src": "/api/(.*)",
+            "headers": {
+                "cache-control": "private, no-cache"
+            },
+            "dest": "/src/server.ts"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/src/server.ts"
+        }
+    ],
+    "functions": {
+        "src/server.ts": {
+            "maxDuration": 30
+        }
+    },
+    "env": {
+        "NODE_ENV": "production"
+    },
+    "headers": [
+        {
+            "source": "/api/(.*)",
+            "headers": [
+                {
+                    "key": "X-Content-Type-Options",
+                    "value": "nosniff"
+                },
+                {
+                    "key": "X-Frame-Options",
+                    "value": "DENY"
+                },
+                {
+                    "key": "X-XSS-Protection",
+                    "value": "1; mode=block"
+                },
+                {
+                    "key": "Referrer-Policy",
+                    "value": "strict-origin-when-cross-origin"
+                }
+            ]
+        },
+        {
+            "source": "/swagger/(.*)",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=31536000, immutable"
+                }
+            ]
+        },
+        {
+            "source": "/images/(.*)",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=31536000, immutable"
+                }
+            ]
         }
     ]
 }
