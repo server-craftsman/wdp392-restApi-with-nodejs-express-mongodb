@@ -8,124 +8,20 @@
     ],
     "routes": [
         {
-            "src": "/health",
-            "headers": {
-                "cache-control": "public, max-age=0, must-revalidate"
-            },
-            "dest": "/src/server.ts"
-        },
-        {
-            "src": "/api-docs",
-            "headers": {
-                "cache-control": "public, max-age=300, s-maxage=600"
-            },
-            "dest": "/src/server.ts"
-        },
-        {
             "src": "/swagger/(.*)",
-            "headers": {
-                "cache-control": "public, max-age=31536000, immutable"
-            },
-            "dest": "/src/server.ts"
-        },
-        {
-            "src": "/images/(.*)",
-            "headers": {
-                "cache-control": "public, max-age=31536000, immutable"
-            },
-            "dest": "/src/server.ts"
-        },
-        {
-            "src": "/api/auth/(.*)",
-            "headers": {
-                "cache-control": "private, no-cache, no-store, must-revalidate"
-            },
-            "dest": "/src/server.ts"
-        },
-        {
-            "src": "/api/service",
-            "methods": [
-                "GET"
-            ],
-            "headers": {
-                "cache-control": "public, max-age=300, s-maxage=600"
-            },
-            "dest": "/src/server.ts"
-        },
-        {
-            "src": "/api/department",
-            "methods": [
-                "GET"
-            ],
-            "headers": {
-                "cache-control": "public, max-age=300, s-maxage=600"
-            },
-            "dest": "/src/server.ts"
-        },
-        {
-            "src": "/api/blog/(.*)",
-            "methods": [
-                "GET"
-            ],
-            "headers": {
-                "cache-control": "public, max-age=180, s-maxage=300"
-            },
-            "dest": "/src/server.ts"
-        },
-        {
-            "src": "/api/(.*)",
-            "headers": {
-                "cache-control": "private, no-cache"
-            },
-            "dest": "/src/server.ts"
+            "dest": "/public/swagger/$1"
         },
         {
             "src": "/(.*)",
             "dest": "/src/server.ts"
-        }
-    ],
-    "env": {
-        "NODE_ENV": "production"
-    },
-    "headers": [
-        {
-            "source": "/api/(.*)",
-            "headers": [
-                {
-                    "key": "X-Content-Type-Options",
-                    "value": "nosniff"
-                },
-                {
-                    "key": "X-Frame-Options",
-                    "value": "DENY"
-                },
-                {
-                    "key": "X-XSS-Protection",
-                    "value": "1; mode=block"
-                },
-                {
-                    "key": "Referrer-Policy",
-                    "value": "strict-origin-when-cross-origin"
-                }
-            ]
         },
         {
-            "source": "/swagger/(.*)",
-            "headers": [
-                {
-                    "key": "Cache-Control",
-                    "value": "public, max-age=31536000, immutable"
-                }
-            ]
+            "src": "/api-docs",
+            "dest": "/src/server.ts"
         },
         {
-            "source": "/images/(.*)",
-            "headers": [
-                {
-                    "key": "Cache-Control",
-                    "value": "public, max-age=31536000, immutable"
-                }
-            ]
+            "src": "/images/(.*)",
+            "dest": "/public/images/$1"
         }
     ]
 }
