@@ -90,10 +90,6 @@ export default class App {
                 minPoolSize: parseInt(process.env.DB_MIN_POOL_SIZE || '2'),
                 maxIdleTimeMS: parseInt(process.env.DB_MAX_IDLE_TIME || '30000'),
 
-                // Tối ưu cho serverless - không buffer commands
-                bufferCommands: process.env.DB_BUFFER_COMMANDS === 'true',
-                bufferMaxEntries: parseInt(process.env.DB_BUFFER_MAX_ENTRIES || '0'),
-
                 // Logic retry khi có lỗi từ environment variables
                 retryWrites: process.env.DB_RETRY_WRITES === 'true',
                 retryReads: process.env.DB_RETRY_READS === 'true'
