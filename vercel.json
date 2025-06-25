@@ -1,5 +1,21 @@
 {
     "version": 2,
+    "builds": [
+        {
+            "src": "src/server.ts",
+            "use": "@vercel/node",
+            "config": {
+                "includeFiles": [
+                    "src/**",
+                    "swagger.yaml",
+                    "assets/**",
+                    "public/**",
+                    "node_modules/swagger-ui-dist/**"
+                ],
+                "maxLambdaSize": "50mb"
+            }
+        }
+    ],
     "routes": [
         {
             "src": "/health",
@@ -20,14 +36,14 @@
             "headers": {
                 "cache-control": "public, max-age=31536000, immutable"
             },
-            "dest": "/public/swagger/$1"
+            "dest": "/src/server.ts"
         },
         {
             "src": "/images/(.*)",
             "headers": {
                 "cache-control": "public, max-age=31536000, immutable"
             },
-            "dest": "/public/images/$1"
+            "dest": "/src/server.ts"
         },
         {
             "src": "/api/auth/(.*)",
@@ -78,18 +94,6 @@
             "dest": "/src/server.ts"
         }
     ],
-    "functions": {
-        "src/server.ts": {
-            "maxDuration": 30,
-            "runtime": "nodejs18.x",
-            "includeFiles": [
-                "src/**",
-                "swagger.yaml",
-                "assets/**",
-                "public/**"
-            ]
-        }
-    },
     "env": {
         "NODE_ENV": "production"
     },
@@ -133,8 +137,5 @@
                 }
             ]
         }
-    ],
-    "outputDirectory": "dist",
-    "installCommand": "npm install",
-    "buildCommand": "npm run build"
+    ]
 }
