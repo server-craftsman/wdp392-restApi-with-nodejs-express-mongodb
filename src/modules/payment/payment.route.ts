@@ -47,14 +47,14 @@ export default class PaymentRoute implements IRoute {
 
         // GET: domain:/api/payments/verify/:paymentNo -> Verify payment status
         this.router.get(
-            `${this.path}/verify/:paymentNo`,
+            `${this.path}/:paymentNo/verify`,
             authMiddleWare(),
             this.paymentController.verifyPayment
         );
 
         // POST: domain:/api/payments/cancel/:paymentNo -> Cancel payment
         this.router.post(
-            `${this.path}/cancel/:paymentNo`,
+            `${this.path}/:paymentNo/cancel`,
             authMiddleWare(),
             this.paymentController.cancelPayment
         );

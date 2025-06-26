@@ -407,6 +407,27 @@ export default class PaymentService {
 
                     console.log(`PayOS verification complete - PayOS status: ${payosResponse.status}, Local status: ${payment.status}`);
 
+                    // If PayOS confirms payment (PAID/SUCCESS) and local status not completed, update both payment and appointment
+                    const payosStatusUpper = (payosResponse.status || '').toString().toUpperCase();
+                    if ((payosStatusUpper === 'PAID' || payosStatusUpper === 'SUCCESS' || payosStatusUpper === 'COMPLETED') && payment.status !== PaymentStatusEnum.COMPLETED) {
+                        // Mark payment as completed
+                        await this.paymentSchema.findByIdAndUpdate(payment._id, {
+                            status: PaymentStatusEnum.COMPLETED,
+                            updated_at: new Date()
+                        });
+
+                        // Mark appointment as paid
+                        try {
+                            await this.appointmentSchema.findByIdAndUpdate(
+                                payment.appointment_id,
+                                { payment_status: AppointmentPaymentStatusEnum.PAID },
+                                { new: true }
+                            );
+                        } catch (appErr) {
+                            console.error('Failed to update appointment payment_status to PAID:', appErr);
+                        }
+                    }
+
                     return {
                         paymentNo: payment.payment_no || paymentIdentifier,
                         payment_status: payment.status, // Return local status, not PayOS status

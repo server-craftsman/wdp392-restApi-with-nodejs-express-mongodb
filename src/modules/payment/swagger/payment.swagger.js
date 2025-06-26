@@ -345,6 +345,8 @@
  *       - Người dùng muốn kiểm tra trạng thái thanh toán thủ công
  *       - Đồng bộ trạng thái khi webhook bị miss
  *       - Troubleshooting vấn đề thanh toán
+ *     security:
+ *       - Bearer: []
  *     parameters:
  *       - name: paymentNo
  *         in: path
@@ -438,6 +440,8 @@
  *       - Trạng thái thanh toán chuyển thành 'cancelled'
  *       - Trạng thái lịch hẹn có thể được cập nhật
  *       - Link thanh toán PayOS (nếu có) sẽ không còn hiệu lực
+ *     security:
+ *       - Bearer: []
  *     parameters:
  *       - name: paymentNo
  *         in: path
@@ -654,6 +658,8 @@
  *       - Theo dõi tiến độ xử lý mẫu
  *       - Xuất báo cáo thanh toán chi tiết
  *       - Xác minh thông tin trước khi xử lý mẫu
+ *     security:
+ *       - Bearer: []
  *     parameters:
  *       - name: paymentId
  *         in: path
