@@ -20,6 +20,33 @@ import ServiceSchema from '../service/service.model';
 import AppointmentSchema from '../appointment/appointment.model';
 import { ServiceTypeEnum } from '../service/service.enum';
 
+/**
+ * Helper function to extract appointment ID from a sample object that might have populated appointment_id
+ * @param sample The sample object
+ * @returns The extracted appointment ID as a string
+ */
+function extractAppointmentIdFromSample(sample: any): string {
+    if (!sample || !sample.appointment_id) {
+        throw new Error('Appointment ID not found in sample');
+    }
+
+    // If appointment_id is an object (populated)
+    if (typeof sample.appointment_id === 'object' && sample.appointment_id !== null) {
+        const appointmentObj = sample.appointment_id;
+
+        // If populated with _id field
+        if (appointmentObj._id) {
+            return appointmentObj._id.toString();
+        }
+
+        // If it's another type of object, try to convert to string
+        return String(sample.appointment_id);
+    }
+
+    // If appointment_id is a primitive (string or ObjectId)
+    return String(sample.appointment_id);
+}
+
 export default class ResultService {
     private resultRepository = new ResultRepository();
     private sampleService = new SampleService();
@@ -462,13 +489,9 @@ export default class ResultService {
                 throw new HttpException(HttpStatus.NotFound, 'Sample not found');
             }
 
-            // Extract appointment ID as string
-            let appointmentId: string;
-            if (typeof sample.appointment_id === 'object' && sample.appointment_id !== null) {
-                appointmentId = sample.appointment_id || '';
-            } else {
-                appointmentId = String(sample.appointment_id) || '';
-            }
+            // Extract appointment ID using the helper function
+            const appointmentId = extractAppointmentIdFromSample(sample);
+            console.log('Extracted appointment ID:', appointmentId);
 
             // Check if appointment exists and has been paid for
             const appointment = await this.appointmentService.getAppointmentById(appointmentId);
@@ -483,8 +506,14 @@ export default class ResultService {
                 );
             }
 
-            // Check if sample is in RECEIVED status
-            if (sample.status !== SampleStatusEnum.RECEIVED) {
+            // Allow starting testing when the sample is either PENDING or RECEIVED.
+            // If it's still PENDING, automatically mark it as RECEIVED first.
+            if (sample.status === SampleStatusEnum.PENDING) {
+                // Automatically move sample to RECEIVED before starting testing
+                await this.sampleService.updateSampleStatus(sampleId, SampleStatusEnum.RECEIVED);
+                console.log(`Sample ${sampleId} status changed from PENDING -> RECEIVED automatically before testing.`);
+            } else if (sample.status !== SampleStatusEnum.RECEIVED) {
+                // For any other status that is not RECEIVED, throw an error
                 throw new HttpException(
                     HttpStatus.BadRequest,
                     `Cannot start testing for sample with status ${sample.status}`
@@ -521,12 +550,12 @@ export default class ResultService {
                     console.error('Failed to send testing started email:', emailError);
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error in startTesting:', error);
             if (error instanceof HttpException) {
                 throw error;
             }
-            throw new HttpException(HttpStatus.InternalServerError, 'Error starting testing process');
+            throw new HttpException(HttpStatus.InternalServerError, `Error starting testing process: ${error.message}`);
         }
     }
 

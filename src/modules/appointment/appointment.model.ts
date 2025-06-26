@@ -30,7 +30,7 @@ const AppointmentSchemaEntity: Schema<IAppointment> = new Schema({
         required: true,
         default: PaymentStatusEnum.UNPAID
     },
-    administrative_case_id: { type: Schema.Types.ObjectId, ref: 'administrative_cases', required: false },
+    administrative_case_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.ADMINISTRATIVE_CASE, required: false },
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }
 });

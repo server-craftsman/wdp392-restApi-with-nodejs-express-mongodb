@@ -35,7 +35,6 @@
  *       required:
  *         - sample_ids
  *         - appointment_id
- *         - customer_id
  *         - is_match
  *       properties:
  *         sample_ids:
@@ -48,10 +47,6 @@
  *           type: string
  *           description: ID of the appointment
  *           example: 5f8d0e0e9d3b9a0017c1a7a2
- *         customer_id:
- *           type: string
- *           description: ID of the customer
- *           example: 5f8d0e0e9d3b9a0017c1a7a3
  *         is_match:
  *           type: boolean
  *           description: Whether the test result is a match

@@ -631,9 +631,15 @@ export default class SampleService {
             // Lấy service để kiểm tra loại
             const service = await ServiceSchema.findById(appointmentSchema.service_id);
             if (service && service.type === ServiceTypeEnum.ADMINISTRATIVE) {
-                if (addSampleData.collection_method !== 'FACILITY') {
-                    throw new Error('ADMINISTRATIVE chỉ cho phép thu mẫu tại cơ sở (FACILITY)');
-                }
+                addSampleData.collection_method = CollectionMethodEnum.FACILITY;
+            }
+
+            // Determine collection method
+            let resolvedCollectionMethod: CollectionMethodEnum = (addSampleData.collection_method as CollectionMethodEnum) || CollectionMethodEnum.SELF;
+
+            // For ADMINISTRATIVE services, always force FACILITY collection method
+            if (service && service.type === ServiceTypeEnum.ADMINISTRATIVE) {
+                resolvedCollectionMethod = CollectionMethodEnum.FACILITY;
             }
 
             // Process each sample type
@@ -659,7 +665,7 @@ export default class SampleService {
                     appointment_id: addSampleData.appointment_id,
                     kit_id: kitId,
                     type: sampleType,
-                    collection_method: CollectionMethodEnum.SELF, // Default to self collection
+                    collection_method: resolvedCollectionMethod as CollectionMethodEnum,
                     collection_date: new Date(),
                     status: SampleStatusEnum.PENDING,
                 };

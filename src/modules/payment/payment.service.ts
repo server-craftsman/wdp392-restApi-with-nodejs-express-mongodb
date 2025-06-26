@@ -812,7 +812,7 @@ export default class PaymentService {
             appointment_id: appointmentId,
             user_id: userId,
             amount: 0,
-            method: PaymentMethodEnum.GOVERNMENT,
+            payment_method: PaymentMethodEnum.GOVERNMENT,
             status: PaymentStatusEnum.COMPLETED,
             created_at: new Date(),
             updated_at: new Date()
