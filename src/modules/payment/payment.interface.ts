@@ -32,6 +32,10 @@ export interface IPayment extends Document {
     payos_payment_status_time?: Date;
     payos_webhook_received_at?: Date;
 
+    payer_name?: string;
+    payer_email?: string;
+    payer_phone?: string;
+
     // // demo payOs
     // order_code?: string;
     // order_id?: string;

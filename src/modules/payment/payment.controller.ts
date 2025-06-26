@@ -9,40 +9,81 @@ import { CreateAppointmentPaymentDto } from './dtos/createAppointmentPayment.dto
 export default class PaymentController {
     private paymentService = new PaymentService();
 
+    // Xử lý webhook từ PayOS khi có thay đổi trạng thái thanh toán
     public handlePayosWebhook = async (req: Request, res: Response, next: NextFunction) => {
         try {
+            console.log('PayOS Webhook received:', {
+                headers: req.headers,
+                body: req.body,
+                method: req.method,
+                url: req.url
+            });
+
+            // Validate webhook data
+            if (!req.body) {
+                console.error('PayOS Webhook: Empty request body');
+                return res.status(HttpStatus.BadRequest).json(
+                    formatResponse(false, false, 'Empty webhook data')
+                );
+            }
+
             const webhookData = req.body;
+
+            // Process webhook
             const result = await this.paymentService.processPayosWebhook(webhookData);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(result.success, true, result.message)
+            // PayOS expects a 200 response for successful webhook processing
+            const statusCode = result.success ? HttpStatus.Success : HttpStatus.BadRequest;
+
+            res.status(statusCode).json(
+                formatResponse(result, result.success, result.message)
             );
+
+        } catch (error: any) {
+            console.error('PayOS Webhook handler error:', error);
+
+            // Always return 200 to PayOS to prevent retries for server errors
+            // but log the actual error for debugging
+            res.status(HttpStatus.Success).json(
+                formatResponse(false, false, 'Webhook processing failed')
+            );
+        }
+    };
+
+    // Tạo chữ ký webhook test cho development
+    public generateTestWebhookSignature = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            if (process.env.NODE_ENV === 'production') {
+                return res.status(HttpStatus.Forbidden).json(
+                    formatResponse(false, false, 'Test endpoint not available in production')
+                );
+            }
+
+            const testData = req.body;
+            if (!testData) {
+                return res.status(HttpStatus.BadRequest).json(
+                    formatResponse(false, false, 'No test data provided')
+                );
+            }
+
+            // Import the signature generation function
+            const { generatePayosSignature } = await import('./payment.util');
+            const signature = generatePayosSignature(testData);
+
+            res.status(HttpStatus.Success).json(
+                formatResponse({
+                    signature,
+                    data: testData,
+                    signedData: { ...testData, signature }
+                }, true, 'Test signature generated successfully')
+            );
+
         } catch (error) {
             next(error);
         }
     };
 
-    // public handlePayosReturn = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    //     try {
-    //         const { payment_no } = req.query;
-    //         if (!payment_no) {
-    //             res.status(HttpStatus.BadRequest).json({ message: 'Missing payment_no' });
-    //             return;
-    //         }
-
-    //         // Call the verifyPaymentStatus service to check and update the payment status
-    //         const result = await this.paymentService.verifyPaymentStatus(payment_no.toString());
-
-    //         // Redirect or respond as needed (e.g., redirect to frontend with status)
-    //         // Example: redirect to frontend with status as query param
-    //         const frontendUrl = process.env.DOMAIN_FE || '/';
-    //         res.redirect(`${frontendUrl}?payment_no=${payment_no}&status=${result.payment_status}`);
-    //         return;
-    //     } catch (error) {
-    //         next(error);
-    //     }
-    // };
-
+    // Xử lý return URL từ PayOS sau khi thanh toán
     public handlePayosReturn = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { orderCode } = req.query;
@@ -79,6 +120,38 @@ export default class PaymentController {
         }
     };
 
+    // Xử lý cancel URL từ PayOS khi hủy thanh toán
+    public handlePayosCancel = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const { orderCode } = req.query;
+            console.log('PayOS cancel handler called with:', { orderCode });
+
+            if (orderCode) {
+                // Cancel the payment if it exists
+                await this.paymentService.cancelPayment(orderCode.toString());
+            }
+
+            // Redirect to frontend with cancel status
+            const frontendUrl = process.env.DOMAIN_FE || '/';
+            const params = new URLSearchParams([
+                ['code', '99'],
+                ['orderCode', orderCode?.toString() || ''],
+                ['status', 'cancelled']
+            ]);
+            res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
+            return;
+        } catch (error) {
+            console.error('Error in handlePayosCancel:', error);
+            const frontendUrl = process.env.DOMAIN_FE || '/';
+            const params = new URLSearchParams([
+                ['code', '99'],
+                ['status', 'error']
+            ]);
+            res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
+        }
+    };
+
+    // Tạo thanh toán cho lịch hẹn xét nghiệm DNA
     public createAppointmentPayment = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
@@ -104,6 +177,7 @@ export default class PaymentController {
         }
     };
 
+    // Xác minh trạng thái thanh toán với PayOS
     public verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { paymentNo } = req.params;
@@ -117,6 +191,7 @@ export default class PaymentController {
         }
     };
 
+    // Hủy thanh toán đang ở trạng thái pending
     public cancelPayment = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { paymentNo } = req.params;
@@ -130,6 +205,7 @@ export default class PaymentController {
         }
     };
 
+    // Xử lý callback thành công từ PayOS
     public handlePaymentSuccess = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { orderCode, amount, status } = req.query;
@@ -137,7 +213,7 @@ export default class PaymentController {
 
             if (!orderCode) {
                 console.error('Missing orderCode in payment success callback');
-                return res.redirect(process.env.FRONTEND_PAYMENT_FAILED_URL || '/payment/failed');
+                return res.redirect(process.env.FRONTEND_PAYMENT_FAILED_URL || '/payments/failed');
             }
 
             // Verify the payment status
@@ -147,7 +223,7 @@ export default class PaymentController {
                 console.log(`Payment ${orderCode} verified as completed`);
 
                 // Get frontend success URL from environment or use default
-                const successUrl = process.env.FRONTEND_PAYMENT_SUCCESS_URL || '/payment/success';
+                const successUrl = process.env.FRONTEND_PAYMENT_SUCCESS_URL || '/payments/success';
 
                 // Add payment info to URL if needed
                 const redirectUrl = `${successUrl}?orderCode=${orderCode}&status=success`;
@@ -160,21 +236,22 @@ export default class PaymentController {
                 // If payment verification failed, check if we should retry
                 if (result.payment_status === 'pending') {
                     // Payment is still pending, we can show a processing page
-                    const pendingUrl = process.env.FRONTEND_PAYMENT_PENDING_URL || '/payment/pending';
+                    const pendingUrl = process.env.FRONTEND_PAYMENT_PENDING_URL || '/payments/pending';
                     return res.redirect(`${pendingUrl}?orderCode=${orderCode}`);
                 } else {
                     // Payment failed or was cancelled
-                    const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payment/failed';
+                    const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payments/failed';
                     return res.redirect(`${failedUrl}?orderCode=${orderCode}&status=${result.payment_status}`);
                 }
             }
         } catch (error) {
             console.error('Error in handlePaymentSuccess:', error);
-            const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payment/failed';
+            const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payments/failed';
             return res.redirect(`${failedUrl}?error=internal`);
         }
     };
 
+    // Xử lý callback thất bại từ PayOS
     public handlePaymentFailure = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { orderCode } = req.query;
@@ -186,18 +263,16 @@ export default class PaymentController {
             }
 
             // Redirect to frontend failed page
-            const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payment/failed';
+            const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payments/failed';
             return res.redirect(`${failedUrl}?orderCode=${orderCode || 'unknown'}&status=cancelled`);
         } catch (error) {
             console.error('Error in handlePaymentFailure:', error);
-            const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payment/failed';
+            const failedUrl = process.env.FRONTEND_PAYMENT_FAILED_URL || '/payments/failed';
             return res.redirect(`${failedUrl}?error=internal`);
         }
     };
 
-    /**
-     * Get samples for a payment
-     */
+    // Lấy danh sách mẫu xét nghiệm của thanh toán
     public getPaymentSamples = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { paymentId } = req.params;

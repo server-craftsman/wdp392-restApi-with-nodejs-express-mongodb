@@ -19,19 +19,25 @@ export default class PaymentRoute implements IRoute {
 
     private initializeRoutes() {
 
-        // POST: domain:/api/payment/webhook -> Handle PayOS webhook
+        // POST: domain:/api/payments/webhook -> Handle PayOS webhook
         this.router.post(
-            `${this.path}/webhook`,
-            this.paymentController.handlePayosWebhook
+            `${this.path}/webhook/payos`,
+            this.paymentController.handlePayosWebhook as any
         );
 
-        // GET: domain:/api/payment/payos-return -> Handle PayOS return
+        // GET: domain:/api/payments/payos-return -> Handle PayOS return
         this.router.get(
             `${this.path}/payos-return`,
             this.paymentController.handlePayosReturn.bind(this.paymentController)
         );
 
-        // POST: domain:/api/payment/appointment -> Create a payment for an appointment with selected payment method
+        // GET: domain:/api/payments/payos-cancel -> Handle PayOS cancel
+        this.router.get(
+            `${this.path}/payos-cancel`,
+            this.paymentController.handlePayosCancel.bind(this.paymentController)
+        );
+
+        // POST: domain:/api/payments/appointment -> Create a payment for an appointment with selected payment method
         this.router.post(
             `${this.path}/appointment`,
             authMiddleWare([UserRoleEnum.CUSTOMER]),
@@ -39,37 +45,43 @@ export default class PaymentRoute implements IRoute {
             this.paymentController.createAppointmentPayment
         );
 
-        // GET: domain:/api/payment/verify/:paymentNo -> Verify payment status
+        // GET: domain:/api/payments/verify/:paymentNo -> Verify payment status
         this.router.get(
             `${this.path}/verify/:paymentNo`,
             authMiddleWare(),
             this.paymentController.verifyPayment
         );
 
-        // POST: domain:/api/payment/cancel/:paymentNo -> Cancel payment
+        // POST: domain:/api/payments/cancel/:paymentNo -> Cancel payment
         this.router.post(
             `${this.path}/cancel/:paymentNo`,
             authMiddleWare(),
             this.paymentController.cancelPayment
         );
 
-        // GET: domain:/api/payment/success -> Handle successful payment redirect
+        // GET: domain:/api/payments/success -> Handle successful payment redirect
         this.router.get(
             `${this.path}/success`,
             this.paymentController.handlePaymentSuccess
         );
 
-        // GET: domain:/api/payment/failed -> Handle failed payment redirect
+        // GET: domain:/api/payments/failed -> Handle failed payment redirect
         this.router.get(
             `${this.path}/failed`,
             this.paymentController.handlePaymentFailure
         );
 
-        // GET: domain:/api/payment/:paymentId/samples -> Get samples for a payment
+        // GET: domain:/api/payments/:paymentId/samples -> Get samples for a payment
         this.router.get(
             `${this.path}/:paymentId/samples`,
             authMiddleWare(),
             this.paymentController.getPaymentSamples
+        );
+
+        // POST: domain:/api/payments/test-webhook-signature -> Generate test webhook signature (dev only)
+        this.router.post(
+            `${this.path}/test-webhook-signature`,
+            this.paymentController.generateTestWebhookSignature as any
         );
     }
 }

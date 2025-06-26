@@ -82,8 +82,8 @@ export const API_PATH = {
     SEARCH_RESULT: '/api/result/search',
 
     // Payment
-    PAYMENT: '/api/payment',
-    SEARCH_PAYMENT: '/api/payment/search',
+    PAYMENT: '/api/payments',
+    SEARCH_PAYMENT: '/api/payments/search',
 
     // Transaction
     TRANSACTION: '/api/transaction',

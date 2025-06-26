@@ -56,8 +56,8 @@ export async function createPayosPayment(
             ...(buyerName && { buyerName }),
             ...(buyerEmail && { buyerEmail }),
             ...(buyerPhone && { buyerPhone }),
-            cancelUrl: process.env.PAYOS_CANCEL_URL || 'http://localhost:8080/api/payment/payos-cancel',
-            returnUrl: process.env.PAYOS_RETURN_URL || 'http://localhost:8080/api/payment/payos-return',
+            cancelUrl: process.env.PAYOS_CANCEL_URL || '',
+            returnUrl: process.env.PAYOS_RETURN_URL || '',
             items: [
                 {
                     name: trimmedDescription,
@@ -90,102 +90,110 @@ export async function createPayosPayment(
 }
 
 /**
- * Verify webhook signature
+ * Verify webhook signature - Fixed and simplified version
  */
 export function verifyPayosWebhook(data: any, receivedSignature: string): boolean {
     try {
-        // For debugging purposes - log the received data and signature
-        console.log('Webhook verification - Received data:', JSON.stringify(data));
-        console.log('Webhook verification - Received signature:', receivedSignature);
-
-        if (!checksumKey || !receivedSignature) {
-            console.error('Missing checksum key or signature');
+        // Validate inputs
+        if (!checksumKey) {
+            console.error('PayOS webhook verification: Missing checksum key');
             return false;
         }
 
-        // For testing/debugging purposes - allow a specific test signature
-        // REMOVE THIS IN PRODUCTION
-        if (process.env.NODE_ENV !== 'production' && receivedSignature === 'test_signature_for_debugging') {
-            console.warn('WARNING: Accepting test signature - DO NOT USE IN PRODUCTION');
-            return true;
+        if (!receivedSignature) {
+            console.error('PayOS webhook verification: Missing signature');
+            return false;
         }
 
         // Create a copy of data without the signature field
         const { signature, ...dataWithoutSignature } = data;
 
-        // Sort keys alphabetically
-        const sortedData = Object.keys(dataWithoutSignature)
-            .sort()
-            .reduce((obj: any, key: string) => {
-                obj[key] = dataWithoutSignature[key];
-                return obj;
-            }, {});
+        // Sort keys alphabetically and create consistent string representation
+        const sortedKeys = Object.keys(dataWithoutSignature).sort();
+        const sortedData: any = {};
 
-        // Convert to JSON string
+        for (const key of sortedKeys) {
+            sortedData[key] = dataWithoutSignature[key];
+        }
+
+        // Convert to JSON string for signature calculation
         const jsonString = JSON.stringify(sortedData);
-        console.log('Webhook verification - Data for signature calculation:', jsonString);
 
         // Create HMAC signature using SHA256
         const hmac = crypto.createHmac('sha256', checksumKey);
         hmac.update(jsonString);
         const calculatedSignature = hmac.digest('hex');
-        console.log('Webhook verification - Calculated signature:', calculatedSignature);
 
-        // Compare signatures
-        const isValid = calculatedSignature === receivedSignature;
+        // If lengths differ, signature is definitely invalid – avoid timingSafeEqual error
+        if (calculatedSignature.length !== receivedSignature.length) {
+            console.error('PayOS webhook verification failed: Signature length mismatch');
+            return false;
+        }
+
+        // Compare signatures using secure comparison
+        let isValid = false;
+        try {
+            isValid = crypto.timingSafeEqual(
+                Buffer.from(calculatedSignature, 'hex'),
+                Buffer.from(receivedSignature, 'hex')
+            );
+        } catch (cmpErr: any) {
+            console.error('PayOS webhook verification error during comparison:', cmpErr.message);
+            return false;
+        }
 
         if (!isValid) {
-            console.error('Signature verification failed', {
-                received: receivedSignature,
-                calculated: calculatedSignature,
-                data: jsonString
-            });
+            console.error('PayOS webhook verification failed: Signature mismatch');
+            console.error('Data used for verification:', jsonString);
         } else {
-            console.log('Signature verification successful');
+            console.log('PayOS webhook signature verified successfully');
         }
 
         return isValid;
-    } catch (error) {
-        console.error('Error verifying webhook signature:', error);
+
+    } catch (error: any) {
+        console.error('PayOS webhook verification error:', error.message);
         return false;
     }
 }
 
 /**
- * Generate a test signature for webhook data
- * This is for testing purposes only
+ * Generate signature for testing purposes
  */
-export function generateTestSignature(data: any): string {
+export function generatePayosSignature(data: any): string {
     try {
         if (!checksumKey) {
-            console.error('Missing checksum key');
+            console.error('Missing checksum key for signature generation');
             return '';
         }
 
         // Remove any existing signature field
-        const { signature, ...dataWithoutSignature } = data;
+        const { signature: _, ...dataWithoutSignature } = data;
 
         // Sort keys alphabetically
-        const sortedData = Object.keys(dataWithoutSignature)
-            .sort()
-            .reduce((obj: any, key: string) => {
-                obj[key] = dataWithoutSignature[key];
-                return obj;
-            }, {});
+        const sortedKeys = Object.keys(dataWithoutSignature).sort();
+        const sortedData: any = {};
+
+        for (const key of sortedKeys) {
+            sortedData[key] = dataWithoutSignature[key];
+        }
 
         // Convert to JSON string
         const jsonString = JSON.stringify(sortedData);
-        console.log('Test signature - Data for signature calculation:', jsonString);
 
         // Create HMAC signature using SHA256
         const hmac = crypto.createHmac('sha256', checksumKey);
         hmac.update(jsonString);
-        const calculatedSignature = hmac.digest('hex');
-        console.log('Test signature generated:', calculatedSignature);
+        const generatedSignature = hmac.digest('hex');
 
-        return calculatedSignature;
-    } catch (error) {
-        console.error('Error generating test signature:', error);
+        console.log('Generated PayOS signature for data:', jsonString);
+        return generatedSignature;
+
+    } catch (error: any) {
+        console.error('Error generating PayOS signature:', error.message);
         return '';
     }
 }
+
+// Remove the old generateTestSignature function and replace with the new one
+export { generatePayosSignature as generateTestSignature };
