@@ -104,6 +104,6 @@ npm run format:check # Check formatting without changing files
 
 ### Pre-commit Hooks
 
-This project uses Husky and lint-staged to run linters and formatters before each commit, ensuring that only quality code is committed to the repository.
+This project uses Husky and lint-staged to run linters and formatters before each commit, ensuring that only quality code is committed to the repository
 
 ### © 2025 Bản quyền thuộc về Nguyễn Đan Huy | [fb/danhuyspm](https://facebook.com/danhuyspm)
