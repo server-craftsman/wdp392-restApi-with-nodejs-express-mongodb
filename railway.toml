@@ -2,7 +2,7 @@
 # Railway will automatically detect and use the Dockerfile
 
 [deploy]
-startCommand = "pnpm start"
+startCommand = "npm start"
 healthcheckPath = "/"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
