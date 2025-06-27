@@ -75,7 +75,7 @@ export default class DocsRoute implements IRoute {
                 },
                 servers: [
                     {
-                        url: "https://restapi-dnatesting.vercel.app/",
+                        url: "https://restapi-dnatesting.up.railway.app/",
                         description: "Live server"
                     },
                     {
