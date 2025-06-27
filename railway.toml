@@ -1,5 +1,4 @@
 [build]
-# Railway will automatically detect and use the Dockerfile
 
 [deploy]
 startCommand = "npm start"
