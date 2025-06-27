@@ -1,4 +1,4 @@
-# Use Node.js 18 Alpine for smaller image size
+# Use Node.js 20 Alpine for smaller image size
 FROM node:20-alpine
 
 # Install specific pnpm version that matches package.json
@@ -10,8 +10,11 @@ WORKDIR /app
 # Copy package files first for better caching
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies with frozen lockfile
-RUN pnpm install
+# Try to install with existing lockfile, fallback to regenerating if it fails
+RUN pnpm install --frozen-lockfile --no-optional || \
+    (echo "Lockfile incompatible, regenerating..." && \
+     rm -f pnpm-lock.yaml && \
+     pnpm install --no-optional)
 
 # Copy source code
 COPY . .
