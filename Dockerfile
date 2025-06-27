@@ -1,5 +1,5 @@
 # Use Node.js 18 Alpine for smaller image size
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Install specific pnpm version that matches package.json
 RUN npm install -g pnpm@10.10.0
