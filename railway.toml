@@ -1,4 +1,5 @@
 [build]
+# Railway will automatically detect and use the Dockerfile
 
 [deploy]
 startCommand = "pnpm start"
