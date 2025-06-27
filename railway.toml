@@ -1,7 +1,7 @@
 [build]
 
 [deploy]
-startCommand = "npm start"
+startCommand = "pnpm start"
 healthcheckPath = "/"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
