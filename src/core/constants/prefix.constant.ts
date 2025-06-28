@@ -7,3 +7,5 @@ export const PREFIX_TITLE = {
     TRANSACTION: 'TRANS',
     REFUND: 'REFUND',
 };
+
+export const PREFIX_API = '/api';

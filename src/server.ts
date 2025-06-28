@@ -21,6 +21,11 @@ import { LogRoute } from './modules/blog/log';
 import { ReviewRoute } from './modules/review';
 import { AdministrativeCasesRoute } from './modules/administrative_cases';
 import { DashboardRoute } from './modules/dashboard';
+import ChatRoute from './modules/chat/chat.route';
+import { createServer } from 'http';
+// @ts-ignore – socket.io types may be absent in serverless bundle but are present in dev
+import type { Server as IOServer } from 'socket.io';
+import registerChatSocket from './modules/chat/chat.socket';
 
 // Load environment variables
 dotenv.config();
@@ -49,21 +54,37 @@ const routes = [
     new LogRoute(),
     new ReviewRoute(),
     new AdministrativeCasesRoute(),
-    new DashboardRoute()
+    new DashboardRoute(),
+    new ChatRoute()
 ];
 
 // Create app instance
-const app = new App(routes);
+const appInstance = new App(routes);
 
-// For Vercel serverless deployment, export the Express app
-// The app.listen() is handled by your App class internally for Vercel detection
-if (process.env.VERCEL) {
-    // Export for Vercel serverless functions
-    module.exports = app.app;
-} else {
-    // For local development, start the server
-    app.listen();
+// Create HTTP server (needed for Socket.IO)
+const httpServer = createServer(appInstance.app);
+
+// Only initialize Socket.IO when chạy dưới dạng server thường (không phải Vercel Function)
+if (!process.env.VERCEL) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/ban-ts-comment
+    // @ts-ignore – dynamic require; type ignored if module missing at build time
+    const { Server: SocketIOServer } = require('socket.io');
+
+    const io: IOServer = new SocketIOServer(httpServer, {
+        cors: {
+            origin: '*',
+            methods: ['GET', 'POST']
+        }
+    });
+
+    // Đăng ký namespace chat
+    registerChatSocket(io);
+
+    const PORT = process.env.PORT || process.env.WEBSITES_PORT || 3000;
+    httpServer.listen(PORT, () => {
+        console.log(`Server with Socket.io listening on port ${PORT}`);
+    });
 }
 
-// Default export for ES modules compatibility
-export default app.app;
+// Export express app for testing / serverless
+export default appInstance.app;
