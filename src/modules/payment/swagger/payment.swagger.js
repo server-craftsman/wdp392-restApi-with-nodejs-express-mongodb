@@ -422,6 +422,264 @@
 
 /**
  * @swagger
+ * /api/payments/status/{orderCode}:
+ *   get:
+ *     tags:
+ *       - payment
+ *     summary: Lấy trạng thái chi tiết thanh toán theo mã đơn hàng
+ *     description: |
+ *       Endpoint lấy thông tin chi tiết và trạng thái hiện tại của thanh toán dựa trên orderCode.
+ *       
+ *       **Tính năng chính:**
+ *       - Tìm thanh toán theo orderCode trong database
+ *       - Xác minh trạng thái hiện tại với PayOS API
+ *       - Trả về thông tin thanh toán, kết quả xác minh và thông tin lịch hẹn
+ *       - Không yêu cầu authentication (dành cho frontend verification)
+ *       
+ *       **Use cases:**
+ *       - Frontend verification sau khi PayOS redirect
+ *       - Kiểm tra trạng thái thanh toán real-time
+ *       - Hiển thị thông tin chi tiết cho người dùng
+ *       - Debugging và troubleshooting
+ *       
+ *       **Lưu ý bảo mật:**
+ *       - Endpoint public, không cần authentication
+ *       - Chỉ trả về thông tin cần thiết cho frontend
+ *       - Luôn verify với PayOS để đảm bảo tính chính xác
+ *     parameters:
+ *       - name: orderCode
+ *         in: path
+ *         required: true
+ *         description: Mã đơn hàng PayOS để tìm kiếm thanh toán
+ *         schema:
+ *           type: string
+ *           example: "123456789"
+ *     responses:
+ *       '200':
+ *         description: Lấy thông tin trạng thái thanh toán thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     payment:
+ *                       type: object
+ *                       description: Thông tin cơ bản của thanh toán
+ *                       properties:
+ *                         payment_no:
+ *                           type: string
+ *                           description: Mã số thanh toán nội bộ
+ *                           example: "PAY_123456789"
+ *                         amount:
+ *                           type: number
+ *                           description: Số tiền thanh toán (VND)
+ *                           example: 500000
+ *                         payment_method:
+ *                           type: string
+ *                           description: Phương thức thanh toán
+ *                           example: "PAY_OS"
+ *                         status:
+ *                           type: string
+ *                           description: Trạng thái thanh toán trong database
+ *                           example: "completed"
+ *                         payos_order_code:
+ *                           type: number
+ *                           description: Mã đơn hàng PayOS
+ *                           example: 123456789
+ *                         payos_web_id:
+ *                           type: string
+ *                           description: ID web thanh toán PayOS
+ *                           example: "web_123456"
+ *                         payos_payment_url:
+ *                           type: string
+ *                           description: URL thanh toán PayOS
+ *                           example: "https://pay.payos.vn/web/payment/123456"
+ *                         created_at:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Thời gian tạo thanh toán
+ *                           example: "2024-01-01T10:00:00.000Z"
+ *                         updated_at:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Thời gian cập nhật gần nhất
+ *                           example: "2024-01-01T10:30:00.000Z"
+ *                     verification:
+ *                       type: object
+ *                       description: Kết quả xác minh với PayOS API
+ *                       properties:
+ *                         payment_status:
+ *                           type: string
+ *                           description: Trạng thái thanh toán sau khi verify
+ *                           enum: [pending, processing, completed, cancelled, failed]
+ *                           example: "completed"
+ *                         appointment_id:
+ *                           type: string
+ *                           description: ID lịch hẹn liên quan
+ *                           example: "64a1b2c3d4e5f6789abcdef1"
+ *                         paymentNo:
+ *                           type: string
+ *                           description: Mã số thanh toán
+ *                           example: "PAY_123456789"
+ *                         payos_status:
+ *                           type: string
+ *                           description: Trạng thái từ PayOS API
+ *                           example: "PAID"
+ *                         last_verified_at:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Thời gian xác minh gần nhất
+ *                           example: "2024-01-01T10:30:00.000Z"
+ *                     appointment:
+ *                       type: object
+ *                       nullable: true
+ *                       description: Thông tin lịch hẹn liên quan (nếu có)
+ *                       properties:
+ *                         appointment_id:
+ *                           type: string
+ *                           description: ID của lịch hẹn
+ *                           example: "64a1b2c3d4e5f6789abcdef1"
+ *                     timestamp:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Thời gian tạo response
+ *                       example: "2024-01-01T10:30:05.000Z"
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Payment status retrieved successfully"
+ *             examples:
+ *               completed_payment:
+ *                 summary: Thanh toán hoàn thành
+ *                 value:
+ *                   data:
+ *                     payment:
+ *                       payment_no: "PAY_123456789"
+ *                       amount: 500000
+ *                       payment_method: "PAY_OS"
+ *                       status: "completed"
+ *                       payos_order_code: 123456789
+ *                       payos_web_id: "web_123456"
+ *                       payos_payment_url: "https://pay.payos.vn/web/payment/123456"
+ *                       created_at: "2024-01-01T10:00:00.000Z"
+ *                       updated_at: "2024-01-01T10:30:00.000Z"
+ *                     verification:
+ *                       payment_status: "completed"
+ *                       appointment_id: "64a1b2c3d4e5f6789abcdef1"
+ *                       paymentNo: "PAY_123456789"
+ *                       payos_status: "PAID"
+ *                       last_verified_at: "2024-01-01T10:30:00.000Z"
+ *                     appointment:
+ *                       appointment_id: "64a1b2c3d4e5f6789abcdef1"
+ *                     timestamp: "2024-01-01T10:30:05.000Z"
+ *                   success: true
+ *                   message: "Payment status retrieved successfully"
+ *               pending_payment:
+ *                 summary: Thanh toán đang chờ
+ *                 value:
+ *                   data:
+ *                     payment:
+ *                       payment_no: "PAY_123456790"
+ *                       amount: 300000
+ *                       payment_method: "PAY_OS"
+ *                       status: "pending"
+ *                       payos_order_code: 123456790
+ *                       payos_web_id: "web_123457"
+ *                       payos_payment_url: "https://pay.payos.vn/web/payment/123457"
+ *                       created_at: "2024-01-01T10:00:00.000Z"
+ *                       updated_at: "2024-01-01T10:00:00.000Z"
+ *                     verification:
+ *                       payment_status: "pending"
+ *                       appointment_id: "64a1b2c3d4e5f6789abcdef2"
+ *                       paymentNo: "PAY_123456790"
+ *                       payos_status: "PENDING"
+ *                       last_verified_at: "2024-01-01T10:30:05.000Z"
+ *                     appointment:
+ *                       appointment_id: "64a1b2c3d4e5f6789abcdef2"
+ *                     timestamp: "2024-01-01T10:30:05.000Z"
+ *                   success: true
+ *                   message: "Payment status retrieved successfully"
+ *               cancelled_payment:
+ *                 summary: Thanh toán đã hủy
+ *                 value:
+ *                   data:
+ *                     payment:
+ *                       payment_no: "PAY_123456791"
+ *                       amount: 200000
+ *                       payment_method: "PAY_OS"
+ *                       status: "cancelled"
+ *                       payos_order_code: 123456791
+ *                       payos_web_id: "web_123458"
+ *                       payos_payment_url: "https://pay.payos.vn/web/payment/123458"
+ *                       created_at: "2024-01-01T10:00:00.000Z"
+ *                       updated_at: "2024-01-01T10:15:00.000Z"
+ *                     verification:
+ *                       payment_status: "cancelled"
+ *                       appointment_id: "64a1b2c3d4e5f6789abcdef3"
+ *                       paymentNo: "PAY_123456791"
+ *                       payos_status: "CANCELLED"
+ *                       last_verified_at: "2024-01-01T10:30:05.000Z"
+ *                     appointment:
+ *                       appointment_id: "64a1b2c3d4e5f6789abcdef3"
+ *                     timestamp: "2024-01-01T10:30:05.000Z"
+ *                   success: true
+ *                   message: "Payment status retrieved successfully"
+ *       '400':
+ *         description: Thiếu orderCode trong request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               message: "Order code is required"
+ *               error: "Missing required parameter: orderCode"
+ *               statusCode: 400
+ *               timestamp: "2024-01-01T10:30:00.000Z"
+ *       '404':
+ *         description: Không tìm thấy thanh toán với orderCode được cung cấp
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               message: "Payment not found"
+ *               error: "No payment found with orderCode: 123456789"
+ *               statusCode: 404
+ *               timestamp: "2024-01-01T10:30:00.000Z"
+ *       '500':
+ *         description: Lỗi máy chủ nội bộ hoặc lỗi khi gọi PayOS API
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               server_error:
+ *                 summary: Lỗi máy chủ nội bộ
+ *                 value:
+ *                   success: false
+ *                   message: "Internal server error"
+ *                   error: "Database connection failed"
+ *                   statusCode: 500
+ *                   timestamp: "2024-01-01T10:30:00.000Z"
+ *               payos_api_error:
+ *                 summary: Lỗi API PayOS
+ *                 value:
+ *                   success: false
+ *                   message: "PayOS API verification failed"
+ *                   error: "PayOS API returned error: Invalid order code"
+ *                   statusCode: 500
+ *                   timestamp: "2024-01-01T10:30:00.000Z"
+ */
+
+/**
+ * @swagger
  * /api/payments/{paymentNo}/cancel:
  *   post:
  *     tags:

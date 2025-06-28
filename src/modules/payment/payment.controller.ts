@@ -5,6 +5,7 @@ import PaymentService from './payment.service';
 import { CreatePayosPaymentDto } from './dtos/createPayosPayment.dto';
 import { CreateSamplePaymentDto } from './dtos/createSamplePayment.dto';
 import { CreateAppointmentPaymentDto } from './dtos/createAppointmentPayment.dto';
+import { PaymentStatusEnum } from './payment.enum';
 
 export default class PaymentController {
     private paymentService = new PaymentService();
@@ -86,37 +87,87 @@ export default class PaymentController {
     // Xử lý return URL từ PayOS sau khi thanh toán
     public handlePayosReturn = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const { orderCode } = req.query;
+            const { orderCode, code, id, cancel, status } = req.query;
+            console.log('PayOS return handler called with:', { orderCode, code, id, cancel, status });
+
             if (!orderCode) {
-                res.status(HttpStatus.BadRequest).json({ message: 'Missing orderCode' });
+                console.error('Missing orderCode in PayOS return');
+                const frontendUrl = process.env.DOMAIN_FE || '/';
+                const params = new URLSearchParams([
+                    ['code', '99'],
+                    ['status', 'error'],
+                    ['message', 'Missing order code']
+                ]);
+                res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
                 return;
             }
 
             // Find the payment by orderCode
             const payment = await this.paymentService.findPaymentByOrderCode(Number(orderCode));
             if (!payment) {
-                res.status(HttpStatus.NotFound).json({ message: 'Payment not found' });
+                console.error(`Payment not found for orderCode: ${orderCode}`);
+                const frontendUrl = process.env.DOMAIN_FE || '/';
+                const params = new URLSearchParams([
+                    ['code', '99'],
+                    ['orderCode', orderCode.toString()],
+                    ['status', 'error'],
+                    ['message', 'Payment not found']
+                ]);
+                res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
                 return;
             }
 
-            // Now you have payos_web_id
-            const idWebPayOs = payment.payos_web_id;
+            // Check if this is a cancellation
+            if (cancel === 'true' || code === '99') {
+                console.log(`Payment cancelled for orderCode: ${orderCode}`);
+                try {
+                    await this.paymentService.cancelPayment(orderCode.toString());
+                } catch (cancelError) {
+                    console.error('Error cancelling payment:', cancelError);
+                }
 
+                const frontendUrl = process.env.DOMAIN_FE || '/';
+                const params = new URLSearchParams([
+                    ['code', '99'],
+                    ['orderCode', orderCode.toString()],
+                    ['status', 'cancelled'],
+                    ['paymentNo', payment.payment_no || ''],
+                    ['appointmentId', payment.appointment_id || '']
+                ]);
+                res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
+                return;
+            }
+
+            // Verify payment status with PayOS API
             const result = await this.paymentService.verifyPaymentStatus(orderCode.toString());
+            console.log(`Payment verification result:`, result);
 
-            // Redirect to frontend with /payos path
+            // Prepare redirect parameters
             const frontendUrl = process.env.DOMAIN_FE || '/';
             const params = new URLSearchParams([
-                ['code', '00'],
-                ['id', idWebPayOs || ''],
+                ['code', result.payment_status === PaymentStatusEnum.COMPLETED ? '00' : '01'],
+                ['id', payment.payos_web_id || id?.toString() || ''],
                 ['orderCode', orderCode.toString()],
-                ['status', result.payment_status || payment.status || '']
+                ['status', result.payment_status],
+                ['paymentNo', payment.payment_no || ''],
+                ['appointmentId', payment.appointment_id || ''],
+                ['payosStatus', result.payos_status || ''],
+                ['verifiedAt', new Date().toISOString()]
             ]);
-            // Add /payos after the domain
+
+            console.log(`Redirecting to frontend with params:`, params.toString());
             res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
             return;
+
         } catch (error) {
-            next(error);
+            console.error('Error in handlePayosReturn:', error);
+            const frontendUrl = process.env.DOMAIN_FE || '/';
+            const params = new URLSearchParams([
+                ['code', '99'],
+                ['status', 'error'],
+                ['message', 'Internal server error']
+            ]);
+            res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
         }
     };
 
@@ -281,6 +332,69 @@ export default class PaymentController {
             res.status(HttpStatus.Success).json(
                 formatResponse(samples, true, 'Samples retrieved successfully')
             );
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    // Get detailed payment status for frontend verification
+    public getPaymentStatus = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { orderCode } = req.params;
+
+            if (!orderCode) {
+                return res.status(HttpStatus.BadRequest).json(
+                    formatResponse(false, false, 'Order code is required')
+                );
+            }
+
+            // Find payment by orderCode
+            const payment = await this.paymentService.findPaymentByOrderCode(Number(orderCode));
+            if (!payment) {
+                return res.status(HttpStatus.NotFound).json(
+                    formatResponse(false, false, 'Payment not found')
+                );
+            }
+
+            // Verify current status with PayOS
+            const verificationResult = await this.paymentService.verifyPaymentStatus(orderCode);
+
+            // Get appointment details if available
+            let appointmentDetails = null;
+            if (payment.appointment_id) {
+                try {
+                    // You might want to import and use AppointmentService here
+                    // For now, we'll just include the appointment_id
+                    appointmentDetails = {
+                        appointment_id: payment.appointment_id,
+                        // Add more appointment details as needed
+                    };
+                } catch (error) {
+                    console.error('Error fetching appointment details:', error);
+                }
+            }
+
+            const responseData = {
+                payment: {
+                    payment_no: payment.payment_no,
+                    amount: payment.amount,
+                    payment_method: payment.payment_method,
+                    status: payment.status,
+                    payos_order_code: payment.payos_order_code,
+                    payos_web_id: payment.payos_web_id,
+                    payos_payment_url: payment.payos_payment_url,
+                    created_at: payment.created_at,
+                    updated_at: payment.updated_at
+                },
+                verification: verificationResult,
+                appointment: appointmentDetails,
+                timestamp: new Date().toISOString()
+            };
+
+            res.status(HttpStatus.Success).json(
+                formatResponse(responseData, true, 'Payment status retrieved successfully')
+            );
+
         } catch (error) {
             next(error);
         }
