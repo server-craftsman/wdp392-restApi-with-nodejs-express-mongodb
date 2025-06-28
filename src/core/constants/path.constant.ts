@@ -153,4 +153,10 @@ export const API_PATH = {
     REVIEW: '/api/review',
     REVIEW_SEARCH: '/api/review/search',
 
+    // Dashboard
+    DASHBOARD: '/api/dashboard',
+    DASHBOARD_REVENUE: '/api/dashboard/revenue',
+    DASHBOARD_SUMMARY: '/api/dashboard/summary',
+    DASHBOARD_PAYMENT_STATUS: '/api/dashboard/payments/status',
+
 };

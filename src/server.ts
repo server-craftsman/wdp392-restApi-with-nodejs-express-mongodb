@@ -15,12 +15,12 @@ import { AppointmentLogRoute } from './modules/appointment_log';
 import { KitRoute } from './modules/kit';
 import { SampleRoute } from './modules/sample';
 import { ResultRoute } from './modules/result';
-import { RegistrationFormRoute } from './modules/registration_form';
 import { BlogRoute } from './modules/blog';
 import { BlogCategoryRoute } from './modules/blog_category';
 import { LogRoute } from './modules/blog/log';
 import { ReviewRoute } from './modules/review';
 import { AdministrativeCasesRoute } from './modules/administrative_cases';
+import { DashboardRoute } from './modules/dashboard';
 
 // Load environment variables
 dotenv.config();
@@ -44,12 +44,12 @@ const routes = [
     new KitRoute(),
     new SampleRoute(),
     new ResultRoute(),
-    new RegistrationFormRoute(),
     new BlogRoute(),
     new BlogCategoryRoute(),
     new LogRoute(),
     new ReviewRoute(),
-    new AdministrativeCasesRoute()
+    new AdministrativeCasesRoute(),
+    new DashboardRoute()
 ];
 
 // Create app instance
