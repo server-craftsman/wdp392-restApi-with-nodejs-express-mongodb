@@ -40,7 +40,7 @@ export default class PaymentRoute implements IRoute {
         // POST: domain:/api/payments/appointment -> Create a payment for an appointment with selected payment method
         this.router.post(
             `${this.path}/appointment`,
-            authMiddleWare([UserRoleEnum.CUSTOMER]),
+            authMiddleWare(),
             validationMiddleware(CreateAppointmentPaymentDto),
             this.paymentController.createAppointmentPayment
         );
