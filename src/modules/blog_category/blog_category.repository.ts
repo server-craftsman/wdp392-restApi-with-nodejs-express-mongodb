@@ -39,10 +39,10 @@ export default class BlogCategoryRepository {
     }
 
     public async getBlogCategories(): Promise<IBlogCategory[]> {
-        return BlogCategoryModel.find();
+        return BlogCategoryModel.find({ is_deleted: false });
     }
 
     public async getBlogCategoriesWithPagination(query: any): Promise<IBlogCategory[]> {
-        return BlogCategoryModel.find(query);
+        return BlogCategoryModel.find({ is_deleted: false, ...query });
     }
 }
