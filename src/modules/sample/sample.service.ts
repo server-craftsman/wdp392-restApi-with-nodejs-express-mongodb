@@ -1306,11 +1306,11 @@ export default class SampleService {
             throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
         }
 
-        if (appointment.status === AppointmentStatusEnum.PENDING) {
-            throw new HttpException(HttpStatus.BadRequest, 'Appointment must be confirmed or pending before collecting sample');
-        }
+        // if (appointment.status === AppointmentStatusEnum.PENDING) {
+        //     throw new HttpException(HttpStatus.BadRequest, 'Appointment must be confirmed or pending before collecting sample');
+        // }
 
-        if (appointment.status !== AppointmentStatusEnum.CONFIRMED) {
+        if (appointment.status !== AppointmentStatusEnum.CONFIRMED && appointment.status !== AppointmentStatusEnum.PENDING) {
             throw new HttpException(HttpStatus.BadRequest, 'Appointment must be confirmed or pending before collecting sample');
         }
 
