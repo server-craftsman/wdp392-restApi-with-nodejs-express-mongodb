@@ -1306,8 +1306,12 @@ export default class SampleService {
             throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
         }
 
+        if (appointment.status === AppointmentStatusEnum.PENDING) {
+            throw new HttpException(HttpStatus.BadRequest, 'Appointment must be confirmed or pending before collecting sample');
+        }
+
         if (appointment.status !== AppointmentStatusEnum.CONFIRMED) {
-            throw new HttpException(HttpStatus.BadRequest, 'Appointment must be confirmed before collecting sample');
+            throw new HttpException(HttpStatus.BadRequest, 'Appointment must be confirmed or pending before collecting sample');
         }
 
         // Validate that number of sample types matches number of person info entries
