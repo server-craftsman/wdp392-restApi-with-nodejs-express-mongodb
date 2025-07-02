@@ -110,7 +110,7 @@ export default class SampleRoute implements IRoute {
         // POST: domain:/api/sample/upload-person-image -> Upload person image for a sample
         this.router.post(
             `${API_PATH.SAMPLE}/upload-person-image`,
-            authMiddleWare([UserRoleEnum.CUSTOMER, UserRoleEnum.STAFF]),
+            authMiddleWare(),
             uploadSingleFile('image'),
             this.sampleController.uploadPersonImage
         );
