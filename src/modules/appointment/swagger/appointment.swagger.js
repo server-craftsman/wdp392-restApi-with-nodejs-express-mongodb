@@ -382,6 +382,7 @@
  *   get:
  *     tags: [appointments]
  *     summary: Get appointments assigned to staff member (Staff only)
+ *     description: Retrieve paginated list of appointments assigned to the authenticated staff member with filtering options
  *     security:
  *       - Bearer: []
  *     parameters:
@@ -389,26 +390,146 @@
  *         name: pageNum
  *         schema:
  *           type: integer
- *         description: Page number
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination
+ *         example: 1
  *       - in: query
  *         name: pageSize
  *         schema:
  *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 100
  *         description: Number of items per page
+ *         example: 20
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by customer ID (MongoDB ObjectId)
+ *         example: "60d0fe4f5311236168a109ce"
+ *       - in: query
+ *         name: service_id
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by service ID (MongoDB ObjectId)
+ *         example: "60d0fe4f5311236168a109cf"
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, confirmed, sample_assigned, sample_collected, sample_received, testing, completed, cancelled]
+ *         description: Filter by appointment status
+ *         example: "confirmed"
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [self, facility, home]
+ *         description: Filter by appointment type
+ *         example: "home"
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter appointments from this date (YYYY-MM-DD)
+ *         example: "2024-01-01"
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter appointments until this date (YYYY-MM-DD)
+ *         example: "2024-12-31"
+ *       - in: query
+ *         name: search_term
+ *         schema:
+ *           type: string
+ *         description: Search term for customer name or collection address
+ *         example: "John Smith"
+ *       - in: query
+ *         name: payment_status
+ *         schema:
+ *           type: string
+ *           enum: [unpaid, paid, refunded, failed]
+ *         description: Filter by payment status
+ *         example: "paid"
+ *       - in: query
+ *         name: slot_id
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by slot ID (MongoDB ObjectId)
+ *         example: "60d0fe4f5311236168a109d0"
+ *       - in: query
+ *         name: laboratory_technician_id
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by assigned laboratory technician ID (MongoDB ObjectId)
+ *         example: "60d0fe4f5311236168a109d1"
  *     responses:
  *       200:
- *         description: List of assigned appointments
+ *         description: List of assigned appointments retrieved successfully
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/AppointmentListResponse'
+ *             examples:
+ *               success:
+ *                 summary: Successful response with appointments
+ *                 value:
+ *                   success: true
+ *                   message: "Appointments retrieved successfully"
+ *                   data:
+ *                     pageData:
+ *                       - _id: "60d0fe4f5311236168a109ce"
+ *                         user_id:
+ *                           _id: "60d0fe4f5311236168a109ca"
+ *                           first_name: "John"
+ *                           last_name: "Doe"
+ *                           email: "john.doe@example.com"
+ *                         service_id:
+ *                           _id: "60d0fe4f5311236168a109cb"
+ *                           name: "Paternity Test"
+ *                         appointment_date: "2024-01-15T10:00:00Z"
+ *                         status: "confirmed"
+ *                         type: "home"
+ *                         collection_address: "123 Main St, City"
+ *                         payment_status: "paid"
+ *                     pageInfo:
+ *                       totalItems: 50
+ *                       totalPages: 5
+ *                       pageNum: 1
+ *                       pageSize: 10
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized - Staff authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         description: Forbidden - Staff access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *
  * /api/appointment/lab-tech/assigned:
  *   get:
  *     tags: [appointments]
  *     summary: Get appointments assigned to laboratory technician (Lab technician only)
+ *     description: Retrieve paginated list of appointments assigned to the authenticated laboratory technician with filtering options
  *     security:
  *       - Bearer: []
  *     parameters:
@@ -416,21 +537,150 @@
  *         name: pageNum
  *         schema:
  *           type: integer
- *         description: Page number
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination
+ *         example: 1
  *       - in: query
  *         name: pageSize
  *         schema:
  *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 100
  *         description: Number of items per page
+ *         example: 15
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by customer ID (MongoDB ObjectId)
+ *         example: "60d0fe4f5311236168a109ce"
+ *       - in: query
+ *         name: service_id
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by service ID (MongoDB ObjectId)
+ *         example: "60d0fe4f5311236168a109cf"
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, confirmed, sample_assigned, sample_collected, sample_received, testing, completed, cancelled]
+ *         description: Filter by appointment status
+ *         example: "sample_received"
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [self, facility, home]
+ *         description: Filter by appointment type
+ *         example: "facility"
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter appointments from this date (YYYY-MM-DD)
+ *         example: "2024-01-01"
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter appointments until this date (YYYY-MM-DD)
+ *         example: "2024-12-31"
+ *       - in: query
+ *         name: search_term
+ *         schema:
+ *           type: string
+ *         description: Search term for customer name or collection address
+ *         example: "Jane"
+ *       - in: query
+ *         name: payment_status
+ *         schema:
+ *           type: string
+ *           enum: [unpaid, paid, refunded, failed]
+ *         description: Filter by payment status
+ *         example: "paid"
+ *       - in: query
+ *         name: staff_id
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by assigned staff ID (MongoDB ObjectId)
+ *         example: "60d0fe4f5311236168a109d2"
+ *       - in: query
+ *         name: slot_id
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by slot ID (MongoDB ObjectId)
+ *         example: "60d0fe4f5311236168a109d0"
+ *       - in: query
+ *         name: administrative_case_id
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *         description: Filter by administrative case ID (MongoDB ObjectId)
+ *         example: "60d0fe4f5311236168a109d3"
  *     responses:
  *       200:
- *         description: List of assigned appointments
+ *         description: List of assigned appointments retrieved successfully
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/AppointmentListResponse'
+ *             examples:
+ *               success:
+ *                 summary: Successful response with lab tech assignments
+ *                 value:
+ *                   success: true
+ *                   message: "Appointments retrieved successfully"
+ *                   data:
+ *                     pageData:
+ *                       - _id: "60d0fe4f5311236168a109ce"
+ *                         user_id:
+ *                           _id: "60d0fe4f5311236168a109ca"
+ *                           first_name: "Jane"
+ *                           last_name: "Smith"
+ *                           email: "jane.smith@example.com"
+ *                         service_id:
+ *                           _id: "60d0fe4f5311236168a109cb"
+ *                           name: "DNA Analysis"
+ *                         staff_id:
+ *                           _id: "60d0fe4f5311236168a109d2"
+ *                           first_name: "Staff"
+ *                           last_name: "Member"
+ *                         appointment_date: "2024-01-20T14:30:00Z"
+ *                         status: "testing"
+ *                         type: "facility"
+ *                         payment_status: "paid"
+ *                     pageInfo:
+ *                       totalItems: 25
+ *                       totalPages: 3
+ *                       pageNum: 1
+ *                       pageSize: 10
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized - Laboratory technician authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         description: Forbidden - Laboratory technician access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *
  * /api/appointment/{id}/assign-lab-tech:
  *   post:

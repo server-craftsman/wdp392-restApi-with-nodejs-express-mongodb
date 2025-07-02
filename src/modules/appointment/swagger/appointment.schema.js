@@ -112,6 +112,85 @@
  *         lab_tech_id:
  *           type: string
  *           description: ID of the laboratory technician to assign
+ *     ErrorResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: false
+ *         message:
+ *           type: string
+ *           description: Error message describing what went wrong
+ *           example: "Invalid request parameters"
+ *         error:
+ *           type: string
+ *           description: Technical error details (optional)
+ *           example: "ValidationError: Invalid ObjectId format"
+ *         statusCode:
+ *           type: integer
+ *           description: HTTP status code
+ *           example: 400
+ *     AppointmentFilterParams:
+ *       type: object
+ *       properties:
+ *         pageNum:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *           description: Page number for pagination
+ *         pageSize:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 100
+ *           description: Number of items per page
+ *         user_id:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *           description: Filter by customer ID (MongoDB ObjectId)
+ *         service_id:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *           description: Filter by service ID (MongoDB ObjectId)
+ *         status:
+ *           type: string
+ *           enum: [pending, confirmed, sample_assigned, sample_collected, sample_received, testing, completed, cancelled]
+ *           description: Filter by appointment status
+ *         type:
+ *           type: string
+ *           enum: [self, facility, home]
+ *           description: Filter by appointment type
+ *         start_date:
+ *           type: string
+ *           format: date
+ *           description: Filter appointments from this date (YYYY-MM-DD)
+ *         end_date:
+ *           type: string
+ *           format: date
+ *           description: Filter appointments until this date (YYYY-MM-DD)
+ *         search_term:
+ *           type: string
+ *           description: Search term for customer name or collection address
+ *         payment_status:
+ *           type: string
+ *           enum: [unpaid, paid, refunded, failed]
+ *           description: Filter by payment status
+ *         staff_id:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *           description: Filter by assigned staff ID (MongoDB ObjectId)
+ *         laboratory_technician_id:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *           description: Filter by assigned laboratory technician ID (MongoDB ObjectId)
+ *         slot_id:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *           description: Filter by slot ID (MongoDB ObjectId)
+ *         administrative_case_id:
+ *           type: string
+ *           pattern: '^[0-9a-fA-F]{24}$'
+ *           description: Filter by administrative case ID (MongoDB ObjectId)
  *     SlotWithAppointmentLimit:
  *       type: object
  *       properties:
