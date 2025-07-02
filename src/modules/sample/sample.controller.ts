@@ -405,6 +405,7 @@ export default class SampleController {
     public uploadPersonImage = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
+            const userRole = req.user.role;
             if (!userId) {
                 throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
             }
@@ -439,7 +440,8 @@ export default class SampleController {
             const updatedSample = await this.sampleService.updatePersonImage(
                 sample_id,
                 imageUrl,
-                userId
+                userId,
+                userRole
             );
 
             res.status(HttpStatus.Success).json(formatResponse({

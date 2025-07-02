@@ -18,6 +18,7 @@ import { CollectSampleDto } from './dtos/collect-sample.dto';
 import AppointmentSchema from '../appointment/appointment.model';
 import ServiceSchema from '../service/service.model';
 import { ServiceTypeEnum } from '../service/service.enum';
+import { UserRoleEnum } from '../user/user.enum';
 
 /**
  * Helper function to compare MongoDB ObjectIds or strings
@@ -971,14 +972,16 @@ export default class SampleService {
      * @param sampleId ID of the sample
      * @param imageUrl URL of the uploaded image
      * @param userId ID of the user making the request
+     * @param userRole Role of the user making the request
      */
     public async updatePersonImage(
         sampleId: string,
         imageUrl: string,
-        userId: string
+        userId: string,
+        userRole?: string
     ): Promise<ISample> {
         try {
-            console.log("updatePersonImage called with:", { sampleId, imageUrl, userId });
+            console.log("updatePersonImage called with:", { sampleId, imageUrl, userId, userRole });
 
             // Validate sampleId
             if (!mongoose.Types.ObjectId.isValid(sampleId)) {
@@ -1001,12 +1004,16 @@ export default class SampleService {
             // Extract appointment_id using the helper function
             const appointmentId = extractAppointmentIdFromSample(sample);
 
-            // Verify that the sample belongs to the user making the request
-            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
-            const appointmentUserId = extractUserIdFromAppointment(appointment);
+            // Authorization check: Allow staff to upload images for any sample,
+            // but customers can only upload images for their own samples
+            if (userRole !== UserRoleEnum.STAFF && userRole !== UserRoleEnum.LABORATORY_TECHNICIAN) {
+                // For customers, verify that the sample belongs to the user making the request
+                const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+                const appointmentUserId = extractUserIdFromAppointment(appointment);
 
-            if (!areIdsEqual(appointmentUserId, userId)) {
-                throw new HttpException(HttpStatus.Forbidden, 'You are not authorized to update this sample');
+                if (!areIdsEqual(appointmentUserId, userId)) {
+                    throw new HttpException(HttpStatus.Forbidden, 'You are not authorized to update this sample');
+                }
             }
 
             // Always update the single person_info object
