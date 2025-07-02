@@ -62,6 +62,9 @@ export default class BlogRepository {
         try {
             console.log('Repository: Fetching all non-deleted blogs');
             const blogs = await BlogSchemaEntity.find({ is_deleted: false })
+                .populate('user_id', 'name email')
+                .populate('service_id', 'name')
+                .populate('blog_category_id', 'name')
                 .sort({ created_at: -1 });
             console.log(`Repository: Found ${blogs.length} blogs`);
             return blogs;
@@ -109,7 +112,10 @@ export default class BlogRepository {
             query.is_published = searchParams.is_published;
         }
 
-        return BlogSchemaEntity.find(query);
+        return BlogSchemaEntity.find(query)
+            .populate('user_id', 'name email')
+            .populate('service_id', 'name')
+            .populate('blog_category_id', 'name');
     }
 
     public async countBlogs(searchParams: BlogSearchDto): Promise<number> {
@@ -192,8 +198,11 @@ export default class BlogRepository {
                 .skip(validSkip)
                 .limit(validLimit)
                 .sort({ created_at: -1 })
-                .lean()  // Convert to plain JavaScript objects for better performance
-                .exec(); // Explicitly execute the query
+                .populate('user_id', 'fist_name last_name email')
+                .populate('service_id', 'name')
+                .populate('blog_category_id', 'name')
+                .lean()
+                .exec();
 
             // Ensure we always return an array
             const safeBlogs = Array.isArray(blogs) ? blogs : [];
