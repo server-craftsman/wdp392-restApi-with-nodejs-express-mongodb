@@ -214,11 +214,12 @@ export default class PaymentController {
             }
 
             const paymentData: CreateAppointmentPaymentDto = req.body;
+            const userRole = req.user.role;
 
             // If sample_ids is not provided, it will be handled in the service
             // by automatically fetching all samples for the appointment
 
-            const result = await this.paymentService.createAppointmentPayment(userId, paymentData);
+            const result = await this.paymentService.createAppointmentPayment(userId, paymentData, userRole);
 
             res.status(HttpStatus.Success).json(
                 formatResponse(result, true, 'Appointment payment created successfully')

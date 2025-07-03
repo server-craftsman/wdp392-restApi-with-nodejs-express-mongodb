@@ -17,6 +17,7 @@ import UserService from '../user/user.service';
 import { sendMail, createNotificationEmailTemplate } from '../../core/utils';
 import { ISendMailDetail } from '../../core/interfaces';
 import { TransactionStatusEnum } from '../transaction/transaction.enum';
+import { UserRoleEnum } from '../user/user.enum';
 
 export default class PaymentService {
     private paymentSchema = PaymentSchema;
@@ -198,7 +199,7 @@ export default class PaymentService {
      * @param paymentData Payment data including method and appointment ID
      * @returns Payment details including checkout URL if PAY_OS is selected
      */
-    public async createAppointmentPayment(userId: string, paymentData: CreateAppointmentPaymentDto): Promise<{
+    public async createAppointmentPayment(userId: string, paymentData: CreateAppointmentPaymentDto, userRole?: string): Promise<{
         payment_no: string;
         payment_method: string;
         status: string;
@@ -214,7 +215,10 @@ export default class PaymentService {
 
             // Check if user has permission
             if (appointment.user_id && appointment.user_id.toString() !== userId) {
-                throw new HttpException(HttpStatus.Forbidden, 'You do not have permission to pay for this appointment');
+                // Allow staff to create payments regardless of appointment ownership
+                if (userRole !== UserRoleEnum.STAFF && userRole !== UserRoleEnum.LABORATORY_TECHNICIAN) {
+                    throw new HttpException(HttpStatus.Forbidden, 'You do not have permission to pay for this appointment');
+                }
             }
 
             // Check if payment already exists

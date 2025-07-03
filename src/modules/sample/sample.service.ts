@@ -1342,8 +1342,8 @@ export default class SampleService {
             // Get an available kit
             const kit = availableKits[i];
 
-            // Update kit status to ASSIGNED
-            await this.kitService.changeKitStatus(kit._id.toString(), KitStatusEnum.ASSIGNED);
+            // Update kit status to USED since sample is being collected immediately at facility
+            await this.kitService.changeKitStatus(kit._id.toString(), KitStatusEnum.USED);
 
             // Validate the collection date is valid before creating the sample
             if (model.collection_date && isNaN(new Date(model.collection_date).getTime())) {
