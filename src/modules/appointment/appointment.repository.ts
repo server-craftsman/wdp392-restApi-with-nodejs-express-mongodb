@@ -38,7 +38,7 @@ export default class AppointmentRepository {
     public async findWithPopulate(query: any): Promise<IAppointment[]> {
         return AppointmentSchema.find(query)
             .populate('user_id', 'first_name last_name email phone_number')
-            .populate('service_id', 'name price')
+            .populate('service_id', 'name price image_url')
             .populate('staff_id', 'first_name last_name email phone_number')
             .populate('slot_id')
             .populate('laboratory_technician_id', 'first_name last_name email phone_number');
@@ -47,7 +47,7 @@ export default class AppointmentRepository {
     public async findByIdWithPopulate(id: string): Promise<IAppointment | null> {
         return AppointmentSchema.findById(id)
             .populate('user_id', 'first_name last_name email phone_number')
-            .populate('service_id', 'name price')
+            .populate('service_id', 'name price image_url')
             .populate('staff_id', 'first_name last_name email phone_number')
             .populate('slot_id')
             .populate('administrative_case_id', 'case_number authorization_code agency_contact_email agency_contact_name agency_contact_phone')
@@ -66,7 +66,7 @@ export default class AppointmentRepository {
             .skip(skip)
             .limit(limit)
             .populate('user_id', 'first_name last_name email phone_number')
-            .populate('service_id', 'name price type is_active estimated_time')
+            .populate('service_id', 'name price image_url type is_active estimated_time')
             .populate('staff_id', 'first_name last_name email phone_number')
             .populate('slot_id')
             .populate('laboratory_technician_id', 'first_name last_name email phone_number');
@@ -82,10 +82,10 @@ export default class AppointmentRepository {
             .sort(sort)
             .skip(skip)
             .limit(limit)
-            .populate('service_id', 'name price')
-            .populate('staff_id', 'first_name last_name')
+            .populate('service_id', 'name price image_url')
+            .populate('staff_id', 'first_name last_name email phone_number')
             .populate('slot_id')
-            .populate('laboratory_technician_id', 'first_name last_name');
+            .populate('laboratory_technician_id', 'first_name last_name email phone_number');
         return appointments;
     }
 
@@ -104,7 +104,7 @@ export default class AppointmentRepository {
             .skip(skip)
             .limit(limit)
             .populate('user_id', 'first_name last_name email phone_number')
-            .populate('service_id', 'name price')
+            .populate('service_id', 'name price image_url')
             .populate('slot_id');
         return appointments;
     }
@@ -124,9 +124,9 @@ export default class AppointmentRepository {
             .skip(skip)
             .limit(limit)
             .populate('user_id', 'first_name last_name email phone_number')
-            .populate('service_id', 'name price')
+            .populate('service_id', 'name price image_url')
             .populate('slot_id')
-            .populate('staff_id', 'first_name last_name');
+            .populate('staff_id', 'first_name last_name email phone_number');
         return appointments;
     }
 
