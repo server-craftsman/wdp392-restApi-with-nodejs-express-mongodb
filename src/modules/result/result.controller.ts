@@ -119,9 +119,21 @@ export default class ResultController {
             const result = await this.resultService.getResultByAppointmentId(appointmentId);
 
             // If user is customer, check if they have access to this result
-            if (req.user.role === UserRoleEnum.CUSTOMER &&
-                result.customer_id?.toString() !== req.user.id) {
-                throw new HttpException(HttpStatus.Forbidden, 'You do not have access to this result');
+            // if (req.user.role === UserRoleEnum.CUSTOMER) {
+            //     if (result.customer_id !== req.user.id) {
+            //         throw new HttpException(HttpStatus.Forbidden, 'You do not have access to this result');
+            //     }
+            // }
+
+            if (req.user.role === UserRoleEnum.CUSTOMER) {
+                // Handles both populated and unpopulated customer_id
+                const resultCustomerId = typeof result.customer_id === 'object' && result.customer_id !== null
+                    ? (result.customer_id as any)._id?.toString?.() || (result.customer_id as any).toString?.()
+                    : result.customer_id?.toString?.();
+
+                if (resultCustomerId !== req.user.id?.toString()) {
+                    throw new HttpException(HttpStatus.Forbidden, 'You do not have access to this result');
+                }
             }
 
             res.status(HttpStatus.Success).json(formatResponse<IResult>(result));
