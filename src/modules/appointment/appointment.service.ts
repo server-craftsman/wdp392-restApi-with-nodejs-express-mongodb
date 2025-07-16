@@ -83,6 +83,8 @@ export default class AppointmentService {
                 administrative_case_id = (adminCase._id as any).toString();
                 // Ép type = FACILITY
                 appointmentData.type = TypeEnum.FACILITY;
+                // Set agency_contact_email from administrative case
+                appointmentData.agency_contact_email = adminCase.agency_contact_email;
             }
 
             // Nếu có slot_id, kiểm tra slot và lấy staff_id
@@ -138,25 +140,6 @@ export default class AppointmentService {
                     HttpStatus.BadRequest,
                     'Collection address is required for home collection'
                 );
-            }
-
-            // Kiểm tra xem có agency_contact_email không
-            if (service.type === ServiceTypeEnum.ADMINISTRATIVE && !appointmentData.agency_contact_email) {
-                throw new HttpException(HttpStatus.BadRequest, 'agency_contact_email is required for ADMINISTRATIVE service');
-            }
-
-            // set agency_contact_email to appointment entity bằng cách copy từ administrative_case
-            if (service.type === ServiceTypeEnum.ADMINISTRATIVE && appointmentData.agency_contact_email) {
-
-                const adminCase = await AdministrativeCaseSchema.findOne({
-                    case_number: appointmentData.case_number,
-                    authorization_code: appointmentData.authorization_code
-                });
-                if (!adminCase) {
-                    throw new HttpException(HttpStatus.NotFound, 'Administrative case not found or invalid');
-                }
-                administrative_case_id = (adminCase._id as any).toString();
-                appointmentData.agency_contact_email = adminCase.agency_contact_email;
             }
 
             // Tạo appointment với staff_id nếu có

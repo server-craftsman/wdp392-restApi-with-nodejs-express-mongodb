@@ -42,13 +42,23 @@ export class CreateAppointmentDto {
 
     @IsString()
     @IsOptional()
+    /**
+     * For ADMINISTRATIVE services, this field is automatically populated from the administrative case
+     * and should not be provided by the client. For other service types, this field is optional.
+     */
     agency_contact_email?: string;
 
     @IsString()
     @IsOptional()
+    /**
+     * Required for ADMINISTRATIVE services. Must match an existing administrative case.
+     */
     case_number?: string;
 
     @IsString()
     @IsOptional()
+    /**
+     * Required for ADMINISTRATIVE services. Must match an existing administrative case.
+     */
     authorization_code?: string;
 }
