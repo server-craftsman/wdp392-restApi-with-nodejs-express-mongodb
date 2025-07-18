@@ -18,6 +18,22 @@ export default class BlogService {
     public async createBlog(createBlogDto: CreateBlogDto): Promise<IBlog> {
         try {
             console.log('Blog service: Starting blog creation...');
+
+            // Validate user_id if provided
+            if (createBlogDto.user_id && !createBlogDto.user_id.match(/^[0-9a-fA-F]{24}$/)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid user_id format');
+            }
+
+            // Validate service_id
+            if (!createBlogDto.service_id.match(/^[0-9a-fA-F]{24}$/)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid service_id format');
+            }
+
+            // Validate blog_category_id
+            if (!createBlogDto.blog_category_id.match(/^[0-9a-fA-F]{24}$/)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid blog_category_id format');
+            }
+
             // Generate a unique slug based on the title if not provided
             if (!createBlogDto.slug) {
                 createBlogDto.slug = await this.generateSlug(createBlogDto.title);
@@ -104,10 +120,36 @@ export default class BlogService {
 
     public async updateBlog(id: string, updateBlogDto: UpdateBlogDto, authorId: string): Promise<IBlog> {
         try {
+            console.log(`Blog update: Starting update for blog ID ${id}`);
+            console.log(`Blog update: Author ID: ${authorId}`);
+            console.log(`Blog update: Update data:`, JSON.stringify(updateBlogDto, null, 2));
+
+            // Validate authorId
+            if (!authorId.match(/^[0-9a-fA-F]{24}$/)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid author ID format');
+            }
+
+            // Validate user_id if provided in update data
+            if (updateBlogDto.user_id && !updateBlogDto.user_id.match(/^[0-9a-fA-F]{24}$/)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid user_id format');
+            }
+
+            // Validate service_id if provided
+            if (updateBlogDto.service_id && !updateBlogDto.service_id.match(/^[0-9a-fA-F]{24}$/)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid service_id format');
+            }
+
+            // Validate blog_category_id if provided
+            if (updateBlogDto.blog_category_id && !updateBlogDto.blog_category_id.match(/^[0-9a-fA-F]{24}$/)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid blog_category_id format');
+            }
+
+            console.log('Blog update: Validation passed, fetching existing blog...');
             const existingBlog = await this.blogRepository.getBlogById(id);
             if (!existingBlog) {
                 throw new HttpException(HttpStatus.NotFound, 'Blog not found');
             }
+            console.log('Blog update: Existing blog found:', existingBlog._id);
 
             // If slug is being updated, ensure it's unique
             if (updateBlogDto.slug && updateBlogDto.slug !== existingBlog.slug) {
@@ -158,13 +200,26 @@ export default class BlogService {
                 console.log('Blog update: No new images provided, keeping existing images');
             }
 
+            console.log('Blog update: About to create blog log...');
             // Create log entry for the update
-            await this.createBlogLog(existingBlog, updateBlogDto, authorId);
+            try {
+                const logResult = await this.createBlogLog(existingBlog, updateBlogDto, authorId);
+                if (logResult) {
+                    console.log('Blog log created successfully');
+                } else {
+                    console.log('Blog log creation skipped or failed, but continuing with blog update');
+                }
+            } catch (logError) {
+                console.error('Failed to create blog log, but continuing with blog update:', logError);
+                // Don't let log creation failure prevent the blog update
+            }
 
+            console.log('Blog update: About to update blog in repository...');
             const updatedBlog = await this.blogRepository.updateBlog(id, updateBlogDto as Partial<IBlog>);
             if (!updatedBlog) {
                 throw new HttpException(HttpStatus.NotFound, 'Blog not found');
             }
+            console.log('Blog update: Blog updated successfully in repository');
             return updatedBlog;
         } catch (error) {
             console.error(`Blog update error for ID ${id}:`, error);
@@ -518,58 +573,104 @@ export default class BlogService {
         return slug;
     }
 
-    private async createBlogLog(oldBlog: IBlog, updateData: UpdateBlogDto, authorId: string): Promise<ILog> {
-        const logData: any = {
-            blog_id: oldBlog._id,
-            author_id: authorId
-        };
+    private async createBlogLog(oldBlog: IBlog, updateData: UpdateBlogDto, authorId: string): Promise<ILog | null> {
+        try {
+            // Create base log data with required fields
+            const logData: any = {
+                blog_id: oldBlog._id,
+                author_id: authorId,
+                created_at: new Date(),
+                updated_at: new Date(),
+                is_deleted: false
+            };
 
-        // Only log fields that are being updated
-        if (updateData.title !== undefined) {
-            logData.old_title = oldBlog.title;
-            logData.new_title = updateData.title;
+            // Track if any fields are actually being updated
+            let hasUpdates = false;
+
+            // Only log fields that are being updated
+            if (updateData.title !== undefined) {
+                logData.old_title = oldBlog.title || '';
+                logData.new_title = updateData.title;
+                hasUpdates = true;
+            }
+
+            if (updateData.content !== undefined) {
+                logData.old_content = oldBlog.content || '';
+                logData.new_content = updateData.content;
+                hasUpdates = true;
+            }
+
+            if (updateData.slug !== undefined) {
+                logData.old_slug = oldBlog.slug || '';
+                logData.new_slug = updateData.slug;
+                hasUpdates = true;
+            }
+
+            if (updateData.blog_category_id !== undefined) {
+                logData.old_blog_category_id = oldBlog.blog_category_id || '';
+                logData.new_blog_category_id = updateData.blog_category_id;
+                hasUpdates = true;
+            }
+
+            if (updateData.service_id !== undefined) {
+                logData.old_service_id = oldBlog.service_id || '';
+                logData.new_service_id = updateData.service_id;
+                hasUpdates = true;
+            }
+
+            if (updateData.user_id !== undefined) {
+                logData.old_user_id = oldBlog.user_id || '';
+                logData.new_user_id = updateData.user_id;
+                hasUpdates = true;
+            }
+
+            if (updateData.is_published !== undefined) {
+                logData.old_is_published = oldBlog.is_published;
+                logData.new_is_published = updateData.is_published;
+                hasUpdates = true;
+            }
+
+            if (updateData.published_at !== undefined) {
+                logData.old_published_at = oldBlog.published_at || new Date();
+                logData.new_published_at = updateData.published_at;
+                hasUpdates = true;
+            }
+
+            if (updateData.images !== undefined) {
+                // Ensure images have proper structure for validation
+                logData.old_images = (oldBlog.images || []).map(img => ({
+                    name: img.name || '',
+                    image_url: img.image_url || '',
+                    created_at: img.created_at || new Date()
+                }));
+                logData.new_images = (updateData.images || []).map(img => ({
+                    name: img.name || '',
+                    image_url: img.image_url || '',
+                    created_at: img.created_at || new Date()
+                }));
+                hasUpdates = true;
+            }
+
+            // Only create log if there are actual updates
+            if (!hasUpdates) {
+                console.log('No fields updated, skipping log creation');
+                return null; // Return null instead of throwing error
+            }
+
+            // Validate that required fields are present
+            if (!logData.blog_id || !logData.author_id) {
+                console.error('Missing required fields for log creation:', { blog_id: logData.blog_id, author_id: logData.author_id });
+                return null; // Return null instead of throwing error
+            }
+
+            console.log('Creating blog log with data:', JSON.stringify(logData, null, 2));
+            return await this.logService.createLog(logData);
+        } catch (error) {
+            console.error('Error in createBlogLog:', error);
+            // Don't throw the error to prevent the entire update from failing
+            // Just log it and continue with the blog update
+            console.warn('Blog log creation failed, but continuing with blog update');
+            return null; // Return null to indicate log creation failed
         }
-
-        if (updateData.content !== undefined) {
-            logData.old_content = oldBlog.content;
-            logData.new_content = updateData.content;
-        }
-
-        if (updateData.slug !== undefined) {
-            logData.old_slug = oldBlog.slug;
-            logData.new_slug = updateData.slug;
-        }
-
-        if (updateData.blog_category_id !== undefined) {
-            logData.old_blog_category_id = oldBlog.blog_category_id;
-            logData.new_blog_category_id = updateData.blog_category_id;
-        }
-
-        if (updateData.service_id !== undefined) {
-            logData.old_service_id = oldBlog.service_id;
-            logData.new_service_id = updateData.service_id;
-        }
-
-        if (updateData.user_id !== undefined) {
-            logData.old_user_id = oldBlog.user_id;
-            logData.new_user_id = updateData.user_id;
-        }
-
-        if (updateData.is_published !== undefined) {
-            logData.old_is_published = oldBlog.is_published;
-            logData.new_is_published = updateData.is_published;
-        }
-
-        if (updateData.published_at !== undefined) {
-            logData.old_published_at = oldBlog.published_at;
-            logData.new_published_at = updateData.published_at;
-        }
-
-        if (updateData.images !== undefined) {
-            logData.old_images = oldBlog.images;
-            logData.new_images = updateData.images;
-        }
-
-        return this.logService.createLog(logData);
     }
 }

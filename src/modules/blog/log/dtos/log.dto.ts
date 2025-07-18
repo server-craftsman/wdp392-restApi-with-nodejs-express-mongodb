@@ -86,6 +86,18 @@ export class CreateLogDto {
     @Type(() => BlogImageDto)
     @IsOptional()
     new_images?: BlogImageDto[];
+
+    @IsDate()
+    @IsOptional()
+    created_at?: Date;
+
+    @IsDate()
+    @IsOptional()
+    updated_at?: Date;
+
+    @IsBoolean()
+    @IsOptional()
+    is_deleted?: boolean;
 }
 
 export class LogResponseDto {

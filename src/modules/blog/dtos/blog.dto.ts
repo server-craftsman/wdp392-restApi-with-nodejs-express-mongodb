@@ -34,17 +34,17 @@ export class CreateBlogDto {
     @IsOptional()
     slug?: string;
 
-    // @IsMongoId()
+    @IsMongoId()
     @IsOptional()
-    user_id: string = '';
+    user_id?: string;
 
-    // @IsMongoId()
+    @IsMongoId()
     @IsNotEmpty()
-    service_id: string = '';
+    service_id!: string;
 
-    // @IsMongoId()
+    @IsMongoId()
     @IsNotEmpty()
-    blog_category_id: string = '';
+    blog_category_id!: string;
 
     @Type(() => Boolean)
     @IsOptional()
@@ -77,14 +77,17 @@ export class UpdateBlogDto {
     @IsOptional()
     slug?: string;
 
+    @IsMongoId()
     @IsOptional()
-    user_id: string = '';
+    user_id?: string;
 
+    @IsMongoId()
     @IsOptional()
-    service_id: string = '';
+    service_id?: string;
 
+    @IsMongoId()
     @IsOptional()
-    blog_category_id: string = '';
+    blog_category_id?: string;
 
     @Type(() => Boolean)
     @IsOptional()

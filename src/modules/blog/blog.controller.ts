@@ -37,6 +37,10 @@ class BlogController {
             }
 
             if (req.user && req.user.id) {
+                // Validate that user.id is a valid MongoDB ObjectId
+                if (!req.user.id.match(/^[0-9a-fA-F]{24}$/)) {
+                    throw new HttpException(HttpStatus.BadRequest, 'Invalid user ID format');
+                }
                 blogData.user_id = req.user.id;
             } else {
                 throw new HttpException(HttpStatus.Unauthorized, 'User authentication required');
@@ -134,11 +138,17 @@ class BlogController {
 
     public updateBlog = async (req: Request, res: Response, next: NextFunction) => {
         try {
+            console.log('Controller: Starting blog update process...');
             const blogId = req.params.id;
+            console.log('Controller: Blog ID from params:', blogId);
+            console.log('Controller: Request body:', JSON.stringify(req.body, null, 2));
+            console.log('Controller: User from JWT:', req.user);
+
             const blogData = plainToInstance(UpdateBlogDto, req.body);
 
             try {
                 await validateOrReject(blogData);
+                console.log('Controller: DTO validation passed');
             } catch (errors) {
                 console.error('Validation errors:', errors);
                 const validationErrors = errors as Array<{ property: string, constraints: Record<string, string> }>;
@@ -214,10 +224,18 @@ class BlogController {
 
             // Extract user_id from JWT token for author tracking
             const authorId = req.user?.id || '';
+            console.log('Controller: Author ID from JWT:', authorId);
+
             if (!authorId) {
                 throw new HttpException(HttpStatus.Unauthorized, 'User authentication required');
             }
 
+            // Validate that authorId is a valid MongoDB ObjectId
+            if (!authorId.match(/^[0-9a-fA-F]{24}$/)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid user ID format');
+            }
+
+            console.log('Controller: Final blog data to update:', JSON.stringify(blogData, null, 2));
             console.log('Update blog: Sending update request to service');
             const blog: IBlog = await this.blogService.updateBlog(blogId, blogData, authorId);
             console.log('Update blog: Blog updated successfully');
