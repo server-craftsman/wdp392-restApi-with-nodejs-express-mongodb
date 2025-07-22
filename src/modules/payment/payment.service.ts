@@ -306,7 +306,7 @@ export default class PaymentService {
                     description,
                     `${user.first_name || ''} ${user.last_name || ''}`.trim(),
                     user.email || '',
-                    user.phone_number || ''
+                    user.phone_number ? user.phone_number.toString() : ''
                 );
 
                 const payosWebId = checkoutUrl.split('/web/')[1];

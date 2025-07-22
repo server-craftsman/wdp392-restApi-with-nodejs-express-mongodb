@@ -34,7 +34,7 @@ export interface IPayment extends Document {
 
     payer_name?: string;
     payer_email?: string;
-    payer_phone?: string | number;
+    payer_phone: string | number;
 
     // // demo payOs
     // order_code?: string;

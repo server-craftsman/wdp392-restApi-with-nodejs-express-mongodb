@@ -68,7 +68,7 @@ export interface TestResultReportData {
     customerDateOfBirth: Date;
     customerContactInfo: {
         email: string;
-        phone: string;
+        phone: string | number;
         address: string;
     };
 
