@@ -10,7 +10,7 @@ import { ServiceRoute } from './modules/service';
 import { DepartmentRoute } from './modules/department';
 import { StaffProfileRoute } from './modules/staff_profile';
 import { SlotRoute } from './modules/slot';
-import { AppointmentRoute } from './modules/appointment';
+import { AppointmentRoute, ConsultationRoute } from './modules/appointment';
 import { AppointmentLogRoute } from './modules/appointment_log';
 import { KitRoute } from './modules/kit';
 import { SampleRoute } from './modules/sample';
@@ -39,6 +39,7 @@ const routes = [
     new DepartmentRoute(),
     new StaffProfileRoute(),
     new SlotRoute(),
+    new ConsultationRoute(),
     new AppointmentRoute(),
     new AppointmentLogRoute(),
     new KitRoute(),

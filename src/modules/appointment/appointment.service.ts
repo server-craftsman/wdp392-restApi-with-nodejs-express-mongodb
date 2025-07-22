@@ -5,6 +5,7 @@ import { SearchPaginationResponseModel } from '../../core/models';
 import { IAppointment } from './appointment.interface';
 import { AppointmentStatusEnum, TypeEnum, PaymentStatusEnum } from './appointment.enum';
 import { CreateAppointmentDto } from './dtos/createAppointment.dto';
+import { CreateConsultationDto } from './dtos/createConsultation.dto';
 import { AssignStaffDto } from './dtos/assign-staff.dto';
 import { ConfirmAppointmentDto } from './dtos/confirm-appointment.dto';
 import { SearchAppointmentDto } from './dtos/search-appointment.dto';
@@ -28,6 +29,8 @@ import { AdministrativeCaseSchema } from '../administrative_cases/administrative
 import { AdministrativeCaseStatus } from '../administrative_cases/administrative_cases.enum';
 import { ServiceTypeEnum } from '../service/service.enum';
 import PaymentService from '../payment/payment.service';
+import ConsultationSchema from './consultation.model';
+import { IConsultation, ConsultationStatusEnum } from './consultation.interface';
 
 export default class AppointmentService {
     private readonly appointmentRepository: AppointmentRepository;
@@ -48,6 +51,499 @@ export default class AppointmentService {
             this.sampleService = new SampleService();
         }
         return this.sampleService;
+    }
+
+    /**
+     * Create consultation request - không cần đăng ký tài khoản
+     */
+    public async createConsultation(consultationData: CreateConsultationDto): Promise<IConsultation> {
+        try {
+            // Validate địa chỉ nếu là HOME consultation
+            if (consultationData.type === TypeEnum.HOME && !consultationData.collection_address) {
+                throw new HttpException(
+                    HttpStatus.BadRequest,
+                    'Collection address is required for home consultation'
+                );
+            }
+
+            // Tạo consultation record
+            const consultation = new ConsultationSchema({
+                first_name: consultationData.first_name,
+                last_name: consultationData.last_name,
+                email: consultationData.email,
+                phone_number: consultationData.phone_number,
+                type: consultationData.type,
+                collection_address: consultationData.collection_address,
+                subject: consultationData.subject,
+                consultation_notes: consultationData.consultation_notes,
+                preferred_date: consultationData.preferred_date ? new Date(consultationData.preferred_date) : undefined,
+                preferred_time: consultationData.preferred_time,
+                consultation_status: ConsultationStatusEnum.REQUESTED,
+                created_at: new Date(),
+                updated_at: new Date()
+            });
+
+            const savedConsultation = await consultation.save();
+
+            // Log consultation creation
+            try {
+                await this.appointmentLogService.logConsultationCreation(savedConsultation);
+            } catch (logError) {
+                console.error('Failed to create consultation log:', logError);
+            }
+
+            // Send confirmation email
+            try {
+                await this.sendConsultationRequestEmail(savedConsultation);
+            } catch (emailError) {
+                console.error('Failed to send consultation request email:', emailError);
+            }
+
+            // Send notification to admin/staff
+            try {
+                await this.sendConsultationNotificationToStaff(savedConsultation);
+            } catch (emailError) {
+                console.error('Failed to send consultation notification to staff:', emailError);
+            }
+
+            return savedConsultation;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error creating consultation request');
+        }
+    }
+
+    /**
+     * Get all consultation requests (for staff/admin)
+     */
+    public async getConsultationRequests(
+        searchParams: any,
+        userRole: UserRoleEnum,
+        userId?: string
+    ): Promise<SearchPaginationResponseModel<IConsultation>> {
+        try {
+            const pageNum = searchParams.pageNum || 1;
+            const pageSize = searchParams.pageSize || 10;
+            const skip = (pageNum - 1) * pageSize;
+
+            // Build query
+            const query: any = {};
+
+            // Role-based filtering
+            if (userRole === UserRoleEnum.STAFF && userId) {
+                query.assigned_consultant_id = userId;
+            }
+
+            // Apply filters
+            if (searchParams.consultation_status) {
+                query.consultation_status = searchParams.consultation_status;
+            }
+
+            if (searchParams.type) {
+                query.type = searchParams.type;
+            }
+
+            if (searchParams.start_date || searchParams.end_date) {
+                query.created_at = {};
+                if (searchParams.start_date) {
+                    query.created_at.$gte = new Date(searchParams.start_date);
+                }
+                if (searchParams.end_date) {
+                    query.created_at.$lte = new Date(searchParams.end_date);
+                }
+            }
+
+            // Search by email or name
+            if (searchParams.search_term) {
+                const searchRegex = new RegExp(searchParams.search_term, 'i');
+                query.$or = [
+                    { email: { $regex: searchRegex } },
+                    { first_name: { $regex: searchRegex } },
+                    { last_name: { $regex: searchRegex } },
+                    { subject: { $regex: searchRegex } }
+                ];
+            }
+
+            // Count total documents
+            const totalCount = await ConsultationSchema.countDocuments(query);
+
+            // Fetch consultations with pagination
+            const consultations = await ConsultationSchema.find(query)
+                .populate('assigned_consultant_id', 'first_name last_name email')
+                .sort({ created_at: -1 })
+                .skip(skip)
+                .limit(pageSize);
+
+            return {
+                pageData: consultations,
+                pageInfo: {
+                    totalItems: totalCount,
+                    pageNum,
+                    pageSize,
+                    totalPages: Math.ceil(totalCount / pageSize)
+                }
+            };
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error getting consultation requests');
+        }
+    }
+
+    /**
+     * Assign consultant to consultation request
+     */
+    public async assignConsultant(
+        consultationId: string,
+        consultantId: string
+    ): Promise<IConsultation> {
+        try {
+            // Validate consultation exists
+            const consultation = await ConsultationSchema.findById(consultationId);
+            if (!consultation) {
+                throw new HttpException(HttpStatus.NotFound, 'Consultation not found');
+            }
+
+            // Validate consultant exists and has correct role
+            const consultant = await UserSchema.findOne({
+                _id: consultantId,
+                role: { $in: [UserRoleEnum.STAFF, UserRoleEnum.MANAGER] }
+            });
+            if (!consultant) {
+                throw new HttpException(HttpStatus.NotFound, 'Consultant not found or invalid role');
+            }
+
+            // Update consultation
+            const updatedConsultation = await ConsultationSchema.findByIdAndUpdate(
+                consultationId,
+                {
+                    assigned_consultant_id: consultantId,
+                    consultation_status: ConsultationStatusEnum.ASSIGNED,
+                    updated_at: new Date()
+                },
+                { new: true, populate: { path: 'assigned_consultant_id', select: 'first_name last_name email' } }
+            );
+
+            if (!updatedConsultation) {
+                throw new HttpException(HttpStatus.InternalServerError, 'Failed to assign consultant');
+            }
+
+            // Log assignment
+            try {
+                await this.appointmentLogService.logConsultationAssignment(updatedConsultation, consultantId);
+            } catch (logError) {
+                console.error('Failed to create consultation assignment log:', logError);
+            }
+
+            // Send notification emails
+            try {
+                await this.sendConsultationAssignmentEmail(updatedConsultation);
+            } catch (emailError) {
+                console.error('Failed to send consultation assignment email:', emailError);
+            }
+
+            return updatedConsultation;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error assigning consultant');
+        }
+    }
+
+    /**
+     * Update consultation status
+     */
+    public async updateConsultationStatus(
+        consultationId: string,
+        status: ConsultationStatusEnum,
+        updateData?: {
+            meeting_link?: string;
+            meeting_notes?: string;
+            follow_up_required?: boolean;
+            follow_up_date?: Date;
+            appointment_date?: Date;
+        }
+    ): Promise<IConsultation> {
+        try {
+            const consultation = await ConsultationSchema.findById(consultationId);
+            if (!consultation) {
+                throw new HttpException(HttpStatus.NotFound, 'Consultation not found');
+            }
+
+            const updateFields: any = {
+                consultation_status: status,
+                updated_at: new Date()
+            };
+
+            if (updateData) {
+                Object.assign(updateFields, updateData);
+            }
+
+            //update appointment_date is date now
+            updateFields.appointment_date = new Date();
+
+            const updatedConsultation = await ConsultationSchema.findByIdAndUpdate(
+                consultationId,
+                updateFields,
+                { new: true, populate: { path: 'assigned_consultant_id', select: 'first_name last_name email' } }
+            );
+
+            if (!updatedConsultation) {
+                throw new HttpException(HttpStatus.InternalServerError, 'Failed to update consultation status');
+            }
+
+            // Log status change
+            try {
+                await this.appointmentLogService.logConsultationStatusChange(updatedConsultation, status);
+            } catch (logError) {
+                console.error('Failed to create consultation status change log:', logError);
+            }
+
+            // Send status update email
+            try {
+                await this.sendConsultationStatusUpdateEmail(updatedConsultation);
+            } catch (emailError) {
+                console.error('Failed to send consultation status update email:', emailError);
+            }
+
+            return updatedConsultation;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error updating consultation status');
+        }
+    }
+
+    /**
+     * Get consultation by ID
+     */
+    public async getConsultationById(consultationId: string): Promise<IConsultation> {
+        try {
+            if (!mongoose.Types.ObjectId.isValid(consultationId)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid consultation ID');
+            }
+
+            const consultation = await ConsultationSchema.findById(consultationId)
+                .populate('assigned_consultant_id', 'first_name last_name email phone_number');
+
+            if (!consultation) {
+                throw new HttpException(HttpStatus.NotFound, 'Consultation not found');
+            }
+
+            return consultation;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error getting consultation');
+        }
+    }
+
+    /**
+     * Send consultation request confirmation email to customer
+     */
+    private async sendConsultationRequestEmail(consultation: IConsultation): Promise<void> {
+        try {
+            const customerName = `${consultation.first_name} ${consultation.last_name}`;
+            const preferredDate = consultation.preferred_date
+                ? new Date(consultation.preferred_date).toLocaleDateString()
+                : 'Not specified';
+
+            const title = 'Consultation Request Received';
+            const message = `
+                Thank you for your consultation request. We have received your inquiry and will get back to you soon.
+                <br><br>
+                <strong>Request Details:</strong>
+                <br>
+                Subject: ${consultation.subject}
+                <br>
+                Type: ${consultation.type}
+                <br>
+                Preferred Date: ${preferredDate}
+                <br>
+                Preferred Time: ${consultation.preferred_time || 'Not specified'}
+                <br><br>
+                Our team will review your request and assign a consultant to assist you. 
+                You will receive another email once a consultant has been assigned.
+                <br><br>
+                Reference ID: ${consultation._id}
+            `;
+
+            const emailDetails: ISendMailDetail = {
+                toMail: consultation.email,
+                subject: 'Consultation Request Received - Bloodline DNA Testing Service',
+                html: createNotificationEmailTemplate(customerName, title, message)
+            };
+
+            await sendMail(emailDetails);
+            console.log(`Consultation request email sent to ${consultation.email}`);
+        } catch (error) {
+            console.error('Error sending consultation request email:', error);
+        }
+    }
+
+    /**
+     * Send consultation notification to staff/admin
+     */
+    private async sendConsultationNotificationToStaff(consultation: IConsultation): Promise<void> {
+        try {
+            // Get admin and department manager emails
+            const adminUsers = await UserSchema.find({
+                role: { $in: [UserRoleEnum.ADMIN, UserRoleEnum.MANAGER] }
+            }).select('email first_name last_name');
+
+            const customerName = `${consultation.first_name} ${consultation.last_name}`;
+            const title = 'New Consultation Request';
+            const message = `
+                A new consultation request has been submitted.
+                <br><br>
+                <strong>Customer Details:</strong>
+                <br>
+                Name: ${customerName}
+                <br>
+                Email: ${consultation.email}
+                <br>
+                Phone: ${consultation.phone_number}
+                <br><br>
+                <strong>Request Details:</strong>
+                <br>
+                Subject: ${consultation.subject}
+                <br>
+                Type: ${consultation.type}
+                <br>
+                Preferred Date: ${consultation.preferred_date ? new Date(consultation.preferred_date).toLocaleDateString() : 'Not specified'}
+                <br>
+                Notes: ${consultation.consultation_notes || 'None'}
+                <br><br>
+                Please assign a consultant to handle this request.
+                <br><br>
+                Reference ID: ${consultation._id}
+            `;
+
+            // Send to all admins and managers
+            for (const admin of adminUsers) {
+                if (admin.email) {
+                    const adminName = `${admin.first_name || ''} ${admin.last_name || ''}`.trim() || admin.email;
+                    const emailDetails: ISendMailDetail = {
+                        toMail: admin.email,
+                        subject: 'New Consultation Request - Bloodline DNA Testing Service',
+                        html: createNotificationEmailTemplate(adminName, title, message)
+                    };
+
+                    await sendMail(emailDetails);
+                }
+            }
+
+            console.log(`Consultation notification sent to ${adminUsers.length} staff members`);
+        } catch (error) {
+            console.error('Error sending consultation notification to staff:', error);
+        }
+    }
+
+    /**
+     * Send consultation assignment email
+     */
+    private async sendConsultationAssignmentEmail(consultation: IConsultation): Promise<void> {
+        try {
+            const customerName = `${consultation.first_name} ${consultation.last_name}`;
+            const consultant = consultation.assigned_consultant_id as any;
+            const consultantName = consultant ? `${consultant.first_name} ${consultant.last_name}` : 'Our team';
+
+            const title = 'Consultant Assigned to Your Request';
+            const message = `
+                Good news! A consultant has been assigned to handle your consultation request.
+                <br><br>
+                <strong>Assigned Consultant:</strong> ${consultantName}
+                <br><br>
+                <strong>Your Request Details:</strong>
+                <br>
+                Subject: ${consultation.subject}
+                <br>
+                Type: ${consultation.type}
+                <br>
+                Reference ID: ${consultation._id}
+                <br><br>
+                Your consultant will contact you soon to schedule the consultation session.
+                <br><br>
+                If you have any urgent questions, please don't hesitate to contact us.
+            `;
+
+            const emailDetails: ISendMailDetail = {
+                toMail: consultation.email,
+                subject: 'Consultant Assigned - Bloodline DNA Testing Service',
+                html: createNotificationEmailTemplate(customerName, title, message)
+            };
+
+            await sendMail(emailDetails);
+            console.log(`Consultation assignment email sent to ${consultation.email}`);
+        } catch (error) {
+            console.error('Error sending consultation assignment email:', error);
+        }
+    }
+
+    /**
+     * Send consultation status update email
+     */
+    private async sendConsultationStatusUpdateEmail(consultation: IConsultation): Promise<void> {
+        try {
+            const customerName = `${consultation.first_name} ${consultation.last_name}`;
+            let title = 'Consultation Status Update';
+            let message = `
+                Your consultation request status has been updated.
+                <br><br>
+                <strong>Current Status:</strong> ${consultation.consultation_status}
+                <br>
+                <strong>Reference ID:</strong> ${consultation._id}
+                <br><br>
+            `;
+
+            // Add specific messages based on status
+            switch (consultation.consultation_status) {
+                case ConsultationStatusEnum.SCHEDULED:
+                    title = 'Consultation Scheduled';
+                    if (consultation.appointment_date) {
+                        message += `Your consultation has been scheduled for ${new Date(consultation.appointment_date).toLocaleString()}.<br><br>`;
+                    }
+                    if (consultation.meeting_link) {
+                        message += `Meeting Link: ${consultation.meeting_link}<br><br>`;
+                    }
+                    message += 'Please make sure to be available at the scheduled time.';
+                    break;
+                case ConsultationStatusEnum.COMPLETED:
+                    title = 'Consultation Completed';
+                    message += 'Your consultation has been completed. Thank you for choosing our services.<br><br>';
+                    if (consultation.follow_up_required && consultation.follow_up_date) {
+                        message += `A follow-up session has been scheduled for ${new Date(consultation.follow_up_date).toLocaleDateString()}.`;
+                    }
+                    break;
+                case ConsultationStatusEnum.CANCELLED:
+                    title = 'Consultation Cancelled';
+                    message += 'Your consultation has been cancelled. If you did not request this cancellation or have any questions, please contact us.';
+                    break;
+                case ConsultationStatusEnum.FOLLOW_UP_REQUIRED:
+                    title = 'Follow-up Required';
+                    message += 'Based on your consultation, a follow-up session is required. Our consultant will contact you to schedule this.';
+                    break;
+                default:
+                    message += 'If you have any questions about your consultation, please contact us.';
+            }
+
+            const emailDetails: ISendMailDetail = {
+                toMail: consultation.email,
+                subject: `${title} - Bloodline DNA Testing Service`,
+                html: createNotificationEmailTemplate(customerName, title, message)
+            };
+
+            await sendMail(emailDetails);
+            console.log(`Consultation status update email sent to ${consultation.email}`);
+        } catch (error) {
+            console.error('Error sending consultation status update email:', error);
+        }
     }
 
     /**

@@ -25,51 +25,7 @@ export default class AppointmentRoute implements IRoute {
             this.appointmentController.searchAppointments
         );
 
-        // POST: domain:/api/appointment/create -> Create a new appointment
-        this.router.post(
-            `${API_PATH.CREATE_APPOINTMENT}`,
-            authMiddleWare([UserRoleEnum.CUSTOMER]), // Only customers can create appointments
-            validationMiddleware(CreateAppointmentDto),
-            this.appointmentController.createAppointment
-        );
-
-        // GET: domain:/api/appointment/:id -> Get appointment by ID
-        this.router.get(
-            `${API_PATH.GET_APPOINTMENT_BY_ID}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]),
-            this.appointmentController.getAppointmentById
-        );
-
-        // GET: domain:/api/appointment/:id/samples -> Get samples for an appointment
-        this.router.get(
-            `${this.path}/:id/samples`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]),
-            this.appointmentController.getAppointmentSamples
-        );
-
-        // PUT: domain:/api/appointment/:id/assign-staff -> Assign staff to appointment
-        this.router.put(
-            `${API_PATH.ASSIGN_STAFF_TO_APPOINTMENT}`,
-            authMiddleWare([UserRoleEnum.MANAGER]), // Only managers can assign staff
-            validationMiddleware(AssignStaffDto),
-            this.appointmentController.assignStaff
-        );
-
-        // PUT: domain:/api/appointment/:id/confirm -> Confirm appointment and assign kit
-        this.router.put(
-            `${API_PATH.CONFIRM_APPOINTMENT}`,
-            authMiddleWare([UserRoleEnum.STAFF]), // Only staff can confirm appointments
-            validationMiddleware(ConfirmAppointmentDto),
-            this.appointmentController.confirmAppointment
-        );
-
-        // GET: domain:/api/appointment/:appointmentId/price -> Get price for an appointment
-        this.router.get(
-            `${this.path}/:appointmentId/price`,
-            authMiddleWare(),
-            this.appointmentController.getAppointmentPrice
-        );
-
+        // Staff and Lab Tech specific routes - should be before generic /:id routes
         // GET: domain:/api/appointment/staff/available -> Get available staff
         this.router.get(
             `${this.path}/staff/available`,
@@ -98,13 +54,6 @@ export default class AppointmentRoute implements IRoute {
             this.appointmentController.getLabTechAssignedAppointments
         );
 
-        // POST: domain: /api/appointments/:id/assign-lab-tech -> Assign laboratory technician to appointment
-        this.router.post(
-            `${this.path}/:id/assign-lab-tech`,
-            authMiddleWare([UserRoleEnum.STAFF]),
-            this.appointmentController.assignLabTechnician
-        );
-
         // GET: domain: /api/appointment/lab-tech/available -> Get available laboratory technicians
         this.router.get(
             `${this.path}/lab-tech/available`,
@@ -112,12 +61,57 @@ export default class AppointmentRoute implements IRoute {
             this.appointmentController.getAvailableLabTechnicians
         );
 
-        // PUT domain:/api/appointment/:id/assign-staff -> Assign staff to an appointment
+        // POST: domain:/api/appointment/create -> Create a new appointment
+        this.router.post(
+            `${this.path}/create`,
+            authMiddleWare([UserRoleEnum.CUSTOMER]), // Only customers can create appointments
+            validationMiddleware(CreateAppointmentDto),
+            this.appointmentController.createAppointment
+        );
+
+        // Generic appointment routes with :id parameter - MUST be after specific routes
+        // GET: domain:/api/appointment/:id -> Get appointment by ID
+        this.router.get(
+            `${this.path}/:id`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]),
+            this.appointmentController.getAppointmentById
+        );
+
+        // GET: domain:/api/appointment/:id/samples -> Get samples for an appointment
+        this.router.get(
+            `${this.path}/:id/samples`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]),
+            this.appointmentController.getAppointmentSamples
+        );
+
+        // PUT: domain:/api/appointment/:id/assign-staff -> Assign staff to appointment
         this.router.put(
             `${this.path}/:id/assign-staff`,
-            authMiddleWare([UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]),
+            authMiddleWare([UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]), // Only managers and admins can assign staff
             validationMiddleware(AssignStaffDto),
             this.appointmentController.assignStaff
+        );
+
+        // PUT: domain:/api/appointment/:id/confirm -> Confirm appointment and assign kit
+        this.router.put(
+            `${this.path}/:id/confirm`,
+            authMiddleWare([UserRoleEnum.STAFF]), // Only staff can confirm appointments
+            validationMiddleware(ConfirmAppointmentDto),
+            this.appointmentController.confirmAppointment
+        );
+
+        // GET: domain:/api/appointment/:appointmentId/price -> Get price for an appointment
+        this.router.get(
+            `${this.path}/:appointmentId/price`,
+            authMiddleWare(),
+            this.appointmentController.getAppointmentPrice
+        );
+
+        // POST: domain: /api/appointments/:id/assign-lab-tech -> Assign laboratory technician to appointment
+        this.router.post(
+            `${this.path}/:id/assign-lab-tech`,
+            authMiddleWare([UserRoleEnum.STAFF]),
+            this.appointmentController.assignLabTechnician
         );
 
         // PUT domain:/api/appointment/:id/unassign-staff -> Unassign staff from an appointment

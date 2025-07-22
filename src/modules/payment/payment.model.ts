@@ -30,7 +30,7 @@ const PaymentSchemaEntity: Schema<IPayment> = new Schema({
     payos_payment_status_time: { type: Date },
     payer_name: { type: String },
     payer_email: { type: String },
-    payer_phone: { type: String },
+    payer_phone: { type: Number },
 
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }

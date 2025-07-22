@@ -22,7 +22,7 @@ const UserSchemaEntity: Schema<IUser> = new Schema({
         required: true,
     },
     status: { type: Boolean, default: true },
-    phone_number: { type: String, unique: true },
+    phone_number: { type: Number, unique: true },
     avatar_url: { type: String },
     dob: { type: Date },
     address: { type: String },

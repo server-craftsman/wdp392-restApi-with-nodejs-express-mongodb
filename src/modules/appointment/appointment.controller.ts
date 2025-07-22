@@ -11,6 +11,8 @@ import AppointmentService from './appointment.service';
 import { SearchPaginationResponseModel } from '../../core/models/searchPagination.model';
 import { UserRoleEnum } from '../user/user.enum';
 import { ISample } from '../sample/sample.interface';
+import { CreateConsultationDto } from './dtos/createConsultation.dto';
+import { IConsultation, ConsultationStatusEnum } from './consultation.interface';
 
 export default class AppointmentController {
     private appointmentService = new AppointmentService();
@@ -41,6 +43,7 @@ export default class AppointmentController {
     public getAppointmentById = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const appointmentId = req.params.id;
+
             const appointment = await this.appointmentService.getAppointmentById(appointmentId);
 
             res.status(HttpStatus.Success).json(formatResponse<IAppointment>(appointment));
@@ -327,6 +330,106 @@ export default class AppointmentController {
             const appointment = await this.appointmentService.unassignStaff(appointmentId);
 
             res.status(HttpStatus.Success).json(formatResponse<IAppointment>(appointment, true, 'Staff unassigned successfully'));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Create consultation request (public endpoint - không cần authentication)
+     */
+    public createConsultation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const consultationData: CreateConsultationDto = req.body;
+            const consultation = await this.appointmentService.createConsultation(consultationData);
+
+            res.status(HttpStatus.Created).json(formatResponse<IConsultation>(consultation));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Get consultation requests (for staff/admin)
+     */
+    public getConsultationRequests = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const searchParams = req.query;
+            const userRole = req.user?.role;
+            const userId = req.user?.id;
+
+            const consultations = await this.appointmentService.getConsultationRequests(
+                searchParams,
+                userRole,
+                userId
+            );
+
+            res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IConsultation>>(consultations));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Get consultation by ID
+     */
+    public getConsultationById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const { id } = req.params;
+            const consultation = await this.appointmentService.getConsultationById(id);
+
+            res.status(HttpStatus.Success).json(formatResponse<IConsultation>(consultation));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Assign consultant to consultation (admin/manager only)
+     */
+    public assignConsultant = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const { id } = req.params;
+            const { consultant_id } = req.body;
+
+            const consultation = await this.appointmentService.assignConsultant(id, consultant_id);
+
+            res.status(HttpStatus.Success).json(formatResponse<IConsultation>(consultation));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Update consultation status
+     */
+    public updateConsultationStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const { id } = req.params;
+            const {
+                status,
+                meeting_link,
+                meeting_notes,
+                follow_up_required,
+                follow_up_date,
+                appointment_date
+            } = req.body;
+
+            const updateData = {
+                meeting_link,
+                meeting_notes,
+                follow_up_required,
+                follow_up_date: follow_up_date ? new Date(follow_up_date) : undefined,
+                appointment_date: appointment_date ? new Date(appointment_date) : undefined
+            };
+
+            const consultation = await this.appointmentService.updateConsultationStatus(
+                id,
+                status as ConsultationStatusEnum,
+                updateData
+            );
+
+            res.status(HttpStatus.Success).json(formatResponse<IConsultation>(consultation));
         } catch (error) {
             next(error);
         }

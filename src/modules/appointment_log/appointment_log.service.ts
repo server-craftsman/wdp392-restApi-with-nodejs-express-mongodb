@@ -154,4 +154,94 @@ export default class AppointmentLogService {
             throw new HttpException(HttpStatus.InternalServerError, 'Error creating sample creation log');
         }
     }
+
+    /**
+     * Log consultation creation
+     */
+    public async logConsultationCreation(consultation: any): Promise<void> {
+        try {
+            const logData = {
+                customer_id: undefined,
+                staff_id: undefined,
+                laboratory_technician_id: undefined,
+                appointment_id: undefined,
+                old_status: AppointmentLogTypeEnum.PENDING,
+                new_status: AppointmentLogTypeEnum.PENDING,
+                type: consultation.type, // Use consultation type (HOME/FACILITY)
+                notes: `Consultation request created for ${consultation.first_name} ${consultation.last_name} - Subject: ${consultation.subject}`,
+                created_at: new Date(),
+                updated_at: new Date()
+            };
+
+            await this.appointmentLogRepository.create(logData);
+        } catch (error) {
+            console.error('Error logging consultation creation:', error);
+        }
+    }
+
+    /**
+     * Log consultation assignment
+     */
+    public async logConsultationAssignment(consultation: any, consultantId: string): Promise<void> {
+        try {
+            const logData = {
+                customer_id: undefined,
+                staff_id: consultantId,
+                laboratory_technician_id: undefined,
+                appointment_id: undefined,
+                old_status: AppointmentLogTypeEnum.PENDING,
+                new_status: AppointmentLogTypeEnum.CONFIRMED,
+                type: consultation.type,
+                notes: `Consultant assigned to consultation for ${consultation.first_name} ${consultation.last_name} - Subject: ${consultation.subject}`,
+                created_at: new Date(),
+                updated_at: new Date()
+            };
+
+            await this.appointmentLogRepository.create(logData);
+        } catch (error) {
+            console.error('Error logging consultation assignment:', error);
+        }
+    }
+
+    /**
+     * Log consultation status change
+     */
+    public async logConsultationStatusChange(consultation: any, newStatus: string): Promise<void> {
+        try {
+            let logNewStatus = AppointmentLogTypeEnum.PENDING;
+            let logOldStatus = AppointmentLogTypeEnum.PENDING;
+
+            // Map consultation status to appropriate log type
+            switch (newStatus) {
+                case 'SCHEDULED':
+                    logNewStatus = AppointmentLogTypeEnum.CONFIRMED;
+                    break;
+                case 'COMPLETED':
+                    logNewStatus = AppointmentLogTypeEnum.COMPLETED;
+                    break;
+                case 'CANCELLED':
+                    logNewStatus = AppointmentLogTypeEnum.CANCELLED;
+                    break;
+                default:
+                    logNewStatus = AppointmentLogTypeEnum.PENDING;
+            }
+
+            const logData = {
+                customer_id: undefined,
+                staff_id: consultation.assigned_consultant_id,
+                laboratory_technician_id: undefined,
+                appointment_id: undefined,
+                old_status: logOldStatus,
+                new_status: logNewStatus,
+                type: consultation.type,
+                notes: `Consultation status changed to ${newStatus} for ${consultation.first_name} ${consultation.last_name} - Subject: ${consultation.subject}`,
+                created_at: new Date(),
+                updated_at: new Date()
+            };
+
+            await this.appointmentLogRepository.create(logData);
+        } catch (error) {
+            console.error('Error logging consultation status change:', error);
+        }
+    }
 } 

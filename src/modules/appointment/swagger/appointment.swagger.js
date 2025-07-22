@@ -1001,3 +1001,13 @@
  *       404:
  *         description: Appointment not found
  */
+
+// Import consultation schemas and endpoints
+const fs = require('fs');
+const path = require('path');
+
+// Include consultation schemas
+require('./consultation.schema.js');
+
+// Include consultation endpoints  
+require('./consultation.swagger.js');
