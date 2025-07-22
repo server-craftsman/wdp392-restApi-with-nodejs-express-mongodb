@@ -101,7 +101,7 @@
 
 /**
  * @swagger
- * /api/appointment-log/search:
+ * /api/appointment-logs/search:
  *   get:
  *     tags:
  *       - appointment-logs
@@ -247,7 +247,7 @@
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *
- * /api/appointment-log/{id}:
+ * /api/appointment-logs/{id}:
  *   get:
  *     tags:
  *       - appointment-logs

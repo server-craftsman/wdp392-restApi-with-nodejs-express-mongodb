@@ -25,4 +25,29 @@ export default class AppointmentLogController {
             next(error);
         }
     };
+
+    /**
+     * Search appointment logs
+     */
+    public searchAppointmentLogs = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const logs = await this.appointmentLogService.searchAppointmentLogs(req.query);
+            res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IAppointmentLog>>(logs));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Get appointment log by ID
+     */
+    public getAppointmentLogById = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { id } = req.params;
+            const log = await this.appointmentLogService.getAppointmentLogById(id);
+            res.status(HttpStatus.Success).json(formatResponse<IAppointmentLog>(log));
+        } catch (error) {
+            next(error);
+        }
+    };
 } 

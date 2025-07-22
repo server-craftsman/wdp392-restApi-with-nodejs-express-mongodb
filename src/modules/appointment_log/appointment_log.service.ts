@@ -244,4 +244,94 @@ export default class AppointmentLogService {
             console.error('Error logging consultation status change:', error);
         }
     }
+
+    /**
+     * Search appointment/consultation logs with filters
+     */
+    public async searchAppointmentLogs(queryParams: any = {}): Promise<SearchPaginationResponseModel<IAppointmentLog>> {
+        try {
+            const {
+                pageNum = 1,
+                pageSize = 10,
+                customer_id,
+                staff_id,
+                appointment_id,
+                type,
+                old_status,
+                new_status,
+                start_date,
+                end_date,
+                search_term
+            } = this.processQueryParams(queryParams);
+
+            const skip = (pageNum - 1) * pageSize;
+
+            const query: any = {};
+
+            if (customer_id && mongoose.Types.ObjectId.isValid(customer_id)) {
+                query.customer_id = customer_id;
+            }
+            if (staff_id && mongoose.Types.ObjectId.isValid(staff_id)) {
+                query.staff_id = staff_id;
+            }
+            if (appointment_id && mongoose.Types.ObjectId.isValid(appointment_id)) {
+                query.appointment_id = appointment_id;
+            }
+            if (type) {
+                query.type = type;
+            }
+            if (old_status) {
+                query.old_status = old_status;
+            }
+            if (new_status) {
+                query.new_status = new_status;
+            }
+            if (start_date || end_date) {
+                query.created_at = {};
+                if (start_date) query.created_at.$gte = new Date(start_date);
+                if (end_date) query.created_at.$lte = new Date(end_date);
+            }
+            if (search_term) {
+                const regex = new RegExp(search_term, 'i');
+                query.notes = { $regex: regex };
+            }
+
+            const totalItems = await this.appointmentLogRepository.countDocuments(query);
+            const totalPages = Math.ceil(totalItems / pageSize);
+
+            const logs = await this.appointmentLogRepository.findWithPopulate(
+                query,
+                { created_at: -1 },
+                skip,
+                pageSize
+            );
+
+            return {
+                pageData: logs,
+                pageInfo: {
+                    pageNum,
+                    pageSize,
+                    totalItems,
+                    totalPages
+                }
+            };
+        } catch (error) {
+            console.error('Error searching appointment logs:', error);
+            throw new HttpException(HttpStatus.InternalServerError, 'Error searching appointment logs');
+        }
+    }
+
+    /**
+     * Get single appointment log by ID
+     */
+    public async getAppointmentLogById(logId: string): Promise<IAppointmentLog> {
+        if (!mongoose.Types.ObjectId.isValid(logId)) {
+            throw new HttpException(HttpStatus.BadRequest, 'Invalid log ID');
+        }
+        const log = await this.appointmentLogRepository.findByIdWithPopulate(logId);
+        if (!log) {
+            throw new HttpException(HttpStatus.NotFound, 'Log entry not found');
+        }
+        return log;
+    }
 } 
