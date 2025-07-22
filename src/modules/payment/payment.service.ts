@@ -499,7 +499,7 @@ export default class PaymentService {
             }
 
             // Update payment status to failed
-            payment.status = PaymentStatusEnum.FAILED;
+            payment.status = PaymentStatusEnum.CANCELLED;
             payment.updated_at = new Date();
             await payment.save();
 
