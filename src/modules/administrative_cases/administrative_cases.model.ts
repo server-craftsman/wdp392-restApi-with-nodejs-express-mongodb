@@ -14,7 +14,8 @@ const AdministrativeCaseSchemaEntity: Schema<IAdministrativeCase> = new Schema({
     },
     agency_contact_email: { type: String, required: true },
     agency_contact_name: { type: String, required: true },
-    agency_contact_phone: { type: Number, required: true },
+    // Store phone as string to preserve leading zeros and match DTO validation
+    agency_contact_phone: { type: String, required: true },
     applicant_name: { type: String, required: true },
     applicant_email: { type: String, required: true },
     applicant_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true },

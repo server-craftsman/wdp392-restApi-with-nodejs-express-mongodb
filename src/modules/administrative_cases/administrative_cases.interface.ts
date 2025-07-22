@@ -24,7 +24,7 @@ export interface IAdministrativeCase extends Document {
     // cơ quan thẩm quyền
     agency_contact_email: string;
     agency_contact_name: string;
-    agency_contact_phone: string | number;
+    agency_contact_phone: string;
 
     // người gửi - admin, manager
     applicant_name: string;

@@ -66,6 +66,14 @@ export default class AdministrativeCasesService {
 
         // Validate using DTO (merge with existing for full object)
         const merged = { ...existingCase.toObject(), ...data };
+        // // Ensure phone is string for validation consistency
+        if (merged.agency_contact_phone && typeof merged.agency_contact_phone !== 'string') {
+            merged.agency_contact_phone = String(merged.agency_contact_phone);
+        }
+        // Ensure applicant_id is string as DTO expects
+        if (merged.applicant_id && typeof merged.applicant_id !== 'string') {
+            merged.applicant_id = String(merged.applicant_id);
+        }
         const dto = Object.assign(new CreateAdministrativeCaseDto(), merged);
         await validateOrReject(dto);
         return AdministrativeCaseSchema.findByIdAndUpdate(id, data, { new: true }).populate('applicant_id', 'email first_name last_name role');
