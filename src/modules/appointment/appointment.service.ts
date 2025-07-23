@@ -33,6 +33,13 @@ import ConsultationSchema from './consultation.model';
 import { IConsultation, ConsultationStatusEnum } from './consultation.interface';
 import { AppointmentPaymentStageEnum } from './appointment.enum';
 
+// Add business hour constants just after other imports
+// CONSTANTS_START
+const BUSINESS_HOURS_START: number = process.env.BUSINESS_HOURS_START ? parseInt(process.env.BUSINESS_HOURS_START) : 0;
+const BUSINESS_HOURS_END: number = process.env.BUSINESS_HOURS_END ? parseInt(process.env.BUSINESS_HOURS_END) : 0;
+const HOME_SERVICE_SURCHARGE_PERCENTAGE: number = process.env.HOME_SERVICE_SURCHARGE_PERCENTAGE ? parseFloat(process.env.HOME_SERVICE_SURCHARGE_PERCENTAGE) : 0;
+// CONSTANTS_END
+
 export default class AppointmentService {
     private readonly appointmentRepository: AppointmentRepository;
     private readonly appointmentLogService: AppointmentLogService;
@@ -639,6 +646,27 @@ export default class AppointmentService {
                 );
             }
 
+            // ==================== NEW VALIDATION & SURCHARGE FOR HOME COLLECTION ====================
+            let totalAmount = service.price;
+            // Determine the intended appointment date/time for pricing
+            const dateToCheck = appointmentData.appointment_date ?? new Date();
+            const checkHour = dateToCheck.getHours();
+            const checkDay = dateToCheck.getDay(); // 0 = Sun, 6 = Sat
+
+            // Kiểm tra có phải ngoài giờ hành chính không (8h00-17h00 Thứ 2 ➜ Thứ 6)
+            const isWithinBusinessHours =
+                checkHour >= BUSINESS_HOURS_START &&
+                checkHour < BUSINESS_HOURS_END &&
+                checkDay >= 1 &&
+                checkDay <= 5;
+
+            // Nếu NGOÀI giờ hành chính → áp dụng phụ phí
+            if (!isWithinBusinessHours) {
+                totalAmount = Math.round(service.price * (1 + HOME_SERVICE_SURCHARGE_PERCENTAGE));
+            }
+            // Nếu TRONG giờ hành chính → giá bình thường (không thay đổi totalAmount)
+            // ==========================================================================================
+
             // Tạo appointment với staff_id nếu có
             appointment = await this.appointmentRepository.create({
                 user_id: userId as any,
@@ -651,10 +679,11 @@ export default class AppointmentService {
                 status: AppointmentStatusEnum.PENDING,
                 payment_status: service.type === ServiceTypeEnum.ADMINISTRATIVE ? PaymentStatusEnum.PAID : PaymentStatusEnum.UNPAID,
                 payment_stage: AppointmentPaymentStageEnum.UNPAID, // Trạng thái thanh toán của cuộc hẹn
-                total_amount: service.price, // Tổng số tiền của dịch vụ
-                deposit_amount: Math.round(service.price * 0.3), // Số tiền đặt cọc
+                total_amount: totalAmount, // Tổng số tiền của dịch vụ (đã áp dụng phụ phí nếu có)
+                deposit_amount: Math.round(totalAmount * 0.3), // Số tiền đặt cọc (30%)
                 amount_paid: 0, // Số tiền đã thanh toán
-                administrative_case_id, agency_contact_email: service.type === ServiceTypeEnum.ADMINISTRATIVE ? appointmentData.agency_contact_email : undefined,
+                administrative_case_id,
+                agency_contact_email: service.type === ServiceTypeEnum.ADMINISTRATIVE ? appointmentData.agency_contact_email : undefined,
                 created_at: new Date(),
                 updated_at: new Date()
             });
