@@ -238,12 +238,12 @@
  *           schema:
  *             type: object
  *             required:
- *               - staff_id
+ *               - staff_ids
  *             properties:
- *               staff_id:
- *                 type: string
- *                 description: ID of the staff member to assign
- *                 example: "60d0fe4f5311236168a109ca"
+ *               staff_ids:
+ *                 type: array
+ *                 description: IDs of the staff members to assign
+ *                 example: ["60d0fe4f5311236168a109ca", "60d0fe4f5311236168a109cb"]
  *     responses:
  *       200:
  *         description: Staff assigned successfully
@@ -1206,6 +1206,139 @@
  *                 message:
  *                   type: string
  *                   example: "Payment history retrieved successfully"
+ *       404:
+ *         description: Appointment not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment/{id}/checkin:
+ *   put:
+ *     tags:
+ *       - appointments
+ *     summary: Check-in to appointment location (Staff only)
+ *     description: |
+ *       Record a staff check-in at the appointment location. This is particularly useful for HOME appointments where staff need to confirm arrival.
+ *       If customer is not available, staff can add a note explaining the situation.
+ *     operationId: checkinAppointment
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Appointment ID
+ *         example: "60d0fe4f5311236168a109ce"
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CheckinRequest'
+ *           examples:
+ *             customer_not_home:
+ *               summary: Customer not at home
+ *               value:
+ *                 note: "Customer not at home, will return at 3 PM"
+ *             successful_arrival:
+ *               summary: Successful arrival
+ *               value:
+ *                 note: "Arrived on time, customer ready for sample collection"
+ *             no_note:
+ *               summary: Simple check-in without note
+ *               value: {}
+ *     responses:
+ *       200:
+ *         description: Check-in recorded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Appointment'
+ *                 message:
+ *                   type: string
+ *                   example: "Check-in recorded successfully"
+ *       400:
+ *         description: Invalid appointment ID format
+ *       401:
+ *         description: Unauthorized - Staff authentication required
+ *       403:
+ *         description: Forbidden - Staff not assigned to this appointment
+ *       404:
+ *         description: Appointment not found
+ *       500:
+ *         description: Internal server error
+ *
+ * /api/appointment/{id}/add-note:
+ *   put:
+ *     tags:
+ *       - appointments
+ *     summary: Add note to appointment (Staff only)
+ *     description: |
+ *       Add a note to an appointment for record-keeping purposes. This can be used to document:
+ *       - Customer communication
+ *       - Special instructions
+ *       - Issues encountered
+ *       - Rescheduling reasons
+ *     operationId: addAppointmentNote
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Appointment ID
+ *         example: "60d0fe4f5311236168a109ce"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/AddNoteRequest'
+ *           examples:
+ *             rescheduling:
+ *               summary: Rescheduling note
+ *               value:
+ *                 note: "Customer requested to reschedule to next week due to illness"
+ *             special_instruction:
+ *               summary: Special instruction
+ *               value:
+ *                 note: "Customer has mobility issues, bring wheelchair accessible kit"
+ *             communication_log:
+ *               summary: Communication log
+ *               value:
+ *                 note: "Called customer to confirm appointment time - confirmed for 2 PM"
+ *     responses:
+ *       200:
+ *         description: Note added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Appointment'
+ *                 message:
+ *                   type: string
+ *                   example: "Note added successfully"
+ *       400:
+ *         description: Invalid appointment ID format or missing note
+ *       401:
+ *         description: Unauthorized - Staff authentication required
  *       404:
  *         description: Appointment not found
  *       500:

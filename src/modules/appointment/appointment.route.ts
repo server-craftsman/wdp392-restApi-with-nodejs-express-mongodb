@@ -100,6 +100,19 @@ export default class AppointmentRoute implements IRoute {
             this.appointmentController.confirmAppointment
         );
 
+        // PUT: domain:/api/appointment/:id/checkin -> Checkin appointment
+        this.router.put(
+            `${this.path}/:id/checkin`,
+            authMiddleWare([UserRoleEnum.STAFF]),
+            this.appointmentController.checkinAppointment
+        );
+
+        // PUT: domain:/api/appointment/:id/add-note -> Add appointment note
+        this.router.put(
+            `${this.path}/:id/add-note`,
+            authMiddleWare([UserRoleEnum.STAFF]),
+            this.appointmentController.addAppointmentNote
+        );
         // GET: domain:/api/appointment/:appointmentId/price -> Get price for an appointment
         this.router.get(
             `${this.path}/:appointmentId/price`,

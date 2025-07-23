@@ -45,6 +45,16 @@
  *         administrative_case_id:
  *           type: string
  *           description: ID of the administrative case associated with the appointment
+ *         checkin_logs:
+ *           type: array
+ *           description: Check-in logs for staff visits
+ *           items:
+ *             $ref: '#/components/schemas/CheckinLog'
+ *         notes:
+ *           type: array
+ *           description: Notes added to the appointment
+ *           items:
+ *             type: string
  *         created_at:
  *           type: string
  *           format: date-time
@@ -323,4 +333,33 @@
  *                   type: integer
  *                 totalPages:
  *                   type: integer
+ *     CheckinLog:
+ *       type: object
+ *       properties:
+ *         staff_id:
+ *           type: string
+ *           description: ID of the staff member who checked in
+ *         time:
+ *           type: string
+ *           format: date-time
+ *           description: Time of check-in
+ *         note:
+ *           type: string
+ *           description: Optional note for the check-in (e.g., "Customer not at home")
+ *     CheckinRequest:
+ *       type: object
+ *       properties:
+ *         note:
+ *           type: string
+ *           description: Optional note for the check-in
+ *           example: "Customer not at home, will return later"
+ *     AddNoteRequest:
+ *       type: object
+ *       required:
+ *         - note
+ *       properties:
+ *         note:
+ *           type: string
+ *           description: Note to add to the appointment
+ *           example: "Customer requested to reschedule"
  */

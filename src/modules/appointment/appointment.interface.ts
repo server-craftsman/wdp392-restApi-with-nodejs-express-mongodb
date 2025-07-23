@@ -29,6 +29,12 @@ export interface ISampleInfo {
     kit_id: string;
 }
 
+export interface ICheckinLog {
+    staff_id: string | undefined;
+    time: Date | undefined;
+    note?: string | undefined;
+}
+
 export interface IAppointment extends Document {
     _id: string;
     user_id: string | undefined;
@@ -48,6 +54,9 @@ export interface IAppointment extends Document {
     amount_paid?: number;
     payment_stage?: AppointmentPaymentStage;
     administrative_case_id?: string | any;
+    // Add at the end of IAppointment
+    checkin_logs?: ICheckinLog[];
+    notes?: string[];
     created_at: Date;
     updated_at: Date;
 }

@@ -157,6 +157,35 @@ export default class AppointmentController {
     };
 
     /**
+     * Checkin appointment
+     */
+    public checkinAppointment = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const staffId = req.user.id;
+            const appointmentId = req.params.id;
+            const { note } = req.body;
+            const updated = await this.appointmentService.checkinAppointment(appointmentId, staffId, note);
+            res.status(HttpStatus.Success).json(formatResponse<IAppointment>(updated));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Add appointment note
+     */
+    public addAppointmentNote = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const appointmentId = req.params.id;
+            const { note } = req.body;
+            const updated = await this.appointmentService.addAppointmentNote(appointmentId, note);
+            res.status(HttpStatus.Success).json(formatResponse<IAppointment>(updated));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
      * Get samples for an appointment
      */
     public getAppointmentSamples = async (req: Request, res: Response, next: NextFunction) => {

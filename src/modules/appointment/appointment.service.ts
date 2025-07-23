@@ -1228,6 +1228,50 @@ export default class AppointmentService {
     }
 
     /**
+     * Checkin appointment
+     */
+    public async checkinAppointment(appointmentId: string, staffId: string, note?: string): Promise<IAppointment> {
+        // Validate appointment and staff assignment
+        const appointment = await this.getAppointmentById(appointmentId);
+        if (typeof appointment.staff_id === 'string') {
+            if (appointment.staff_id !== staffId) {
+                throw new HttpException(HttpStatus.Forbidden, 'You are not assigned to this appointment');
+            }
+        } else {
+            if (!appointment.staff_id) {
+                throw new HttpException(HttpStatus.Forbidden, 'You are not assigned to this appointment');
+            }
+        }
+        // Add check-in log
+        const checkinLog = { staff_id: staffId, time: new Date(), note };
+        const updated = await this.appointmentRepository.findByIdAndUpdate(
+            appointmentId,
+            { checkin_logs: [...(appointment.checkin_logs || []), checkinLog] },
+            { new: true }
+        );
+        if (!updated) {
+            throw new HttpException(HttpStatus.InternalServerError, 'Failed to checkin appointment');
+        }
+        return updated;
+    }
+
+    /**
+     * Add appointment note
+     */
+    public async addAppointmentNote(appointmentId: string, note: string): Promise<IAppointment> {
+        const appointment = await this.getAppointmentById(appointmentId);
+        const updated = await this.appointmentRepository.findByIdAndUpdate(
+            appointmentId,
+            { notes: [...(appointment.notes || []), note] },
+            { new: true }
+        );
+        if (!updated) {
+            throw new HttpException(HttpStatus.InternalServerError, 'Failed to add appointment note');
+        }
+        return updated;
+    }
+
+    /**
      * Search appointments with filters
      */
     public async searchAppointments(
