@@ -24,8 +24,8 @@ export default class UserController {
                 '',
                 'Tôi là',
                 'Admin',
-                'admin@gmail.com',
-                'Admin@6969',
+                'admin@bloodline.com', // email admin
+                'BloodlineAdmin@6969', // password admin
                 UserRoleEnum.ADMIN,
                 true,
                 '0869872830',
