@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 import { COLLECTION_NAME } from '../../core/constants';
 import { IPayment } from './payment.interface';
-import { PaymentMethodEnum, PaymentStatusEnum } from './payment.enum';
+import { PaymentMethodEnum, PaymentStatusEnum, PaymentStageEnum } from './payment.enum';
 
 const PaymentSchemaEntity: Schema<IPayment> = new Schema({
     appointment_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.APPOINTMENT, required: true },
@@ -31,6 +31,13 @@ const PaymentSchemaEntity: Schema<IPayment> = new Schema({
     payer_name: { type: String },
     payer_email: { type: String },
     payer_phone: { type: Number },
+    payment_stage: {
+        type: String,
+        enum: Object.values(PaymentStageEnum),
+        default: PaymentStageEnum.DEPOSIT,
+        required: true
+    },
+    parent_payment_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.PAYMENT },
 
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }

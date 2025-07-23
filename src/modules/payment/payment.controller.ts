@@ -400,4 +400,78 @@ export default class PaymentController {
             next(error);
         }
     };
+
+    // Lấy lịch sử giao dịch của một thanh toán
+    public getPaymentTransactions = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { paymentId } = req.params;
+
+            if (!paymentId) {
+                return res.status(HttpStatus.BadRequest).json(
+                    formatResponse(null, false, 'Payment ID is required')
+                );
+            }
+
+            const transactions = await this.paymentService.getPaymentTransactions(paymentId);
+
+            res.status(HttpStatus.Success).json(
+                formatResponse(transactions, true, 'Payment transactions retrieved successfully')
+            );
+
+        } catch (error: any) {
+            console.error('Get payment transactions error:', error);
+            res.status(HttpStatus.InternalServerError).json(
+                formatResponse(null, false, error.message || 'Error retrieving payment transactions')
+            );
+        }
+    };
+
+    // Lấy lịch sử giao dịch của một lịch hẹn
+    public getAppointmentTransactions = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { appointmentId } = req.params;
+
+            if (!appointmentId) {
+                return res.status(HttpStatus.BadRequest).json(
+                    formatResponse(null, false, 'Appointment ID is required')
+                );
+            }
+
+            const transactions = await this.paymentService.getAppointmentTransactions(appointmentId);
+
+            res.status(HttpStatus.Success).json(
+                formatResponse(transactions, true, 'Appointment transactions retrieved successfully')
+            );
+
+        } catch (error: any) {
+            console.error('Get appointment transactions error:', error);
+            res.status(HttpStatus.InternalServerError).json(
+                formatResponse(null, false, error.message || 'Error retrieving appointment transactions')
+            );
+        }
+    };
+
+    // Test transaction creation (development only)
+    public testTransactionCreation = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            // Only allow in development environment
+            if (process.env.NODE_ENV === 'production') {
+                return res.status(HttpStatus.Forbidden).json(
+                    formatResponse(null, false, 'Test endpoint not available in production')
+                );
+            }
+
+            const result = await this.paymentService.testTransactionCreation();
+
+            res.status(HttpStatus.Success).json(
+                formatResponse(result, result.success, result.message)
+            );
+
+        } catch (error: any) {
+            console.error('Test transaction creation error:', error);
+            res.status(HttpStatus.InternalServerError).json(
+                formatResponse(null, false, error.message || 'Error testing transaction creation')
+            );
+        }
+    };
 }

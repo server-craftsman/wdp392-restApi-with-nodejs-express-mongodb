@@ -84,10 +84,30 @@ export default class PaymentRoute implements IRoute {
             this.paymentController.getPaymentSamples
         );
 
+        // GET: domain:/api/payments/:paymentId/transactions -> Get transaction history for a payment
+        this.router.get(
+            `${this.path}/:paymentId/transactions`,
+            authMiddleWare(),
+            this.paymentController.getPaymentTransactions as any
+        );
+
+        // GET: domain:/api/payments/appointment/:appointmentId/transactions -> Get transaction history for appointment
+        this.router.get(
+            `${this.path}/appointment/:appointmentId/transactions`,
+            authMiddleWare(),
+            this.paymentController.getAppointmentTransactions as any
+        );
+
         // POST: domain:/api/payments/test-webhook-signature -> Generate test webhook signature (dev only)
         this.router.post(
             `${this.path}/test-webhook-signature`,
             this.paymentController.generateTestWebhookSignature as any
+        );
+
+        // GET: domain:/api/payments/test-transaction-creation -> Test transaction creation (dev only)
+        this.router.get(
+            `${this.path}/test-transaction-creation`,
+            this.paymentController.testTransactionCreation as any
         );
     }
 }

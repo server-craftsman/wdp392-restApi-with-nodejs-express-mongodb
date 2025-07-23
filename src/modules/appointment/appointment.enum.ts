@@ -20,4 +20,10 @@ export enum PaymentStatusEnum {
     PAID = 'paid',
     REFUNDED = 'refunded',
     FAILED = 'failed'
+}
+
+export enum AppointmentPaymentStageEnum {
+    UNPAID = 'unpaid',          // chưa thanh toán gì
+    DEPOSIT_PAID = 'deposit_paid', // đã đặt cọc
+    PAID = 'paid'               // đã thanh toán đủ
 } 

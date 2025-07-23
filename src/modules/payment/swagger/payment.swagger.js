@@ -212,23 +212,29 @@
  *   post:
  *     tags:
  *       - payment
- *     summary: Tạo thanh toán cho lịch hẹn xét nghiệm DNA
+ *     summary: Tạo thanh toán cho lịch hẹn xét nghiệm DNA (Deposit/Remaining Flow)
  *     description: |
- *       Tạo giao dịch thanh toán cho một lịch hẹn xét nghiệm DNA với các mẫu được chọn.
+ *       Tạo giao dịch thanh toán cho một lịch hẹn xét nghiệm DNA với luồng đặt cọc trước.
+ *       
+ *       **Luồng thanh toán mới:**
+ *       1. **Đặt cọc (DEPOSIT)**: Khách hàng đặt cọc 30% tổng giá trị dịch vụ
+ *       2. **Thanh toán còn lại (REMAINING)**: Sau khi đặt cọc, thanh toán số tiền còn lại
+ *       
+ *       **Tự động xác định giai đoạn:**
+ *       - Nếu amount_paid = 0 → Tạo thanh toán DEPOSIT
+ *       - Nếu amount_paid >= deposit_amount → Tạo thanh toán REMAINING
+ *       - Nếu amount_paid >= total_amount → Báo lỗi đã thanh toán đủ
  *       
  *       **Tính năng chính:**
  *       - Hỗ trợ thanh toán tiền mặt (CASH) và online (PAY_OS)
- *       - Tự động tính toán tổng tiền dựa trên các mẫu xét nghiệm
- *       - Hỗ trợ thanh toán một phần với custom_amount
+ *       - Tự động tính toán số tiền theo giai đoạn
  *       - Tạo link thanh toán PayOS cho thanh toán online
- *       - Tự động lấy tất cả mẫu nếu không chỉ định sample_ids
+ *       - Cập nhật trạng thái appointment sau mỗi thanh toán
+ *       - Gửi email thông báo theo từng giai đoạn
  *       
- *       **Quy trình thanh toán:**
- *       1. Xác thực người dùng và quyền truy cập lịch hẹn
- *       2. Lấy thông tin mẫu xét nghiệm và tính toán tổng tiền
- *       3. Tạo payment record trong database
- *       4. Tạo link PayOS nếu chọn thanh toán online
- *       5. Trả về thông tin thanh toán và link checkout
+ *       **Payment Stages:**
+ *       - DEPOSIT: Đặt cọc 30% tổng giá trị
+ *       - REMAINING: Thanh toán số tiền còn lại
  *     security:
  *       - Bearer: []
  *     requestBody:
@@ -236,24 +242,37 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreateAppointmentPaymentRequest'
+ *             type: object
+ *             required:
+ *               - appointment_id
+ *               - payment_method
+ *             properties:
+ *               appointment_id:
+ *                 type: string
+ *                 description: ID của lịch hẹn cần thanh toán
+ *                 example: "64a1b2c3d4e5f6789abcdef0"
+ *               payment_method:
+ *                 type: string
+ *                 enum: [cash, pay_os]
+ *                 description: Phương thức thanh toán
+ *                 example: "pay_os"
+ *               sample_ids:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: IDs của các mẫu xét nghiệm (tùy chọn, mặc định lấy tất cả)
+ *                 example: ["64a1b2c3d4e5f6789abcdef1", "64a1b2c3d4e5f6789abcdef2"]
  *           examples:
- *             payos_payment:
- *               summary: Thanh toán online qua PayOS
+ *             deposit_payos:
+ *               summary: Đặt cọc qua PayOS
  *               value:
  *                 appointment_id: "64a1b2c3d4e5f6789abcdef0"
  *                 payment_method: "pay_os"
- *             cash_payment:
- *               summary: Thanh toán tiền mặt
+ *             remaining_cash:
+ *               summary: Thanh toán còn lại bằng tiền mặt
  *               value:
  *                 appointment_id: "64a1b2c3d4e5f6789abcdef0"
  *                 payment_method: "cash"
- *             partial_payment:
- *               summary: Thanh toán một phần với mẫu được chọn
- *               value:
- *                 appointment_id: "64a1b2c3d4e5f6789abcdef0"
- *                 payment_method: "pay_os"
- *                 sample_ids: ["64a1b2c3d4e5f6789abcdef1", "64a1b2c3d4e5f6789abcdef2"]
  *     responses:
  *       '200':
  *         description: Thanh toán được tạo thành công
@@ -263,65 +282,94 @@
  *               type: object
  *               properties:
  *                 data:
- *                   $ref: '#/components/schemas/PaymentResponse'
+ *                   type: object
+ *                   properties:
+ *                     payment_no:
+ *                       type: string
+ *                       example: "PAY-DEPOSIT-ABC123-101530"
+ *                       description: Mã số thanh toán (bao gồm giai đoạn)
+ *                     payment_method:
+ *                       type: string
+ *                       example: "pay_os"
+ *                       description: Phương thức thanh toán
+ *                     status:
+ *                       type: string
+ *                       example: "pending"
+ *                       description: Trạng thái thanh toán
+ *                     amount:
+ *                       type: number
+ *                       example: 150000
+ *                       description: Số tiền thanh toán (VND)
+ *                     payment_stage:
+ *                       type: string
+ *                       example: "deposit"
+ *                       enum: [deposit, remaining]
+ *                       description: Giai đoạn thanh toán
+ *                     checkout_url:
+ *                       type: string
+ *                       example: "https://pay.payos.vn/web/payment/123456"
+ *                       description: Link thanh toán PayOS (chỉ có khi payment_method = pay_os)
  *                 success:
  *                   type: boolean
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Appointment payment created successfully"
+ *                   example: "Deposit payment created successfully"
  *             examples:
- *               payos_success:
- *                 summary: Thành công tạo thanh toán PayOS
+ *               deposit_payos_success:
+ *                 summary: Tạo đặt cọc PayOS thành công
  *                 value:
  *                   data:
- *                     id: "64a1b2c3d4e5f6789abcdef0"
- *                     payment_no: "PAY_123456789"
- *                     amount: 500000
- *                     status: "pending"
+ *                     payment_no: "PAY-DEPOSIT-ABC123-101530"
  *                     payment_method: "pay_os"
- *                     appointment_id: "64a1b2c3d4e5f6789abcdef0"
- *                     payos_checkout_url: "https://pay.payos.vn/web/payment/123456"
- *                     created_at: "2024-01-01T10:00:00.000Z"
+ *                     status: "pending"
+ *                     amount: 150000
+ *                     payment_stage: "deposit"
+ *                     checkout_url: "https://pay.payos.vn/web/payment/123456"
  *                   success: true
- *                   message: "Appointment payment created successfully"
- *               cash_success:
- *                 summary: Thành công tạo thanh toán tiền mặt
+ *                   message: "Deposit payment created successfully"
+ *               remaining_cash_success:
+ *                 summary: Tạo thanh toán còn lại bằng tiền mặt thành công
  *                 value:
  *                   data:
- *                     id: "64a1b2c3d4e5f6789abcdef0"
- *                     payment_no: "PAY_123456789"
- *                     amount: 500000
- *                     status: "pending"
+ *                     payment_no: "PAY-REMAINING-DEF456-143020"
  *                     payment_method: "cash"
- *                     appointment_id: "64a1b2c3d4e5f6789abcdef0"
- *                     created_at: "2024-01-01T10:00:00.000Z"
+ *                     status: "completed"
+ *                     amount: 350000
+ *                     payment_stage: "remaining"
  *                   success: true
- *                   message: "Appointment payment created successfully"
+ *                   message: "Remaining payment completed successfully"
+ *       '400':
+ *         description: Dữ liệu đầu vào không hợp lệ hoặc trạng thái thanh toán không phù hợp
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             examples:
+ *               already_paid:
+ *                 summary: Đã thanh toán đủ
+ *                 value:
+ *                   success: false
+ *                   message: "Appointment already fully paid"
+ *                   statusCode: 400
+ *               pending_payment_exists:
+ *                 summary: Đã có thanh toán đang chờ cho giai đoạn này
+ *                 value:
+ *                   success: false
+ *                   message: "A pending deposit payment already exists for this appointment"
+ *                   statusCode: 400
+ *               invalid_payment_state:
+ *                 summary: Trạng thái thanh toán không hợp lệ
+ *                 value:
+ *                   success: false
+ *                   message: "Invalid payment state"
+ *                   statusCode: 400
  *       '401':
  *         description: Chưa xác thực người dùng hoặc token không hợp lệ
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       '400':
- *         description: Dữ liệu đầu vào không hợp lệ (thiếu trường bắt buộc, sai định dạng)
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       '404':
- *         description: Không tìm thấy lịch hẹn hoặc mẫu xét nghiệm
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       '403':
  *         description: Không có quyền truy cập lịch hẹn này
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *       '404':
+ *         description: Không tìm thấy lịch hẹn hoặc dịch vụ
  */
 
 /**
@@ -1039,6 +1087,426 @@
  *                   error: "Payment exists but no associated samples"
  *       '500':
  *         description: Lỗi máy chủ khi truy xuất thông tin mẫu
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+
+/**
+ * @swagger
+ * /api/payments/{paymentId}/transactions:
+ *   get:
+ *     tags:
+ *       - payment
+ *     summary: Lấy lịch sử giao dịch của một thanh toán
+ *     description: |
+ *       Lấy thông tin chi tiết về tất cả các giao dịch (transactions) liên quan đến một thanh toán cụ thể.
+ *       
+ *       **Thông tin transaction bao gồm:**
+ *       - Receipt number (mã hóa đơn)
+ *       - Sample information (thông tin mẫu xét nghiệm)
+ *       - Customer information (thông tin khách hàng)
+ *       - PayOS transaction details (chi tiết giao dịch PayOS)
+ *       - Transaction status và timestamps
+ *       
+ *       **Use cases:**
+ *       - Audit trail cho từng thanh toán
+ *       - Troubleshooting payment issues
+ *       - Báo cáo tài chính chi tiết
+ *       - Xác minh giao dịch với PayOS
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - name: paymentId
+ *         in: path
+ *         required: true
+ *         description: ID của thanh toán cần xem lịch sử giao dịch
+ *         schema:
+ *           type: string
+ *           example: "64a1b2c3d4e5f6789abcdef0"
+ *     responses:
+ *       '200':
+ *         description: Lịch sử giao dịch được lấy thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "64a1b2c3d4e5f6789abcdef3"
+ *                         description: "ID của transaction"
+ *                       payment_id:
+ *                         type: string
+ *                         example: "64a1b2c3d4e5f6789abcdef0"
+ *                         description: "ID của payment liên quan"
+ *                       receipt_number:
+ *                         type: string
+ *                         example: "PAY-DEPOSIT-ABC123-101530-DEPOSIT-64a1b2"
+ *                         description: "Số hóa đơn duy nhất"
+ *                       sample_id:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: "64a1b2c3d4e5f6789abcdef1"
+ *                           sample_code:
+ *                             type: string
+ *                             example: "DNA_SAMPLE_001"
+ *                           sample_type:
+ *                             type: string
+ *                             example: "blood"
+ *                       customer_id:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: "64a1b2c3d4e5f6789abcdef2"
+ *                           first_name:
+ *                             type: string
+ *                             example: "Nguyễn"
+ *                           last_name:
+ *                             type: string
+ *                             example: "Văn A"
+ *                           email:
+ *                             type: string
+ *                             example: "nguyenvana@example.com"
+ *                       payos_transaction_id:
+ *                         type: string
+ *                         example: "payos_txn_123456"
+ *                         description: "ID giao dịch từ PayOS"
+ *                       payos_payment_status:
+ *                         type: string
+ *                         enum: [pending, success, failed, cancelled, refunded]
+ *                         example: "success"
+ *                         description: "Trạng thái giao dịch PayOS"
+ *                       transaction_date:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:30:00.000Z"
+ *                         description: "Thời gian giao dịch"
+ *                       payos_payment_status_time:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:31:00.000Z"
+ *                         description: "Thời gian cập nhật trạng thái PayOS"
+ *                       payos_webhook_received_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:31:05.000Z"
+ *                         description: "Thời gian nhận webhook từ PayOS"
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:30:00.000Z"
+ *                       updated_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:31:05.000Z"
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Payment transactions retrieved successfully"
+ *       '400':
+ *         description: Thiếu Payment ID trong request
+ *       '404':
+ *         description: Không tìm thấy thanh toán hoặc không có giao dịch nào
+ *       '500':
+ *         description: Lỗi máy chủ nội bộ
+ */
+
+/**
+ * @swagger
+ * /api/payments/appointment/{appointmentId}/transactions:
+ *   get:
+ *     tags:
+ *       - payment
+ *     summary: Lấy toàn bộ lịch sử giao dịch của một lịch hẹn
+ *     description: |
+ *       Lấy thông tin chi tiết về tất cả các giao dịch liên quan đến một lịch hẹn, 
+ *       bao gồm cả DEPOSIT và REMAINING payments.
+ *       
+ *       **Thông tin bao gồm:**
+ *       - Tất cả transactions từ các payments của appointment
+ *       - Thông tin payment stage (deposit/remaining)
+ *       - Chi tiết từng sample và customer
+ *       - Trạng thái PayOS và timeline
+ *       - Audit trail hoàn chỉnh
+ *       
+ *       **Use cases:**
+ *       - Dashboard khách hàng xem lịch sử đầy đủ
+ *       - Staff review toàn bộ payment flow
+ *       - Báo cáo tài chính appointment
+ *       - Troubleshooting payment issues
+ *       - Compliance và audit
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - name: appointmentId
+ *         in: path
+ *         required: true
+ *         description: ID của lịch hẹn cần xem lịch sử giao dịch
+ *         schema:
+ *           type: string
+ *           example: "64a1b2c3d4e5f6789abcdef0"
+ *     responses:
+ *       '200':
+ *         description: Lịch sử giao dịch appointment được lấy thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "64a1b2c3d4e5f6789abcdef3"
+ *                       payment_id:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: "64a1b2c3d4e5f6789abcdef4"
+ *                           payment_no:
+ *                             type: string
+ *                             example: "PAY-DEPOSIT-ABC123-101530"
+ *                           payment_stage:
+ *                             type: string
+ *                             enum: [deposit, remaining]
+ *                             example: "deposit"
+ *                           amount:
+ *                             type: number
+ *                             example: 150000
+ *                           payment_method:
+ *                             type: string
+ *                             example: "pay_os"
+ *                           status:
+ *                             type: string
+ *                             example: "completed"
+ *                       receipt_number:
+ *                         type: string
+ *                         example: "PAY-DEPOSIT-ABC123-101530-DEPOSIT-64a1b2"
+ *                       sample_id:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: "64a1b2c3d4e5f6789abcdef1"
+ *                           sample_code:
+ *                             type: string
+ *                             example: "DNA_SAMPLE_001"
+ *                           sample_type:
+ *                             type: string
+ *                             example: "blood"
+ *                       customer_id:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             example: "64a1b2c3d4e5f6789abcdef2"
+ *                           first_name:
+ *                             type: string
+ *                             example: "Nguyễn"
+ *                           last_name:
+ *                             type: string
+ *                             example: "Văn A"
+ *                           email:
+ *                             type: string
+ *                             example: "nguyenvana@example.com"
+ *                       payos_payment_status:
+ *                         type: string
+ *                         enum: [pending, success, failed, cancelled, refunded]
+ *                         example: "success"
+ *                       transaction_date:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:30:00.000Z"
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:30:00.000Z"
+ *                       updated_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-15T10:31:05.000Z"
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Appointment transactions retrieved successfully"
+ *             examples:
+ *               complete_flow:
+ *                 summary: Lịch sử đầy đủ deposit + remaining
+ *                 value:
+ *                   data:
+ *                     - _id: "64a1b2c3d4e5f6789abcdef3"
+ *                       payment_id:
+ *                         _id: "64a1b2c3d4e5f6789abcdef4"
+ *                         payment_no: "PAY-DEPOSIT-ABC123-101530"
+ *                         payment_stage: "deposit"
+ *                         amount: 150000
+ *                         payment_method: "pay_os"
+ *                         status: "completed"
+ *                       receipt_number: "PAY-DEPOSIT-ABC123-101530-DEPOSIT-64a1b2"
+ *                       sample_id:
+ *                         _id: "64a1b2c3d4e5f6789abcdef1"
+ *                         sample_code: "DNA_SAMPLE_001"
+ *                         sample_type: "blood"
+ *                       customer_id:
+ *                         _id: "64a1b2c3d4e5f6789abcdef2"
+ *                         first_name: "Nguyễn"
+ *                         last_name: "Văn A"
+ *                         email: "nguyenvana@example.com"
+ *                       payos_payment_status: "success"
+ *                       transaction_date: "2024-01-15T10:30:00.000Z"
+ *                       created_at: "2024-01-15T10:30:00.000Z"
+ *                       updated_at: "2024-01-15T10:31:05.000Z"
+ *                     - _id: "64a1b2c3d4e5f6789abcdef5"
+ *                       payment_id:
+ *                         _id: "64a1b2c3d4e5f6789abcdef6"
+ *                         payment_no: "PAY-REMAINING-DEF456-143020"
+ *                         payment_stage: "remaining"
+ *                         amount: 350000
+ *                         payment_method: "cash"
+ *                         status: "completed"
+ *                       receipt_number: "PAY-REMAINING-DEF456-143020-REMAINING-64a1b2"
+ *                       sample_id:
+ *                         _id: "64a1b2c3d4e5f6789abcdef1"
+ *                         sample_code: "DNA_SAMPLE_001"
+ *                         sample_type: "blood"
+ *                       customer_id:
+ *                         _id: "64a1b2c3d4e5f6789abcdef2"
+ *                         first_name: "Nguyễn"
+ *                         last_name: "Văn A"
+ *                         email: "nguyenvana@example.com"
+ *                       payos_payment_status: "success"
+ *                       transaction_date: "2024-01-15T14:30:00.000Z"
+ *                       created_at: "2024-01-15T14:30:00.000Z"
+ *                       updated_at: "2024-01-15T14:30:00.000Z"
+ *                   success: true
+ *                   message: "Appointment transactions retrieved successfully"
+ *       '400':
+ *         description: Thiếu Appointment ID trong request
+ *       '404':
+ *         description: Không tìm thấy lịch hẹn hoặc không có giao dịch nào
+ *       '500':
+ *         description: Lỗi máy chủ nội bộ
+ */
+
+/**
+ * @swagger
+ * /api/payments/test-transaction-creation:
+ *   get:
+ *     tags:
+ *       - payment
+ *     summary: Test transaction creation functionality (development only)
+ *     description: |
+ *       Endpoint để test việc tạo transaction records trong môi trường development.
+ *       
+ *       **Tính năng test:**
+ *       - Tạo mock payment và appointment data
+ *       - Kiểm tra việc tạo transaction records
+ *       - Verify transaction creation logic
+ *       - Debug transaction-related issues
+ *       
+ *       **Hạn chế:**
+ *       - Chỉ hoạt động trong môi trường development
+ *       - Không khả dụng trên production (trả về 403 Forbidden)
+ *       - Dành cho debugging và testing purposes
+ *       
+ *       **Test cases:**
+ *       - Payment không có sample_ids → Tạo appointment-level transaction
+ *       - Payment có sample_ids → Tạo transaction cho từng sample
+ *       - Verify transaction data integrity
+ *     responses:
+ *       '200':
+ *         description: Test transaction creation hoàn thành
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     success:
+ *                       type: boolean
+ *                       example: true
+ *                       description: "Kết quả test"
+ *                     message:
+ *                       type: string
+ *                       example: "Transaction creation test completed successfully"
+ *                       description: "Thông báo kết quả"
+ *                     details:
+ *                       type: object
+ *                       properties:
+ *                         payment:
+ *                           type: object
+ *                           description: "Mock payment data được sử dụng"
+ *                         appointment:
+ *                           type: object
+ *                           description: "Mock appointment data được sử dụng"
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Transaction creation test completed successfully"
+ *             examples:
+ *               successful_test:
+ *                 summary: Test thành công
+ *                 value:
+ *                   data:
+ *                     success: true
+ *                     message: "Transaction creation test completed successfully"
+ *                     details:
+ *                       payment:
+ *                         _id: "1705123456789"
+ *                         payment_no: "TEST-PAY-1705123456789"
+ *                         payment_stage: "deposit"
+ *                         payment_method: "cash"
+ *                         sample_ids: []
+ *                       appointment:
+ *                         _id: "1705123456790"
+ *                         user_id: "1705123456791"
+ *                   success: true
+ *                   message: "Transaction creation test completed successfully"
+ *               failed_test:
+ *                 summary: Test thất bại
+ *                 value:
+ *                   data:
+ *                     success: false
+ *                     message: "Transaction creation test failed"
+ *                     details:
+ *                       error: "Database connection failed"
+ *                       stack: "Error: Database connection failed\\n    at ..."
+ *                   success: false
+ *                   message: "Transaction creation test failed"
+ *       '403':
+ *         description: Không khả dụng trên production
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *             example:
+ *               success: false
+ *               message: "Test endpoint not available in production"
+ *               statusCode: 403
+ *       '500':
+ *         description: Lỗi máy chủ nội bộ khi chạy test
  *         content:
  *           application/json:
  *             schema:

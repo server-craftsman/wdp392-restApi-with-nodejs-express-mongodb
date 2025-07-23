@@ -1,5 +1,5 @@
 import { Document } from 'mongoose';
-import { AppointmentStatusEnum, TypeEnum, PaymentStatusEnum } from './appointment.enum';
+import { AppointmentStatusEnum, TypeEnum, PaymentStatusEnum, AppointmentPaymentStageEnum } from './appointment.enum';
 import { ISample } from '../sample/sample.interface';
 
 export type AppointmentStatus =
@@ -15,6 +15,11 @@ export type CollectionType =
     TypeEnum.SELF |
     TypeEnum.FACILITY |
     TypeEnum.HOME;
+
+export type AppointmentPaymentStage =
+    AppointmentPaymentStageEnum.UNPAID |
+    AppointmentPaymentStageEnum.DEPOSIT_PAID |
+    AppointmentPaymentStageEnum.PAID;
 
 // Interface for sample information in appointment response
 export interface ISampleInfo {
@@ -38,6 +43,10 @@ export interface IAppointment extends Document {
     collection_address?: string;
     status: AppointmentStatusEnum;
     payment_status: PaymentStatusEnum;
+    total_amount?: number;
+    deposit_amount?: number;
+    amount_paid?: number;
+    payment_stage?: AppointmentPaymentStage;
     administrative_case_id?: string | any;
     created_at: Date;
     updated_at: Date;

@@ -31,6 +31,7 @@ import { ServiceTypeEnum } from '../service/service.enum';
 import PaymentService from '../payment/payment.service';
 import ConsultationSchema from './consultation.model';
 import { IConsultation, ConsultationStatusEnum } from './consultation.interface';
+import { AppointmentPaymentStageEnum } from './appointment.enum';
 
 export default class AppointmentService {
     private readonly appointmentRepository: AppointmentRepository;
@@ -649,8 +650,11 @@ export default class AppointmentService {
                 collection_address: appointmentData.collection_address,
                 status: AppointmentStatusEnum.PENDING,
                 payment_status: service.type === ServiceTypeEnum.ADMINISTRATIVE ? PaymentStatusEnum.PAID : PaymentStatusEnum.UNPAID,
-                administrative_case_id,
-                agency_contact_email: service.type === ServiceTypeEnum.ADMINISTRATIVE ? appointmentData.agency_contact_email : undefined,
+                payment_stage: AppointmentPaymentStageEnum.UNPAID, // Trạng thái thanh toán của cuộc hẹn
+                total_amount: service.price, // Tổng số tiền của dịch vụ
+                deposit_amount: Math.round(service.price * 0.3), // Số tiền đặt cọc
+                amount_paid: 0, // Số tiền đã thanh toán
+                administrative_case_id, agency_contact_email: service.type === ServiceTypeEnum.ADMINISTRATIVE ? appointmentData.agency_contact_email : undefined,
                 created_at: new Date(),
                 updated_at: new Date()
             });
@@ -1914,3 +1918,4 @@ export default class AppointmentService {
         }
     }
 }
+

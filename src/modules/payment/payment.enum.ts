@@ -10,4 +10,9 @@ export enum PaymentStatusEnum {
     CANCELLED = 'cancelled',
     FAILED = 'failed',
     REFUNDED = 'refunded'
+}
+
+export enum PaymentStageEnum {
+    DEPOSIT = 'deposit',
+    REMAINING = 'remaining'
 } 

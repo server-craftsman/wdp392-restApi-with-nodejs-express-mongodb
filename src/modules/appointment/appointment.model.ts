@@ -2,7 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 import { COLLECTION_NAME } from '../../core/constants';
 import { AppointmentStatuses, CollectionTypes } from './appointment.constant';
 import { IAppointment } from './appointment.interface';
-import { AppointmentStatusEnum, TypeEnum, PaymentStatusEnum } from './appointment.enum';
+import { AppointmentStatusEnum, TypeEnum, PaymentStatusEnum, AppointmentPaymentStageEnum } from './appointment.enum';
 
 const AppointmentSchemaEntity: Schema<IAppointment> = new Schema({
     user_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true },
@@ -29,6 +29,14 @@ const AppointmentSchemaEntity: Schema<IAppointment> = new Schema({
         enum: Object.values(PaymentStatusEnum),
         required: true,
         default: PaymentStatusEnum.UNPAID
+    },
+    total_amount: { type: Number }, // Tổng số tiền của dịch vụ
+    deposit_amount: { type: Number }, // Số tiền đặt cọc
+    amount_paid: { type: Number, default: 0 }, // Số tiền đã thanh toán
+    payment_stage: {
+        type: String,
+        enum: Object.values(AppointmentPaymentStageEnum),
+        default: AppointmentPaymentStageEnum.UNPAID // Trạng thái thanh toán của cuộc hẹn
     },
     administrative_case_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.ADMINISTRATIVE_CASE, required: false },
     created_at: { type: Date, default: Date.now },

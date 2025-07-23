@@ -12,7 +12,19 @@
  *     tags:
  *       - appointments
  *     summary: Create a new appointment (Customer only)
- *     description: Book a new appointment for a DNA testing service
+ *     description: |
+ *       Book a new appointment for a DNA testing service with deposit payment flow.
+ *       
+ *       **Payment Flow:**
+ *       - Appointment is created with total_amount, deposit_amount (30%), and payment_stage = 'unpaid'
+ *       - Customer must pay deposit first to proceed with sample collection
+ *       - After deposit payment, customer pays remaining amount for full service completion
+ *       
+ *       **Financial Fields Added:**
+ *       - total_amount: Full service price
+ *       - deposit_amount: 30% of total_amount 
+ *       - amount_paid: Amount paid so far (starts at 0)
+ *       - payment_stage: 'unpaid' | 'deposit_paid' | 'paid'
  *     operationId: createAppointment
  *     security:
  *       - Bearer: []
@@ -24,11 +36,57 @@
  *             $ref: '#/components/schemas/CreateAppointmentDto'
  *     responses:
  *       201:
- *         description: Appointment created successfully
+ *         description: Appointment created successfully with payment information
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AppointmentResponse'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: "64a1b2c3d4e5f6789abcdef0"
+ *                     user_id:
+ *                       type: string
+ *                       example: "64a1b2c3d4e5f6789abcdef1"
+ *                     service_id:
+ *                       type: string
+ *                       example: "64a1b2c3d4e5f6789abcdef2"
+ *                     appointment_date:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-15T10:00:00.000Z"
+ *                     status:
+ *                       type: string
+ *                       example: "pending"
+ *                     payment_status:
+ *                       type: string
+ *                       example: "unpaid"
+ *                     total_amount:
+ *                       type: number
+ *                       example: 500000
+ *                       description: "Total service cost (VND)"
+ *                     deposit_amount:
+ *                       type: number
+ *                       example: 150000
+ *                       description: "Required deposit amount (30% of total)"
+ *                     amount_paid:
+ *                       type: number
+ *                       example: 0
+ *                       description: "Amount paid so far"
+ *                     payment_stage:
+ *                       type: string
+ *                       example: "unpaid"
+ *                       enum: [unpaid, deposit_paid, paid]
+ *                       description: "Current payment stage"
+ *                 message:
+ *                   type: string
+ *                   example: "Appointment created successfully. Please pay deposit to proceed."
  *       400:
  *         description: Invalid input data or missing required fields
  *       401:
@@ -1000,6 +1058,171 @@
  *         description: Forbidden - Manager/Admin access required
  *       404:
  *         description: Appointment not found
+ */
+
+/**
+ * @swagger
+ * /api/appointment/{id}/payment-status:
+ *   get:
+ *     tags:
+ *       - appointments
+ *     summary: Get payment status and next steps for appointment
+ *     description: |
+ *       Get detailed payment information for an appointment including:
+ *       - Current payment stage (unpaid/deposit_paid/paid)
+ *       - Amount paid vs total amount  
+ *       - Next payment amount required
+ *       - Available payment methods for next step
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Appointment ID
+ *         example: "64a1b2c3d4e5f6789abcdef0"
+ *     responses:
+ *       200:
+ *         description: Payment status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     appointment_id:
+ *                       type: string
+ *                       example: "64a1b2c3d4e5f6789abcdef0"
+ *                     payment_stage:
+ *                       type: string
+ *                       example: "deposit_paid"
+ *                       enum: [unpaid, deposit_paid, paid]
+ *                     total_amount:
+ *                       type: number
+ *                       example: 500000
+ *                     deposit_amount:
+ *                       type: number
+ *                       example: 150000
+ *                     amount_paid:
+ *                       type: number
+ *                       example: 150000
+ *                     remaining_amount:
+ *                       type: number
+ *                       example: 350000
+ *                     next_payment_stage:
+ *                       type: string
+ *                       example: "remaining"
+ *                       enum: [deposit, remaining, none]
+ *                     next_payment_amount:
+ *                       type: number
+ *                       example: 350000
+ *                     can_proceed:
+ *                       type: boolean
+ *                       example: true
+ *                       description: "Whether appointment can proceed to next stage"
+ *                 message:
+ *                   type: string
+ *                   example: "Deposit paid. Remaining payment required for service completion."
+ *       404:
+ *         description: Appointment not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment/{id}/payment-history:
+ *   get:
+ *     tags:
+ *       - appointments
+ *     summary: Get payment history for appointment
+ *     description: |
+ *       Get complete payment history for an appointment including:
+ *       - All payment transactions (deposit + remaining)
+ *       - Payment status and dates
+ *       - Payment methods used
+ *       - PayOS transaction details
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Appointment ID
+ *         example: "64a1b2c3d4e5f6789abcdef0"
+ *     responses:
+ *       200:
+ *         description: Payment history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     appointment_id:
+ *                       type: string
+ *                       example: "64a1b2c3d4e5f6789abcdef0"
+ *                     total_amount:
+ *                       type: number
+ *                       example: 500000
+ *                     amount_paid:
+ *                       type: number
+ *                       example: 500000
+ *                     payment_stage:
+ *                       type: string
+ *                       example: "paid"
+ *                     payments:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           payment_no:
+ *                             type: string
+ *                             example: "PAY-DEPOSIT-ABC123-101530"
+ *                           payment_stage:
+ *                             type: string
+ *                             example: "deposit"
+ *                             enum: [deposit, remaining]
+ *                           amount:
+ *                             type: number
+ *                             example: 150000
+ *                           payment_method:
+ *                             type: string
+ *                             example: "pay_os"
+ *                           status:
+ *                             type: string
+ *                             example: "completed"
+ *                           created_at:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2024-01-15T10:30:00.000Z"
+ *                           payos_order_code:
+ *                             type: number
+ *                             example: 123456789
+ *                           payos_payment_url:
+ *                             type: string
+ *                             example: "https://pay.payos.vn/web/payment/123456"
+ *                 message:
+ *                   type: string
+ *                   example: "Payment history retrieved successfully"
+ *       404:
+ *         description: Appointment not found
+ *       500:
+ *         description: Internal server error
  */
 
 // Import consultation schemas and endpoints

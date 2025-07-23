@@ -1,5 +1,5 @@
 import { Document, Schema } from 'mongoose';
-import { PaymentMethodEnum, PaymentStatusEnum } from './payment.enum';
+import { PaymentMethodEnum, PaymentStatusEnum, PaymentStageEnum } from './payment.enum';
 
 export type PaymentMethod =
     PaymentMethodEnum.CASH |
@@ -12,6 +12,8 @@ export type PaymentStatus =
     PaymentStatusEnum.CANCELLED |
     PaymentStatusEnum.REFUNDED;
 
+export type PaymentStage = PaymentStageEnum.DEPOSIT | PaymentStageEnum.REMAINING;
+
 export interface IPayment extends Document {
     _id: string;
     appointment_id: string | undefined;
@@ -20,6 +22,8 @@ export interface IPayment extends Document {
     payment_no?: string;
     payment_method: PaymentMethod;
     status: PaymentStatus;
+    payment_stage: PaymentStage;
+    parent_payment_id?: string;
     balance_origin: number;
     payos_payment_id?: string;
     payos_payment_url?: string;
