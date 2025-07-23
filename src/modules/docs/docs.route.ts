@@ -110,9 +110,26 @@ export default class DocsRoute implements IRoute {
             // Add endpoint count to res.locals for access in the view
             res.locals.endpointCount = endpointCount;
 
-            // Dynamically detect current server URL
-            const protocol = req.protocol;
+            // Dynamically detect current server URL with proper protocol handling
+            const forwardedProto = req.get('x-forwarded-proto');
+            const cloudflareProto = req.get('cf-visitor') ? JSON.parse(req.get('cf-visitor') || '{}').scheme : null;
             const host = req.get('host') || req.get('x-forwarded-host');
+
+            // Determine the correct protocol
+            let protocol = 'http';
+            if (forwardedProto) {
+                protocol = forwardedProto;
+            } else if (cloudflareProto) {
+                protocol = cloudflareProto;
+            } else if (req.secure || req.protocol === 'https') {
+                protocol = 'https';
+            } else if (host && (host.includes('vercel.app') || host.includes('railway.app') || host.includes('onrender.com') || host.includes('herokuapp.com'))) {
+                // Force HTTPS for known production domains
+                protocol = 'https';
+            } else {
+                protocol = req.protocol;
+            }
+
             const currentServerUrl = `${protocol}://${host}/`;
 
             // Get current environment
@@ -217,6 +234,94 @@ export default class DocsRoute implements IRoute {
                 customSiteTitle: `API Documentation (${endpointCount} endpoints)`,
                 customfavIcon: "/favicon.ico"
             })(req, res, next);
+        });
+
+        // Serve swagger spec as JSON with dynamic server detection
+        this.router.get(`${this.path}.json`, (req, res) => {
+            // Dynamically detect current server URL with proper protocol handling
+            const forwardedProto = req.get('x-forwarded-proto');
+            const cloudflareProto = req.get('cf-visitor') ? JSON.parse(req.get('cf-visitor') || '{}').scheme : null;
+            const host = req.get('host') || req.get('x-forwarded-host');
+
+            // Determine the correct protocol
+            let protocol = 'http';
+            if (forwardedProto) {
+                protocol = forwardedProto;
+            } else if (cloudflareProto) {
+                protocol = cloudflareProto;
+            } else if (req.secure || req.protocol === 'https') {
+                protocol = 'https';
+            } else if (host && (host.includes('vercel.app') || host.includes('railway.app') || host.includes('onrender.com') || host.includes('herokuapp.com'))) {
+                // Force HTTPS for known production domains
+                protocol = 'https';
+            } else {
+                protocol = req.protocol;
+            }
+
+            const currentServerUrl = `${protocol}://${host}/`;
+
+            // Get current environment
+            const nodeEnv = process.env.NODE_ENV || 'development';
+
+            // Build servers array based on environment
+            let servers = [
+                {
+                    url: currentServerUrl,
+                    description: `Current server (${nodeEnv} - auto-detected)`
+                }
+            ];
+
+            // Add environment-specific servers
+            if (nodeEnv === 'development') {
+                servers.push(
+                    {
+                        url: "http://localhost:6969/",
+                        description: "Local development server (port 6969)"
+                    },
+                    {
+                        url: "http://localhost:8080/",
+                        description: "Local development server (port 8080)"
+                    },
+                    {
+                        url: "http://localhost:3000/",
+                        description: "Local development server (port 3000)"
+                    }
+                );
+            } else if (nodeEnv === 'production') {
+                servers.push(
+                    {
+                        url: "https://restapi-dnatesting.up.railway.app/",
+                        description: "Production server (Railway)"
+                    },
+                    {
+                        url: "https://restapi-dna-testing.onrender.com/",
+                        description: "Production server (Render)"
+                    }
+                );
+            } else {
+                // For staging, testing, or other environments
+                servers.push(
+                    {
+                        url: "http://localhost:6969/",
+                        description: "Local development server"
+                    },
+                    {
+                        url: "https://restapi-dna-testing.onrender.com/",
+                        description: "Production server"
+                    }
+                );
+            }
+
+            // Create dynamic swagger spec with current server as default
+            const dynamicSwaggerSpec = swaggerJsdoc({
+                ...options,
+                definition: {
+                    ...options.definition,
+                    servers: servers
+                }
+            });
+
+            res.json(dynamicSwaggerSpec);
         });
     }
 } 
