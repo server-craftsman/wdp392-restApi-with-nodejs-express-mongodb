@@ -646,6 +646,17 @@ export default class AppointmentService {
                 );
             }
 
+            // Validate address for HOME appointments - only support TP. HCM, Việt Nam
+            if (appointmentData.type === TypeEnum.HOME && appointmentData.collection_address) {
+                const isValidAddress = this.validateServiceArea(appointmentData.collection_address);
+                if (!isValidAddress) {
+                    throw new HttpException(
+                        HttpStatus.BadRequest,
+                        'Home collection service is only available in Ho Chi Minh City, Vietnam. Please contact us for other locations.'
+                    );
+                }
+            }
+
             // ==================== NEW VALIDATION & SURCHARGE FOR HOME COLLECTION ====================
             let totalAmount = service.price;
             // Determine the intended appointment date/time for pricing
@@ -2013,6 +2024,55 @@ export default class AppointmentService {
         } catch (error) {
             console.error('Error sending appointment status update email:', error);
         }
+    }
+
+    /**
+     * Validate if the provided address is within the service area (TP. HCM, Việt Nam)
+     */
+    private validateServiceArea(address: string): boolean {
+        if (!address || typeof address !== 'string') {
+            return false;
+        }
+
+        // Normalize the address to lowercase for easier matching
+        const normalizedAddress = address.toLowerCase().trim();
+
+        // List of keywords that indicate the address is in Ho Chi Minh City
+        const hcmKeywords = [
+            'tp. hcm',
+            'tp.hcm',
+            'thành phố hồ chí minh',
+            'ho chi minh city',
+            'hcm city',
+            'saigon',
+            'sài gòn',
+            'tp hcm',
+            'tphcm',
+            'hồ chí minh',
+            'hcm'
+        ];
+
+        // List of Ho Chi Minh City districts
+        const hcmDistricts = [
+            'quận 1', 'quận 2', 'quận 3', 'quận 4', 'quận 5', 'quận 6', 'quận 7', 'quận 8', 'quận 9', 'quận 10',
+            'quận 11', 'quận 12', 'quận bình thạnh', 'quận gò vấp', 'quận phú nhuận', 'quận tân bình',
+            'quận tân phú', 'quận bình tân', 'quận thủ đức', 'district 1', 'district 2', 'district 3', 'district 4',
+            'district 5', 'district 6', 'district 7', 'district 8', 'district 9', 'district 10', 'district 11',
+            'district 12', 'binh thanh', 'go vap', 'phu nhuan', 'tan binh', 'tan phu', 'binh tan', 'thu duc'
+        ];
+
+        // Check if address contains any HCM keywords
+        const hasHcmKeyword = hcmKeywords.some(keyword => normalizedAddress.includes(keyword));
+
+        // Check if address contains any HCM district
+        const hasHcmDistrict = hcmDistricts.some(district => normalizedAddress.includes(district));
+
+        // Check if address contains Vietnam keywords
+        const vietnamKeywords = ['việt nam', 'vietnam', 'vn'];
+        const hasVietnamKeyword = vietnamKeywords.some(keyword => normalizedAddress.includes(keyword));
+
+        // Address is valid if it contains HCM indicators and optionally Vietnam
+        return hasHcmKeyword || hasHcmDistrict || (hasVietnamKeyword && (hasHcmKeyword || hasHcmDistrict));
     }
 }
 
