@@ -48,15 +48,15 @@ export default class UserService {
         if (typeof model.address === 'string') {
             model.address = JSON.parse(model.address);
         }
-
+        const addressObj = model.address || {};
         let newUser = {
             ...model,
             address: {
-                street: model.address.street || '',
-                ward: model.address.ward || '',
-                district: model.address.district || '',
-                city: model.address.city || '',
-                country: model.address.country || 'Việt Nam'
+                street: addressObj.street || '',
+                ward: addressObj.ward || '',
+                district: addressObj.district || '',
+                city: addressObj.city || '',
+                country: addressObj.country || 'Việt Nam'
             },
             role: model.role || UserRoleEnum.CUSTOMER,
             google_id: model.google_id || '',
