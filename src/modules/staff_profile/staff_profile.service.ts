@@ -49,6 +49,23 @@ export default class StaffProfileService {
         // Tạo employee_id duy nhất
         const employeeId = await this.generateEmployeeId();
 
+        // Nếu model.address là string, chuyển đổi thành object
+        if (typeof model.address === 'string') {
+            model.address = JSON.parse(model.address);
+        }
+
+        // Nếu model.address chưa có, tự động lấy từ address đầy đủ của user
+        let address = model.address;
+        if (!address && user.address) {
+            address = {
+                street: user.address.street,
+                ward: user.address.ward,
+                district: user.address.district,
+                city: user.address.city,
+                country: user.address.country
+            };
+        }
+
         // Tạo hồ sơ nhân viên mới với các giá trị mặc định
         const newProfile = await this.staffProfileRepository.createStaffProfile({
             ...model,
@@ -58,6 +75,7 @@ export default class StaffProfileService {
             status: StaffStatusEnum.ACTIVE,
             salary: model.salary || 0,
             qualifications: model.qualifications || [],
+            address: address,
             created_at: new Date(),
             updated_at: new Date()
         });
@@ -107,6 +125,7 @@ export default class StaffProfileService {
                 department_id,
                 status,
                 keyword,
+                address,
                 hire_date_from,
                 hire_date_to
             } = this.processQueryParams(queryParams);
@@ -145,6 +164,27 @@ export default class StaffProfileService {
                     { employee_id: { $regex: keyword, $options: 'i' } },
                     { job_title: { $regex: keyword, $options: 'i' } },
                 ];
+            }
+
+            // Lọc theo address
+            if (address) {
+                if (typeof address === 'string') {
+                    // Nếu là string, tìm trên tất cả các trường address
+                    query.$or = [
+                        { 'address.street': { $regex: address, $options: 'i' } },
+                        { 'address.ward': { $regex: address, $options: 'i' } },
+                        { 'address.district': { $regex: address, $options: 'i' } },
+                        { 'address.city': { $regex: address, $options: 'i' } },
+                        { 'address.country': { $regex: address, $options: 'i' } }
+                    ];
+                } else if (typeof address === 'object') {
+                    // Nếu là object, tìm theo từng trường nếu có
+                    Object.entries(address).forEach(([key, value]) => {
+                        if (value) {
+                            query[`address.${key}`] = { $regex: value, $options: 'i' };
+                        }
+                    });
+                }
             }
 
             // Đếm tổng số nhân viên
@@ -222,6 +262,27 @@ export default class StaffProfileService {
             }
         }
 
+        // Nếu model.address là string, chuyển đổi thành object
+        if (typeof model.address === 'string') {
+            model.address = JSON.parse(model.address);
+        }
+
+        // Nếu model.zone chưa có, tự động lấy từ address đầy đủ của user
+        let address = model.address;
+        if (!address && typeof staffProfile.user_id === 'string' && staffProfile.user_id !== null) {
+            // Fetch the user object by id
+            const user = await this.userSchema.findById(staffProfile.user_id);
+            if (user && user.address) {
+                address = {
+                    street: user.address.street,
+                    ward: user.address.ward,
+                    district: user.address.district,
+                    city: user.address.city,
+                    country: user.address.country
+                };
+            }
+        }
+
         // Cập nhật thông tin hồ sơ
         const updatedProfile = await this.staffProfileRepository.findByIdAndUpdate(
             id,
@@ -229,6 +290,7 @@ export default class StaffProfileService {
                 ...model,
                 // user_id: model.user_id,
                 department_id: model.department_id,
+                address: model.address,
                 updated_at: new Date()
             },
             { new: true }
@@ -294,6 +356,7 @@ export default class StaffProfileService {
         department_id?: string;
         status?: string;
         keyword?: string;
+        address?: string;
         hire_date_from?: string;
         hire_date_to?: string;
     } {
@@ -305,6 +368,7 @@ export default class StaffProfileService {
             department_id: params.department_id,
             status: params.status,
             keyword: params.keyword,
+            address: params.address,
             hire_date_from: params.hire_date_from,
             hire_date_to: params.hire_date_to
         };

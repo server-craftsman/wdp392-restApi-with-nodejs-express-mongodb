@@ -2,7 +2,16 @@ import mongoose, { Schema } from 'mongoose';
 import { COLLECTION_NAME } from '../../core/constants';
 import { UserRoles, UserGenders } from './user.constant';
 import { UserRoleEnum, UserGenderEnum } from './user.enum';
-import { IUser } from './user.interface';
+import { IAddress, IUser } from './user.interface';
+
+
+const AddressSchema = new Schema<IAddress>({
+    street: { type: String },
+    ward: { type: String },
+    district: { type: String },
+    city: { type: String },
+    country: { type: String, default: 'Việt Nam' },
+});
 
 const UserSchemaEntity: Schema<IUser> = new Schema({
     email: { type: String, unique: true, index: true, required: true },
@@ -25,7 +34,15 @@ const UserSchemaEntity: Schema<IUser> = new Schema({
     phone_number: { type: Number, unique: true },
     avatar_url: { type: String },
     dob: { type: Date },
-    address: { type: String },
+    address: {
+        type: AddressSchema, default: {
+            street: '',
+            ward: '',
+            district: '',
+            city: '',
+            country: 'Việt Nam'
+        }
+    },
 
     is_verified: { type: Boolean, default: false },
     verification_token: { type: String },

@@ -1,6 +1,6 @@
 import { IsDate, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-
+import { IAddress } from '../user.interface';
 export default class UpdateUserDto {
     constructor(
         first_name: string,
@@ -8,7 +8,7 @@ export default class UpdateUserDto {
         phone_number: string,
         avatar_url: string,
         dob: Date | string,
-        address: string,
+        address: IAddress,
         gender: string
     ) {
         this.first_name = first_name;
@@ -16,7 +16,13 @@ export default class UpdateUserDto {
         this.phone_number = phone_number;
         this.avatar_url = avatar_url;
         this.dob = dob;
-        this.address = address;
+        this.address = {
+            street: address.street,
+            ward: address.ward,
+            district: address.district,
+            city: address.city,
+            country: address.country
+        };
         this.gender = gender;
     }
 
@@ -38,7 +44,7 @@ export default class UpdateUserDto {
 
     @IsString()
     @IsOptional()
-    public address: string;
+    public address: IAddress;
 
     @IsString()
     @IsOptional()

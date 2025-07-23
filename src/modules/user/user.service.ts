@@ -45,8 +45,19 @@ export default class UserService {
             throw new HttpException(HttpStatus.BadRequest, 'Model data is empty');
         }
 
+        if (typeof model.address === 'string') {
+            model.address = JSON.parse(model.address);
+        }
+
         let newUser = {
             ...model,
+            address: {
+                street: model.address.street || '',
+                ward: model.address.ward || '',
+                district: model.address.district || '',
+                city: model.address.city || '',
+                country: model.address.country || 'Việt Nam'
+            },
             role: model.role || UserRoleEnum.CUSTOMER,
             google_id: model.google_id || '',
             phone_number: model.phone_number || '',

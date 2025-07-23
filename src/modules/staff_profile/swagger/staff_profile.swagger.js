@@ -78,6 +78,22 @@
  *           type: string
  *         description: Search by employee ID or job title
  *       - in: query
+ *         name: address
+ *         schema:
+ *           type: object
+ *           properties:
+ *             street:
+ *               type: string
+ *             ward:
+ *               type: string
+ *             district:
+ *               type: string
+ *             city:
+ *               type: string
+ *             country:
+ *               type: string
+ *         description: Search by address
+ *       - in: query
  *         name: hire_date_from
  *         schema:
  *           type: string

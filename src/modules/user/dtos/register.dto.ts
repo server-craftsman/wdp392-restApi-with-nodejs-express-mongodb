@@ -1,7 +1,7 @@
 import { IsBoolean, IsDate, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserRoles } from '../user.constant';
-import { UserRole } from '../user.interface';
+import { UserRole, IAddress } from '../user.interface';
 import { UserRoleEnum } from './../user.enum';
 
 export default class RegisterDto {
@@ -16,7 +16,13 @@ export default class RegisterDto {
         phone_number: string = '',
         avatar_url: string = '',
         dob: Date = new Date(),
-        address: string = '',
+        address: IAddress = {
+            street: '',
+            ward: '',
+            district: '',
+            city: '',
+            country: 'Việt Nam'
+        },
         gender: string = '',
 
         is_verified: boolean = false,
@@ -38,7 +44,13 @@ export default class RegisterDto {
         this.phone_number = phone_number;
         this.avatar_url = avatar_url;
         this.dob = dob;
-        this.address = address;
+        this.address = {
+            street: address.street,
+            ward: address.ward,
+            district: address.district,
+            city: address.city,
+            country: address.country
+        };
         this.gender = gender;
         this.is_verified = is_verified;
         this.verification_token = verification_token;
@@ -85,7 +97,7 @@ export default class RegisterDto {
 
     @IsString()
     @IsOptional()
-    public address: string;
+    public address: IAddress;
 
     @IsString()
     @IsOptional()

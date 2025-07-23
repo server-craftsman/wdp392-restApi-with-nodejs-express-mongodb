@@ -780,57 +780,44 @@
  *   get:
  *     tags: [appointments]
  *     summary: Get available staff (Manager only)
- *     description: Retrieve list of staff members with their roles and departments
+ *     description: Retrieve paginated list of staff members with their roles and departments. Supports filtering by address fields and pagination.
  *     security:
  *       - Bearer: []
+ *     parameters:
+ *       - in: query
+ *         name: address
+ *         schema:
+ *           type: string
+ *         description: 'Address filter as JSON string. Example: {"city":"HCM","district":"District 1"}'
+ *       - in: query
+ *         name: pageNum
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
  *     responses:
  *       200:
  *         description: Staff roles retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                         description: Staff user ID
- *                       first_name:
- *                         type: string
- *                         description: Staff first name
- *                       last_name:
- *                         type: string
- *                         description: Staff last name
- *                       email:
- *                         type: string
- *                         description: Staff email
- *                       phone_number:
- *                         type: string
- *                         description: Staff phone number
- *                       staff_profile:
- *                         type: object
- *                         properties:
- *                           status:
- *                             type: string
- *                             enum: [ACTIVE, INACTIVE]
- *                             description: Staff profile status
- *                           department:
- *                             type: string
- *                             description: Department ID
+ *               $ref: '#/components/schemas/StaffListPaginatedResponse'
  *       401:
  *         description: Unauthorized - Authentication required
  *       403:
  *         description: Forbidden - Manager access required
  *       500:
  *         description: Internal server error
- *
+ */
+
+/**
+ * @swagger
  * /api/appointment/staff/slots:
  *   get:
  *     tags: [appointments]

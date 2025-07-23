@@ -58,6 +58,16 @@
  *           format: date
  *           description: Date when the staff was hired
  *           example: "2023-06-01"
+ *         address:
+ *           type: object
+ *           description: Address of the staff
+ *           example: {
+ *             street: "123 Main St",
+ *             ward: "Downtown",
+ *             district: "Central",
+ *             city: "New York",
+ *             country: "USA"
+ *           }
  *         salary:
  *           type: number
  *           description: Monthly salary amount
@@ -90,6 +100,16 @@
  *           format: date
  *           description: Date when the staff was hired
  *           example: "2023-06-01"
+ *         address:
+ *           type: object
+ *           description: Address of the staff
+ *           example: {
+ *             street: "123 Main St",
+ *             ward: "Downtown",
+ *             district: "Central",
+ *             city: "New York",
+ *             country: "USA"
+ *           }
  *         salary:
  *           type: number
  *           description: Monthly salary amount
@@ -142,6 +162,10 @@
  *           format: date
  *           description: Date when the staff was hired
  *           example: "2023-06-01"
+ *         zone:
+ *           type: string
+ *           description: Zone of the staff
+ *           example: "Zone 1"
  *         employee_id:
  *           type: string
  *           description: Unique employee identifier

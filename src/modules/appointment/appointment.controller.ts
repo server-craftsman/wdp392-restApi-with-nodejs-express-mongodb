@@ -176,7 +176,7 @@ export default class AppointmentController {
             const price = await this.appointmentService.getAppointmentPrice(appointmentId);
 
             res.status(HttpStatus.Success).json(
-                formatResponse({ price }, true, 'Appointment price retrieved successfully')
+                formatResponse({ price }, true, 'Appointment price  retrieved successfully')
             );
         } catch (error) {
             next(error);
@@ -195,9 +195,14 @@ export default class AppointmentController {
                 throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
             }
 
-            const staffRoles = await this.appointmentService.getUserRoleStaff();
+            // Lấy filter address và phân trang từ query
+            const address = req.query.address ? JSON.parse(req.query.address as string) : undefined;
+            const pageNum = req.query.pageNum ? parseInt(req.query.pageNum as string) : 1;
+            const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : 10;
 
-            res.status(HttpStatus.Success).json(formatResponse<string[]>(staffRoles));
+            const staffRoles = await this.appointmentService.getUserRoleStaff(address, pageNum, pageSize);
+
+            res.status(HttpStatus.Success).json(formatResponse(staffRoles));
         } catch (error) {
             next(error);
         }

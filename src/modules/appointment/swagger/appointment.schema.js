@@ -240,4 +240,87 @@
  *           type: string
  *           enum: [AVAILABLE, BOOKED, UNAVAILABLE]
  *           description: Current status of the slot
+ *     AddressFilter:
+ *       type: object
+ *       description: 'Note: AddressFilter is for documentation only, not for direct use as a query parameter.'
+ *       properties:
+ *         street:
+ *           type: string
+ *         ward:
+ *           type: string
+ *         district:
+ *           type: string
+ *         city:
+ *           type: string
+ *         country:
+ *           type: string
+ *     StaffWithProfile:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *           description: Staff ID
+ *         first_name:
+ *           type: string
+ *           description: First name of the staff member
+ *         last_name:
+ *           type: string
+ *           description: Last name of the staff member
+ *         email:
+ *           type: string
+ *           description: Email address of the staff member
+ *         phone_number:
+ *           type: string
+ *           description: Phone number of the staff member
+ *         address:
+ *           type: object
+ *           properties:
+ *             street:
+ *               type: string
+ *               description: Street address
+ *             ward:
+ *               type: string
+ *               description: Ward/District
+ *             district:
+ *               type: string
+ *               description: District
+ *             city:
+ *               type: string
+ *               description: City
+ *             country:
+ *               type: string
+ *               description: Country
+ *         staff_profile:
+ *           type: object
+ *           properties:
+ *             status:
+ *               type: string
+ *               enum: [ACTIVE, INACTIVE]
+ *               description: Current status of the staff profile
+ *             department:
+ *               type: string
+ *               description: Department the staff member belongs to
+ *     StaffListPaginatedResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *         data:
+ *           type: object
+ *           properties:
+ *             pageData:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/StaffWithProfile'
+ *             pageInfo:
+ *               type: object
+ *               properties:
+ *                 totalItems:
+ *                   type: integer
+ *                 pageNum:
+ *                   type: integer
+ *                 pageSize:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
  */

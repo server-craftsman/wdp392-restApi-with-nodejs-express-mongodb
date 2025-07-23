@@ -1472,34 +1472,58 @@ export default class AppointmentService {
     /**
      * Get staff roles for department manager
      */
-    public async getUserRoleStaff(): Promise<any[]> {
+    public async getUserRoleStaff(address?: any, pageNum: number = 1, pageSize: number = 10): Promise<SearchPaginationResponseModel<any>> {
         try {
-            // Get all staff users
-            const staffUsers = await UserSchema.find({ role: UserRoleEnum.STAFF })
-                .select('_id first_name last_name email phone_number');
+            // Build query for staff users
+            const staffQuery: any = { role: UserRoleEnum.STAFF };
 
-            // Get staff profiles
+            // Filter by address if provided
+            if (address && typeof address === 'object') {
+                Object.entries(address).forEach(([key, value]) => {
+                    if (value) {
+                        staffQuery[`address.${key}`] = { $regex: value, $options: 'i' };
+                    }
+                });
+            }
+
+            // Pagination
+            const skip = (pageNum - 1) * pageSize;
+            const totalItems = await UserSchema.countDocuments(staffQuery);
+            const staffUsers = await UserSchema.find(staffQuery)
+                .select('_id first_name last_name email phone_number address role')
+                .skip(skip)
+                .limit(pageSize)
+                .lean();
+
+            // Get staff profiles for these users
+            const userIds = staffUsers.map(user => user._id);
             const staffProfiles = await StaffProfileSchema.find({
-                user_id: { $in: staffUsers.map(user => user._id) }
-            }).select('user_id status department');
+                user_id: { $in: userIds },
+                status: StaffStatusEnum.ACTIVE
+            }).select('user_id status department').lean();
 
-            // Combine user and profile information, only include staff with profiles
-            const staffWithRoles = staffUsers
-                .map(user => {
-                    const profile = staffProfiles.find(p => p.user_id?.toString() === user._id.toString());
-                    if (!profile) return null;
+            // Combine user and profile information
+            const staffWithRoles = staffUsers.map(user => {
+                const profile = staffProfiles.find(p => p.user_id?.toString() === user._id.toString());
+                if (!profile) return null;
+                return {
+                    ...user,
+                    staff_profile: {
+                        status: profile.status,
+                        department: profile.department_id
+                    }
+                };
+            }).filter(Boolean);
 
-                    return {
-                        ...user.toObject(),
-                        staff_profile: {
-                            status: profile.status,
-                            department: profile.department_id
-                        }
-                    };
-                })
-                .filter(staff => staff !== null);
-
-            return staffWithRoles;
+            return {
+                pageData: staffWithRoles,
+                pageInfo: {
+                    totalItems,
+                    pageNum,
+                    pageSize,
+                    totalPages: Math.ceil(totalItems / pageSize)
+                }
+            };
         } catch (error) {
             if (error instanceof HttpException) {
                 throw error;

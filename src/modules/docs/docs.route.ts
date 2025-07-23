@@ -75,13 +75,14 @@ export default class DocsRoute implements IRoute {
                 },
                 servers: [
                     {
-                        url: "https://restapi-dnatesting.up.railway.app/",
-                        description: "Live server"
-                    },
-                    {
                         url: "http://localhost:6969/",
                         description: "Local server"
                     },
+                    {
+                        url: "https://restapi-dnatesting.up.railway.app/",
+                        description: "Live server"
+                    },
+
                 ],
                 components: {
                     securitySchemes: {

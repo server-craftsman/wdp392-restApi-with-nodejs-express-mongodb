@@ -146,9 +146,15 @@
  *           description: Date of birth
  *           example: "1990-01-15"
  *         address:
- *           type: string
+ *           type: object
  *           description: User's address
- *           example: "123 Main Street, City, Country"
+ *           example: {
+ *             street: "123 Main Street",
+ *             ward: "Ward 1",
+ *             district: "District 1",
+ *             city: "HCM",
+ *             country: "Việt Nam"
+ *           }
  *         gender:
  *           type: string
  *           enum: [male, female, other]
@@ -183,9 +189,15 @@
  *           description: Date of birth
  *           example: "1990-01-15"
  *         address:
- *           type: string
+ *           type: object
  *           description: User's address
- *           example: "123 Main Street, City, Country"
+ *           example: {
+ *             street: "123 Main Street",
+ *             ward: "Ward 1",
+ *             district: "District 1",
+ *             city: "HCM",
+ *             country: "Việt Nam"
+ *           }
  *         gender:
  *           type: string
  *           enum: [male, female, other]

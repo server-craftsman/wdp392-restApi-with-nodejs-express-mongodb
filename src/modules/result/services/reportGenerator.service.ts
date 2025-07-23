@@ -149,7 +149,11 @@ export default class ReportGeneratorService {
             customerContactInfo: {
                 email: customer.email || 'Not provided',
                 phone: customer.phone_number || 'Not provided',
-                address: customer.address || 'Not provided'
+                address: typeof customer.address === 'string'
+                    ? customer.address
+                    : customer.address
+                        ? JSON.stringify(customer.address)
+                        : 'Not provided'
             },
 
             // Laboratory technician data

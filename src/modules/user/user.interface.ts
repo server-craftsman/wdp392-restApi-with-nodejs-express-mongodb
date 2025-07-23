@@ -1,9 +1,16 @@
 import { Document } from 'mongoose';
 import { UserReviewStatusEnum, UserRoleEnum, UserGenderEnum } from './user.enum';
-
 export type UserRole = UserRoleEnum.ADMIN | UserRoleEnum.CUSTOMER | UserRoleEnum.STAFF | UserRoleEnum.MANAGER | UserRoleEnum.ALL | UserRoleEnum.LABORATORY_TECHNICIAN;
 export type UserReviewStatus = UserReviewStatusEnum.APPROVE | UserReviewStatusEnum.REJECT;
 export type UserGender = UserGenderEnum.MALE | UserGenderEnum.FEMALE | UserGenderEnum.OTHER;
+
+export interface IAddress {
+    street: string;         // Số nhà, tên đường
+    ward: string;           // Phường/Xã
+    district: string;       // Quận/Huyện
+    city: string;           // Tỉnh/Thành phố
+    country: string;        // Quốc gia (mặc định: 'Việt Nam')
+}
 
 export interface IUser extends Document {
     _id: string;
@@ -22,7 +29,7 @@ export interface IUser extends Document {
     token_version: number; // default 0
     google_id?: string; // default empty
     avatar_url?: string; // url
-    address?: string; // address
+    address?: IAddress; // default empty address object
 
     // bank account info
     balance: number; // default 0

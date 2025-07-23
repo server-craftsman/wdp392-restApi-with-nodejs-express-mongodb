@@ -35,6 +35,7 @@ export default class StaffProfileRepository {
             .sort(sort)
             .skip(skip)
             .limit(limit)
+            .populate('address', 'street ward district city country')
             .populate('user_id', 'first_name last_name email')
             .populate('department_id', 'name');
     }

@@ -1,6 +1,6 @@
 import { Document, Schema } from 'mongoose';
 import { StaffStatusEnum } from './staff_profile.enum';
-
+import { IAddress } from '../user/user.interface';
 export type StaffStatus =
     StaffStatusEnum.ACTIVE |
     StaffStatusEnum.ON_LEAVE |
@@ -21,6 +21,7 @@ export interface IStaffProfile extends Document {
     job_title: string;
     hire_date: Date;
     employee_id: string; //unique
+    address: IAddress;
     salary: number;
     status: StaffStatus;
     qualifications: IQualification[];

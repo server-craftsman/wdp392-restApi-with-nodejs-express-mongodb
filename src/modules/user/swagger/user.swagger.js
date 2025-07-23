@@ -59,8 +59,14 @@
  *                 format: date
  *                 example: "1990-01-15"
  *               address:
- *                 type: string
- *                 example: "123 Main Street, City, Country"
+ *                 type: object
+ *                 example: {
+ *                   street: "123 Main Street",
+ *                   ward: "Ward 1",
+ *                   district: "District 1",
+ *                   city: "HCM",
+ *                   country: "Việt Nam"
+ *                 }
  *               gender:
  *                 type: string
  *                 enum: [male, female, other]
@@ -170,8 +176,14 @@
  *                 format: date
  *                 example: "1990-01-15"
  *               address:
- *                 type: string
- *                 example: "123 Main Street, City, Country"
+ *                 type: object
+ *                 example: {
+ *                   street: "123 Main Street",
+ *                   ward: "Ward 1",
+ *                   district: "District 1",
+ *                   city: "HCM",
+ *                   country: "Việt Nam"
+ *                 }
  *               gender:
  *                 type: string
  *                 enum: [male, female, other]
@@ -298,8 +310,14 @@
  *                 format: date
  *                 example: "1990-01-15"
  *               address:
- *                 type: string
- *                 example: "123 Main Street, City, Country"
+ *                 type: object
+ *                 example: {
+ *                   street: "123 Main Street",
+ *                   ward: "Ward 1",
+ *                   district: "District 1",
+ *                   city: "HCM",
+ *                   country: "Việt Nam"
+ *                 }
  *               gender:
  *                 type: string
  *                 enum: [male, female, other]
