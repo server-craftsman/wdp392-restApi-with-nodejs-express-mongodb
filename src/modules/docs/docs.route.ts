@@ -109,46 +109,114 @@ export default class DocsRoute implements IRoute {
         this.router.use(this.path, (req, res, next) => {
             // Add endpoint count to res.locals for access in the view
             res.locals.endpointCount = endpointCount;
+
+            // Dynamically detect current server URL
+            const protocol = req.protocol;
+            const host = req.get('host') || req.get('x-forwarded-host');
+            const currentServerUrl = `${protocol}://${host}/`;
+
+            // Get current environment
+            const nodeEnv = process.env.NODE_ENV || 'development';
+
+            // Build servers array based on environment
+            let servers = [
+                {
+                    url: currentServerUrl,
+                    description: `Current server (${nodeEnv} - auto-detected)`
+                }
+            ];
+
+            // Add environment-specific servers
+            if (nodeEnv === 'development') {
+                servers.push(
+                    {
+                        url: "http://localhost:6969/",
+                        description: "Local development server (port 6969)"
+                    },
+                    {
+                        url: "http://localhost:8080/",
+                        description: "Local development server (port 8080)"
+                    },
+                    {
+                        url: "http://localhost:3000/",
+                        description: "Local development server (port 3000)"
+                    }
+                );
+            } else if (nodeEnv === 'production') {
+                servers.push(
+                    {
+                        url: "https://restapi-dnatesting.up.railway.app/",
+                        description: "Production server (Railway)"
+                    },
+                    {
+                        url: "https://restapi-dna-testing.onrender.com/",
+                        description: "Production server (Render)"
+                    }
+                );
+            } else {
+                // For staging, testing, or other environments
+                servers.push(
+                    {
+                        url: "http://localhost:6969/",
+                        description: "Local development server"
+                    },
+                    {
+                        url: "https://restapi-dna-testing.onrender.com/",
+                        description: "Production server"
+                    }
+                );
+            }
+
+            // Create dynamic swagger spec with current server as default
+            const dynamicSwaggerSpec = swaggerJsdoc({
+                ...options,
+                definition: {
+                    ...options.definition,
+                    servers: servers
+                }
+            });
+
+            // Store the dynamic spec for this request
+            (req as any).swaggerSpec = dynamicSwaggerSpec;
             next();
         });
 
         // Serve swagger UI
         this.router.use(this.path, swaggerUi.serve);
-        this.router.get(this.path, swaggerUi.setup(swaggerSpec, {
-            swaggerOptions: {
-                persistAuthorization: true,
-                displayRequestDuration: true,
-                docExpansion: 'list',
-                filter: true,
-                showExtensions: true,
-                tryItOutEnabled: true,
-                tagsSorter: 'alpha',
-                defaultModelsExpandDepth: 1,
-                operationsSorter: 'alpha'
-            },
-            customCss: `
-                .swagger-ui .topbar { background-color: rgb(0, 0, 0); }
-                .swagger-ui .opblock-tag { font-size: 16px; margin: 10px 0 5px 0; }
-                .swagger-ui .opblock .opblock-summary-description { font-size: 13px; }
-                .swagger-ui .opblock-tag:hover { background-color: rgba(0, 0, 0, 0.1); }
-                .endpoint-count { 
-                    background-color: #49cc90; 
-                    color: white; 
-                    padding: 5px 10px; 
-                    border-radius: 4px; 
-                    margin: 10px 0; 
-                    display: inline-block; 
-                    font-weight: bold;
-                }
-            `,
-            customSiteTitle: `API Documentation (${endpointCount} endpoints)`,
-            customfavIcon: "/favicon.ico"
-        }));
+        this.router.get(this.path, (req, res, next) => {
+            // Use the dynamically generated swagger spec
+            const swaggerSpec = (req as any).swaggerSpec;
 
-        // Serve swagger spec as JSON
-        this.router.get(`${this.path}.json`, (req, res) => {
-            res.setHeader('Content-Type', 'application/json');
-            res.send(swaggerSpec);
+            swaggerUi.setup(swaggerSpec, {
+                swaggerOptions: {
+                    persistAuthorization: true,
+                    displayRequestDuration: true,
+                    docExpansion: 'list',
+                    filter: true,
+                    showExtensions: true,
+                    tryItOutEnabled: true,
+                    tagsSorter: 'alpha',
+                    defaultModelsExpandDepth: 1,
+                    operationsSorter: 'alpha'
+                },
+                customCss: `
+                    .swagger-ui .topbar { background-color: rgb(0, 0, 0); }
+                    .swagger-ui .opblock-tag { font-size: 16px; margin: 10px 0 5px 0; }
+                    .swagger-ui .opblock .opblock-summary-description { font-size: 13px; }
+                    .swagger-ui .opblock-tag:hover { background-color: rgba(0, 0, 0, 0.1); }
+                    .endpoint-count { 
+                        background-color: #49cc90; 
+                        color: white; 
+                        padding: 5px 10px; 
+                        border-radius: 4px; 
+                        margin: 10px 0; 
+                        display: inline-block; 
+                        font-weight: bold;
+                    }
+                `,
+                customSiteTitle: `API Documentation (${endpointCount} endpoints)`,
+                customfavIcon: "/favicon.ico"
+            })(req, res, next);
         });
     }
 } 
