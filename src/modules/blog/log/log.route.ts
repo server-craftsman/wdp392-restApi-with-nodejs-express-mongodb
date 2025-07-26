@@ -16,21 +16,12 @@ export default class LogRoute implements IRoute {
 
     private initializeRoutes() {
         // GET: domain:/api/blog-logs/:id -> Get log by id
-        this.router.get(
-            `${this.path}/:id`,
-            this.logController.getLogById
-        );
+        this.router.get(`${this.path}/:id`, this.logController.getLogById);
 
         // GET: domain:/api/blog-logs/blog/:blogId -> Get logs by blog id
-        this.router.get(
-            `${this.path}/blog/:blogId`,
-            this.logController.getLogsByBlogId
-        );
+        this.router.get(`${this.path}/blog/:blogId`, this.logController.getLogsByBlogId);
 
         // POST: domain:/api/blog-logs/search -> Search logs
-        this.router.post(
-            `${this.path}/search`,
-            this.logController.searchLogs
-        );
+        this.router.post(`${this.path}/search`, this.logController.searchLogs);
     }
 }

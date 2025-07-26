@@ -27,4 +27,4 @@ export class CreateSamplePaymentDto {
         this.sample_id = sample_id;
         this.note = note;
     }
-} 
+}

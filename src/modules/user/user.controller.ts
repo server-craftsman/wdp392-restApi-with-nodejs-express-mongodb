@@ -37,7 +37,7 @@ export default class UserController {
                     ward: 'Phường Long Thạnh Mỹ',
                     district: 'Quận 9',
                     city: 'Hồ Chí Minh',
-                    country: 'Việt Nam'
+                    country: 'Việt Nam',
                 },
                 '',
                 true,
@@ -46,7 +46,7 @@ export default class UserController {
                 0,
                 new Date(),
                 new Date(),
-                false
+                false,
             );
             const user: IUser = await this.userService.createUser(model, false, false);
             res.status(HttpStatus.Created).json(formatResponse<IUser>(user));
@@ -164,7 +164,7 @@ export default class UserController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Search customer by phone number or email (for staff convenience)
@@ -172,7 +172,7 @@ export default class UserController {
     public searchCustomerByPhoneOrEmail = async (req: Request, res: Response): Promise<void> => {
         try {
             const { searchTerm } = req.query;
-            const userData: DataStoredInToken = req.user as DataStoredInToken || UserInfoInTokenDefault;
+            const userData: DataStoredInToken = (req.user as DataStoredInToken) || UserInfoInTokenDefault;
 
             // Check if user has permission (staff, manager, admin)
             if (![UserRoleEnum.STAFF, UserRoleEnum.MANAGER, UserRoleEnum.ADMIN].includes(userData.role as UserRoleEnum)) {

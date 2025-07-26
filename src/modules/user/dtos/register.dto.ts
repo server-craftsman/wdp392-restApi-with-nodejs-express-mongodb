@@ -21,7 +21,7 @@ export default class RegisterDto {
             ward: '',
             district: '',
             city: '',
-            country: 'Việt Nam'
+            country: 'Việt Nam',
         },
         gender: string = '',
 
@@ -49,7 +49,7 @@ export default class RegisterDto {
             ward: address.ward,
             district: address.district,
             city: address.city,
-            country: address.country
+            country: address.country,
         };
         this.gender = gender;
         this.is_verified = is_verified;
@@ -109,7 +109,7 @@ export default class RegisterDto {
 
     @IsString()
     @IsOptional()
-    public gender: string
+    public gender: string;
 
     public is_verified: boolean;
     public verification_token: string;

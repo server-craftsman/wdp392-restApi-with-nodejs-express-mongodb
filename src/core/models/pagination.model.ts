@@ -1,4 +1,3 @@
-
 import { IsInt, Min } from 'class-validator';
 import { PAGINATION } from '../constants';
 
@@ -18,12 +17,7 @@ export class PaginationRequestModel {
 }
 
 export class PaginationResponseModel {
-    constructor(
-        pageNum: number = PAGINATION.pageNum,
-        pageSize: number = PAGINATION.pageSize,
-        totalItems: number = PAGINATION.totalItems,
-        totalPages: number = PAGINATION.totalPages,
-    ) {
+    constructor(pageNum: number = PAGINATION.pageNum, pageSize: number = PAGINATION.pageSize, totalItems: number = PAGINATION.totalItems, totalPages: number = PAGINATION.totalPages) {
         this.pageNum = pageNum;
         this.pageSize = pageSize;
         this.totalItems = totalItems;

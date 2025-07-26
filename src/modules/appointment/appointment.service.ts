@@ -81,17 +81,17 @@ export default class AppointmentService {
     private convertStatusToLogType(status: any): AppointmentLogTypeEnum {
         // Map appointment status to log type
         const statusMap: Record<string, AppointmentLogTypeEnum> = {
-            'pending': AppointmentLogTypeEnum.PENDING,
-            'confirmed': AppointmentLogTypeEnum.CONFIRMED,
-            'sample_assigned': AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
-            'sample_collected': AppointmentLogTypeEnum.SAMPLE_COLLECTED,
-            'sample_received': AppointmentLogTypeEnum.SAMPLE_RECEIVED,
-            'testing': AppointmentLogTypeEnum.TESTING,
-            'completed': AppointmentLogTypeEnum.COMPLETED,
-            'cancelled': AppointmentLogTypeEnum.CANCELLED,
-            'awaiting_authorization': AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
-            'authorized': AppointmentLogTypeEnum.AUTHORIZED,
-            'ready_for_collection': AppointmentLogTypeEnum.READY_FOR_COLLECTION
+            pending: AppointmentLogTypeEnum.PENDING,
+            confirmed: AppointmentLogTypeEnum.CONFIRMED,
+            sample_assigned: AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
+            sample_collected: AppointmentLogTypeEnum.SAMPLE_COLLECTED,
+            sample_received: AppointmentLogTypeEnum.SAMPLE_RECEIVED,
+            testing: AppointmentLogTypeEnum.TESTING,
+            completed: AppointmentLogTypeEnum.COMPLETED,
+            cancelled: AppointmentLogTypeEnum.CANCELLED,
+            awaiting_authorization: AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
+            authorized: AppointmentLogTypeEnum.AUTHORIZED,
+            ready_for_collection: AppointmentLogTypeEnum.READY_FOR_COLLECTION,
         };
 
         return statusMap[status] || AppointmentLogTypeEnum.PENDING;
@@ -104,10 +104,7 @@ export default class AppointmentService {
         try {
             // Validate địa chỉ nếu là HOME consultation
             if (consultationData.type === TypeEnum.HOME && !consultationData.collection_address) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'Collection address is required for home consultation'
-                );
+                throw new HttpException(HttpStatus.BadRequest, 'Collection address is required for home consultation');
             }
 
             // Tạo consultation record
@@ -124,7 +121,7 @@ export default class AppointmentService {
                 preferred_time: consultationData.preferred_time,
                 consultation_status: ConsultationStatusEnum.REQUESTED,
                 created_at: new Date(),
-                updated_at: new Date()
+                updated_at: new Date(),
             });
 
             const savedConsultation = await consultation.save();
@@ -158,11 +155,7 @@ export default class AppointmentService {
     /**
      * Get all consultation requests (for staff/admin)
      */
-    public async getConsultationRequests(
-        searchParams: any,
-        userRole: UserRoleEnum,
-        userId?: string
-    ): Promise<SearchPaginationResponseModel<IConsultation>> {
+    public async getConsultationRequests(searchParams: any, userRole: UserRoleEnum, userId?: string): Promise<SearchPaginationResponseModel<IConsultation>> {
         try {
             const pageNum = searchParams.pageNum || 1;
             const pageSize = searchParams.pageSize || 10;
@@ -198,23 +191,14 @@ export default class AppointmentService {
             // Search by email or name
             if (searchParams.search_term) {
                 const searchRegex = new RegExp(searchParams.search_term, 'i');
-                query.$or = [
-                    { email: { $regex: searchRegex } },
-                    { first_name: { $regex: searchRegex } },
-                    { last_name: { $regex: searchRegex } },
-                    { subject: { $regex: searchRegex } }
-                ];
+                query.$or = [{ email: { $regex: searchRegex } }, { first_name: { $regex: searchRegex } }, { last_name: { $regex: searchRegex } }, { subject: { $regex: searchRegex } }];
             }
 
             // Count total documents
             const totalCount = await ConsultationSchema.countDocuments(query);
 
             // Fetch consultations with pagination
-            const consultations = await ConsultationSchema.find(query)
-                .populate('assigned_consultant_id', 'first_name last_name email')
-                .sort({ created_at: -1 })
-                .skip(skip)
-                .limit(pageSize);
+            const consultations = await ConsultationSchema.find(query).populate('assigned_consultant_id', 'first_name last_name email').sort({ created_at: -1 }).skip(skip).limit(pageSize);
 
             return {
                 pageData: consultations,
@@ -222,8 +206,8 @@ export default class AppointmentService {
                     totalItems: totalCount,
                     pageNum,
                     pageSize,
-                    totalPages: Math.ceil(totalCount / pageSize)
-                }
+                    totalPages: Math.ceil(totalCount / pageSize),
+                },
             };
         } catch (error) {
             if (error instanceof HttpException) {
@@ -236,10 +220,7 @@ export default class AppointmentService {
     /**
      * Assign consultant to consultation request
      */
-    public async assignConsultant(
-        consultationId: string,
-        consultantId: string
-    ): Promise<IConsultation> {
+    public async assignConsultant(consultationId: string, consultantId: string): Promise<IConsultation> {
         try {
             // Validate consultation exists
             const consultation = await ConsultationSchema.findById(consultationId);
@@ -250,7 +231,7 @@ export default class AppointmentService {
             // Validate consultant exists and has correct role
             const consultant = await UserSchema.findOne({
                 _id: consultantId,
-                role: { $in: [UserRoleEnum.STAFF, UserRoleEnum.MANAGER] }
+                role: { $in: [UserRoleEnum.STAFF, UserRoleEnum.MANAGER] },
             });
             if (!consultant) {
                 throw new HttpException(HttpStatus.NotFound, 'Consultant not found or invalid role');
@@ -262,9 +243,9 @@ export default class AppointmentService {
                 {
                     assigned_consultant_id: consultantId,
                     consultation_status: ConsultationStatusEnum.ASSIGNED,
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 },
-                { new: true, populate: { path: 'assigned_consultant_id', select: 'first_name last_name email' } }
+                { new: true, populate: { path: 'assigned_consultant_id', select: 'first_name last_name email' } },
             );
 
             if (!updatedConsultation) {
@@ -301,7 +282,7 @@ export default class AppointmentService {
             follow_up_required?: boolean;
             follow_up_date?: Date;
             appointment_date?: Date;
-        }
+        },
     ): Promise<IConsultation> {
         try {
             const consultation = await ConsultationSchema.findById(consultationId);
@@ -311,7 +292,7 @@ export default class AppointmentService {
 
             const updateFields: any = {
                 consultation_status: status,
-                updated_at: new Date()
+                updated_at: new Date(),
             };
 
             if (updateData) {
@@ -321,11 +302,7 @@ export default class AppointmentService {
             //update appointment_date is date now
             updateFields.appointment_date = new Date();
 
-            const updatedConsultation = await ConsultationSchema.findByIdAndUpdate(
-                consultationId,
-                updateFields,
-                { new: true, populate: { path: 'assigned_consultant_id', select: 'first_name last_name email' } }
-            );
+            const updatedConsultation = await ConsultationSchema.findByIdAndUpdate(consultationId, updateFields, { new: true, populate: { path: 'assigned_consultant_id', select: 'first_name last_name email' } });
 
             if (!updatedConsultation) {
                 throw new HttpException(HttpStatus.InternalServerError, 'Failed to update consultation status');
@@ -358,8 +335,7 @@ export default class AppointmentService {
                 throw new HttpException(HttpStatus.BadRequest, 'Invalid consultation ID');
             }
 
-            const consultation = await ConsultationSchema.findById(consultationId)
-                .populate('assigned_consultant_id', 'first_name last_name email phone_number');
+            const consultation = await ConsultationSchema.findById(consultationId).populate('assigned_consultant_id', 'first_name last_name email phone_number');
 
             if (!consultation) {
                 throw new HttpException(HttpStatus.NotFound, 'Consultation not found');
@@ -380,9 +356,7 @@ export default class AppointmentService {
     private async sendConsultationRequestEmail(consultation: IConsultation): Promise<void> {
         try {
             const customerName = `${consultation.first_name} ${consultation.last_name}`;
-            const preferredDate = consultation.preferred_date
-                ? new Date(consultation.preferred_date).toLocaleDateString()
-                : 'Not specified';
+            const preferredDate = consultation.preferred_date ? new Date(consultation.preferred_date).toLocaleDateString() : 'Not specified';
 
             const title = 'Consultation Request Received';
             const message = `
@@ -407,7 +381,7 @@ export default class AppointmentService {
             const emailDetails: ISendMailDetail = {
                 toMail: consultation.email,
                 subject: 'Consultation Request Received - Bloodline DNA Testing Service',
-                html: createNotificationEmailTemplate(customerName, title, message)
+                html: createNotificationEmailTemplate(customerName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -424,7 +398,7 @@ export default class AppointmentService {
         try {
             // Get admin and department manager emails
             const adminUsers = await UserSchema.find({
-                role: { $in: [UserRoleEnum.ADMIN, UserRoleEnum.MANAGER] }
+                role: { $in: [UserRoleEnum.ADMIN, UserRoleEnum.MANAGER] },
             }).select('email first_name last_name');
 
             const customerName = `${consultation.first_name} ${consultation.last_name}`;
@@ -462,7 +436,7 @@ export default class AppointmentService {
                     const emailDetails: ISendMailDetail = {
                         toMail: admin.email,
                         subject: 'New Consultation Request - Bloodline DNA Testing Service',
-                        html: createNotificationEmailTemplate(adminName, title, message)
+                        html: createNotificationEmailTemplate(adminName, title, message),
                     };
 
                     await sendMail(emailDetails);
@@ -506,7 +480,7 @@ export default class AppointmentService {
             const emailDetails: ISendMailDetail = {
                 toMail: consultation.email,
                 subject: 'Consultant Assigned - Bloodline DNA Testing Service',
-                html: createNotificationEmailTemplate(customerName, title, message)
+                html: createNotificationEmailTemplate(customerName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -566,7 +540,7 @@ export default class AppointmentService {
             const emailDetails: ISendMailDetail = {
                 toMail: consultation.email,
                 subject: `${title} - Bloodline DNA Testing Service`,
-                html: createNotificationEmailTemplate(customerName, title, message)
+                html: createNotificationEmailTemplate(customerName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -601,7 +575,7 @@ export default class AppointmentService {
                 // Chỉ tìm administrative_case, không được tạo mới
                 const adminCase = await AdministrativeCaseSchema.findOne({
                     case_number: appointmentData.case_number,
-                    authorization_code: appointmentData.authorization_code
+                    authorization_code: appointmentData.authorization_code,
                 });
                 if (!adminCase) {
                     throw new HttpException(HttpStatus.NotFound, 'Administrative case not found or invalid');
@@ -640,42 +614,27 @@ export default class AppointmentService {
                 // Nếu không có ngày appointment, sử dụng ngày từ slot entity
                 if (!appointmentData.appointment_date) {
                     // set the appointment date to the slot's date
-                    appointmentData.appointment_date = new Date(
-                        slot?.time_slots?.[0]?.year ?? new Date().getFullYear(),
-                        (slot?.time_slots?.[0]?.month ?? new Date().getMonth() + 1) - 1,
-                        slot?.time_slots?.[0]?.day ?? new Date().getDate()
-                    );
+                    appointmentData.appointment_date = new Date(slot?.time_slots?.[0]?.year ?? new Date().getFullYear(), (slot?.time_slots?.[0]?.month ?? new Date().getMonth() + 1) - 1, slot?.time_slots?.[0]?.day ?? new Date().getDate());
 
                     // set the appointment time to the slot's start time
                     if (slot?.time_slots?.[0]?.start_time) {
-                        appointmentData.appointment_date.setHours(
-                            slot.time_slots[0].start_time.hour,
-                            slot.time_slots[0].start_time.minute,
-                            0, 0
-                        );
+                        appointmentData.appointment_date.setHours(slot.time_slots[0].start_time.hour, slot.time_slots[0].start_time.minute, 0, 0);
                     }
                 }
-
             } else if (!appointmentData.appointment_date) {
                 appointmentData.appointment_date = new Date();
             }
 
             // Đối với dịch vụ thu thập tại nhà, địa chỉ thu thập là bắt buộc
             if (appointmentData.type === TypeEnum.HOME && !appointmentData.collection_address) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'Collection address is required for home collection'
-                );
+                throw new HttpException(HttpStatus.BadRequest, 'Collection address is required for home collection');
             }
 
             // Validate address for HOME appointments - only support TP. HCM, Việt Nam
             if (appointmentData.type === TypeEnum.HOME && appointmentData.collection_address) {
                 const isValidAddress = this.validateServiceArea(appointmentData.collection_address);
                 if (!isValidAddress) {
-                    throw new HttpException(
-                        HttpStatus.BadRequest,
-                        'Home collection service is only available in Ho Chi Minh City, Vietnam. Please contact us for other locations.'
-                    );
+                    throw new HttpException(HttpStatus.BadRequest, 'Home collection service is only available in Ho Chi Minh City, Vietnam. Please contact us for other locations.');
                 }
             }
 
@@ -687,11 +646,7 @@ export default class AppointmentService {
             const checkDay = dateToCheck.getDay(); // 0 = Sun, 6 = Sat
 
             // Kiểm tra có phải ngoài giờ hành chính không (8h00-17h00 Thứ 2 ➜ Thứ 6)
-            const isWithinBusinessHours =
-                checkHour >= BUSINESS_HOURS_START &&
-                checkHour < BUSINESS_HOURS_END &&
-                checkDay >= 1 &&
-                checkDay <= 5;
+            const isWithinBusinessHours = checkHour >= BUSINESS_HOURS_START && checkHour < BUSINESS_HOURS_END && checkDay >= 1 && checkDay <= 5;
 
             // Nếu NGOÀI giờ hành chính → áp dụng phụ phí
             if (!isWithinBusinessHours) {
@@ -718,7 +673,7 @@ export default class AppointmentService {
                 administrative_case_id,
                 agency_contact_email: service.type === ServiceTypeEnum.ADMINISTRATIVE ? appointmentData.agency_contact_email : undefined,
                 created_at: new Date(),
-                updated_at: new Date()
+                updated_at: new Date(),
             });
 
             // Nếu là ADMINISTRATIVE, tạo payment PAID, amount=0, method=GOVERNMENT
@@ -740,7 +695,7 @@ export default class AppointmentService {
                 const updatedSlot = await SlotSchema.findByIdAndUpdate(
                     appointmentData.slot_id,
                     { $inc: { assigned_count: 1 } }, // $inc ~ increment
-                    { new: true }
+                    { new: true },
                 );
                 if (!updatedSlot) {
                     throw new HttpException(HttpStatus.InternalServerError, 'Failed to update slot');
@@ -748,18 +703,10 @@ export default class AppointmentService {
 
                 // If assigned_count reaches appointment_limit, set status to BOOKED
                 if (updatedSlot && updatedSlot.assigned_count !== undefined && updatedSlot.assigned_count >= updatedSlot.appointment_limit) {
-                    await SlotSchema.findByIdAndUpdate(
-                        appointmentData.slot_id,
-                        { status: SlotStatusEnum.BOOKED },
-                        { new: true }
-                    );
+                    await SlotSchema.findByIdAndUpdate(appointmentData.slot_id, { status: SlotStatusEnum.BOOKED }, { new: true });
                 } else if (updatedSlot.status !== SlotStatusEnum.AVAILABLE) {
                     // If not yet full, ensure status is AVAILABLE
-                    await SlotSchema.findByIdAndUpdate(
-                        appointmentData.slot_id,
-                        { status: SlotStatusEnum.AVAILABLE },
-                        { new: true }
-                    );
+                    await SlotSchema.findByIdAndUpdate(appointmentData.slot_id, { status: SlotStatusEnum.AVAILABLE }, { new: true });
                 }
             }
 
@@ -769,8 +716,7 @@ export default class AppointmentService {
                 console.log(`Please use the /api/sample/add-to-appointment endpoint to add samples to this appointment.`);
 
                 // Thêm thông tin hướng dẫn vào response
-                (appointment as any).sampleInstructions =
-                    "Please use the /api/sample/add-to-appointment endpoint to add samples to this appointment.";
+                (appointment as any).sampleInstructions = 'Please use the /api/sample/add-to-appointment endpoint to add samples to this appointment.';
             }
 
             // Log sự kiện tạo appointment
@@ -793,11 +739,7 @@ export default class AppointmentService {
                 throw error;
             }
             // Nếu là ADMINISTRATIVE thì không trả về 500 mà trả về 200 với appointment đã tạo (nếu có)
-            if (
-                service &&
-                service.type === ServiceTypeEnum.ADMINISTRATIVE &&
-                appointment
-            ) {
+            if (service && service.type === ServiceTypeEnum.ADMINISTRATIVE && appointment) {
                 // Log the error
                 console.error('Error after creating ADMINISTRATIVE appointment:', error);
                 // Có thể thêm thông tin lỗi vào appointment để client biết
@@ -829,17 +771,11 @@ export default class AppointmentService {
                         id = match[1];
                         console.log('Extracted ID from object string:', id);
                     } else {
-                        throw new HttpException(
-                            HttpStatus.BadRequest,
-                            'Invalid appointment ID format: could not extract ObjectId'
-                        );
+                        throw new HttpException(HttpStatus.BadRequest, 'Invalid appointment ID format: could not extract ObjectId');
                     }
                 } catch (parseError) {
                     console.error('Error parsing appointment object string:', parseError);
-                    throw new HttpException(
-                        HttpStatus.BadRequest,
-                        'Invalid appointment ID format: not a valid ObjectId or appointment object'
-                    );
+                    throw new HttpException(HttpStatus.BadRequest, 'Invalid appointment ID format: not a valid ObjectId or appointment object');
                 }
             }
 
@@ -850,17 +786,11 @@ export default class AppointmentService {
                     if (mongoose.Types.ObjectId.isValid(id)) {
                         objectId = new mongoose.Types.ObjectId(id).toString();
                     } else {
-                        throw new HttpException(
-                            HttpStatus.BadRequest,
-                            `Invalid appointment ID format: ${id} is not a valid ObjectId`
-                        );
+                        throw new HttpException(HttpStatus.BadRequest, `Invalid appointment ID format: ${id} is not a valid ObjectId`);
                     }
                 } catch (error: any) {
                     console.error(`Error converting appointment ID ${id} to ObjectId:`, error);
-                    throw new HttpException(
-                        HttpStatus.BadRequest,
-                        `Invalid appointment ID format: ${error.message}`
-                    );
+                    throw new HttpException(HttpStatus.BadRequest, `Invalid appointment ID format: ${error.message}`);
                 }
             }
 
@@ -882,17 +812,11 @@ export default class AppointmentService {
     /**
      * Assign staff to an appointment (by department manager)
      */
-    public async assignStaff(
-        appointmentId: string,
-        assignStaffData: AssignStaffDto,
-    ): Promise<IAppointment> {
+    public async assignStaff(appointmentId: string, assignStaffData: AssignStaffDto): Promise<IAppointment> {
         // Kiểm tra appointment có tồn tại và trạng thái là PENDING
         const appointment = await this.getAppointmentById(appointmentId);
         if (appointment.status !== AppointmentStatusEnum.PENDING) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                `Cannot assign staff to appointment with status ${appointment.status}`
-            );
+            throw new HttpException(HttpStatus.BadRequest, `Cannot assign staff to appointment with status ${appointment.status}`);
         }
 
         // Validate staff IDs
@@ -910,7 +834,7 @@ export default class AppointmentService {
         // Lấy thông tin user cho tất cả staff
         const staffUsers = await UserSchema.find({
             _id: { $in: assignStaffData.staff_ids },
-            role: UserRoleEnum.STAFF
+            role: UserRoleEnum.STAFF,
         });
 
         if (staffUsers.length !== assignStaffData.staff_ids.length) {
@@ -919,24 +843,18 @@ export default class AppointmentService {
 
         // Kiểm tra staff profile liên kết với user
         const staffProfiles = await StaffProfileSchema.find({
-            user_id: { $in: assignStaffData.staff_ids }
+            user_id: { $in: assignStaffData.staff_ids },
         });
 
         if (staffProfiles.length !== assignStaffData.staff_ids.length) {
-            throw new HttpException(
-                HttpStatus.NotFound,
-                'One or more staff profiles not found'
-            );
+            throw new HttpException(HttpStatus.NotFound, 'One or more staff profiles not found');
         }
 
         // Kiểm tra tất cả staff có active không
         for (const profile of staffProfiles) {
             if (profile.status !== StaffStatusEnum.ACTIVE) {
-                const staffUser = staffUsers.find(u => u._id.toString() === profile.user_id?.toString());
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    `Staff ${staffUser?.first_name} ${staffUser?.last_name} is not active`
-                );
+                const staffUser = staffUsers.find((u) => u._id.toString() === profile.user_id?.toString());
+                throw new HttpException(HttpStatus.BadRequest, `Staff ${staffUser?.first_name} ${staffUser?.last_name} is not active`);
             }
         }
 
@@ -945,23 +863,17 @@ export default class AppointmentService {
             const slot = await SlotSchema.findById(appointment.slot_id);
             if (slot) {
                 // Kiểm tra xem tất cả staff có trong danh sách staff của slot không
-                const slotStaffProfileIds = slot.staff_profile_ids?.map(id => id.toString()) || [];
-                const assignedStaffProfileIds = staffProfiles.map(profile => profile._id.toString());
+                const slotStaffProfileIds = slot.staff_profile_ids?.map((id) => id.toString()) || [];
+                const assignedStaffProfileIds = staffProfiles.map((profile) => profile._id.toString());
 
-                const missingStaff = assignedStaffProfileIds.filter(id => !slotStaffProfileIds.includes(id));
+                const missingStaff = assignedStaffProfileIds.filter((id) => !slotStaffProfileIds.includes(id));
                 if (missingStaff.length > 0) {
-                    throw new HttpException(
-                        HttpStatus.BadRequest,
-                        'One or more staff are not assigned to this slot'
-                    );
+                    throw new HttpException(HttpStatus.BadRequest, 'One or more staff are not assigned to this slot');
                 }
 
                 // Kiểm tra giới hạn số lượng appointment cho tất cả staff trong slot này
                 for (const staffUser of staffUsers) {
-                    const appointmentsInSlot = await this.appointmentRepository.countAppointmentsByStaffAndSlot(
-                        staffUser._id.toString(),
-                        slot._id.toString()
-                    );
+                    const appointmentsInSlot = await this.appointmentRepository.countAppointmentsByStaffAndSlot(staffUser._id.toString(), slot._id.toString());
 
                     if (appointmentsInSlot >= slot.appointment_limit) {
                         // Tìm staff khác trong slot chưa đạt giới hạn
@@ -971,13 +883,10 @@ export default class AppointmentService {
                             // Gợi ý staff thay thế
                             throw new HttpException(
                                 HttpStatus.BadRequest,
-                                `Staff ${staffUser.first_name} ${staffUser.last_name} has reached appointment limit for this slot. Consider assigning to ${alternativeStaff.first_name} ${alternativeStaff.last_name} (ID: ${alternativeStaff._id})`
+                                `Staff ${staffUser.first_name} ${staffUser.last_name} has reached appointment limit for this slot. Consider assigning to ${alternativeStaff.first_name} ${alternativeStaff.last_name} (ID: ${alternativeStaff._id})`,
                             );
                         } else {
-                            throw new HttpException(
-                                HttpStatus.BadRequest,
-                                `Staff ${staffUser.first_name} ${staffUser.last_name} has reached appointment limit for this slot and no alternative staff is available`
-                            );
+                            throw new HttpException(HttpStatus.BadRequest, `Staff ${staffUser.first_name} ${staffUser.last_name} has reached appointment limit for this slot and no alternative staff is available`);
                         }
                     }
                 }
@@ -991,9 +900,9 @@ export default class AppointmentService {
                             slot._id,
                             {
                                 $set: { assigned_count: 1 },
-                                updated_at: new Date()
+                                updated_at: new Date(),
                             },
-                            { new: true }
+                            { new: true },
                         );
                     } else {
                         // Nếu đã có trường assigned_count, tăng giá trị lên 1
@@ -1001,9 +910,9 @@ export default class AppointmentService {
                             slot._id,
                             {
                                 $inc: { assigned_count: 1 }, // $inc ~ increment
-                                updated_at: new Date()
+                                updated_at: new Date(),
                             },
-                            { new: true }
+                            { new: true },
                         );
                     }
 
@@ -1014,9 +923,9 @@ export default class AppointmentService {
                             slot._id,
                             {
                                 status: SlotStatusEnum.BOOKED,
-                                updated_at: new Date()
+                                updated_at: new Date(),
                             },
-                            { new: true }
+                            { new: true },
                         );
                     } else if (updatedSlot && updatedSlot?.status !== SlotStatusEnum.AVAILABLE) {
                         // Nếu chưa đạt giới hạn nhưng slot không ở trạng thái AVAILABLE, đặt lại trạng thái
@@ -1024,9 +933,9 @@ export default class AppointmentService {
                             slot._id,
                             {
                                 status: SlotStatusEnum.AVAILABLE,
-                                updated_at: new Date()
+                                updated_at: new Date(),
                             },
-                            { new: true }
+                            { new: true },
                         );
                     }
                 } catch (error) {
@@ -1042,9 +951,9 @@ export default class AppointmentService {
             appointmentId,
             {
                 staff_id: assignStaffData.staff_ids as any,
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
 
         if (!updatedAppointment) {
@@ -1057,7 +966,7 @@ export default class AppointmentService {
                 updatedAppointment,
                 assignStaffData.staff_ids,
                 'system', // performed by system/manager
-                UserRoleEnum.MANAGER
+                UserRoleEnum.MANAGER,
             );
         } catch (logError) {
             console.error('Failed to create appointment log for staff assignment:', logError);
@@ -1079,24 +988,21 @@ export default class AppointmentService {
         // Lấy thông tin staff profile
         const staffProfiles = await StaffProfileSchema.find({
             _id: { $in: staffProfileIds },
-            status: StaffStatusEnum.ACTIVE
+            status: StaffStatusEnum.ACTIVE,
         });
 
         // Lấy user_id từ staff profile
-        const staffUserIds = staffProfiles.map(profile => profile.user_id);
+        const staffUserIds = staffProfiles.map((profile) => profile.user_id);
 
         // Lấy thông tin user
         const staffUsers = await UserSchema.find({
             _id: { $in: staffUserIds },
-            role: UserRoleEnum.STAFF
+            role: UserRoleEnum.STAFF,
         });
 
         // Kiểm tra số lượng appointment của mỗi staff trong slot này
         for (const staffUser of staffUsers) {
-            const appointmentsCount = await this.appointmentRepository.countAppointmentsByStaffAndSlot(
-                staffUser._id.toString(),
-                slot._id.toString()
-            );
+            const appointmentsCount = await this.appointmentRepository.countAppointmentsByStaffAndSlot(staffUser._id.toString(), slot._id.toString());
 
             if (appointmentsCount < slot.appointment_limit) {
                 return staffUser; // Trả về staff đầu tiên chưa đạt giới hạn
@@ -1109,12 +1015,7 @@ export default class AppointmentService {
     /**
      * Confirm appointment by selecting a slot (by staff)
      */
-    public async confirmAppointment(
-        appointmentId: string,
-        confirmData: ConfirmAppointmentDto,
-        staffId: string,
-        userRole: UserRoleEnum
-    ): Promise<IAppointment | undefined> {
+    public async confirmAppointment(appointmentId: string, confirmData: ConfirmAppointmentDto, staffId: string, userRole: UserRoleEnum): Promise<IAppointment | undefined> {
         const appointment = await this.getAppointmentById(appointmentId);
 
         // Only staff can confirm appointments
@@ -1124,18 +1025,12 @@ export default class AppointmentService {
 
         // Check if staff is assigned to the appointment
         if (!appointment.staff_id) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                'No staff assigned to this appointment yet. Department manager must assign staff first.'
-            );
+            throw new HttpException(HttpStatus.BadRequest, 'No staff assigned to this appointment yet. Department manager must assign staff first.');
         }
 
         // Check if the appointment is in PENDING status
         if (appointment.status !== AppointmentStatusEnum.PENDING) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                `Cannot confirm appointment with status ${appointment.status}`
-            );
+            throw new HttpException(HttpStatus.BadRequest, `Cannot confirm appointment with status ${appointment.status}`);
         }
 
         // Check if the assigned staff matches the confirming staff
@@ -1150,10 +1045,7 @@ export default class AppointmentService {
         }
 
         if (appointmentStaff._id.toString() !== staffId) {
-            throw new HttpException(
-                HttpStatus.Forbidden,
-                'You are not assigned to this appointment'
-            );
+            throw new HttpException(HttpStatus.Forbidden, 'You are not assigned to this appointment');
         }
 
         // Validate slot
@@ -1173,9 +1065,9 @@ export default class AppointmentService {
             {
                 slot_id: confirmData.slot_id as any,
                 status: AppointmentStatusEnum.CONFIRMED,
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
 
         if (!updatedAppointment) {
@@ -1198,9 +1090,9 @@ export default class AppointmentService {
                     slot._id,
                     {
                         $set: { assigned_count: 1 },
-                        updated_at: new Date()
+                        updated_at: new Date(),
                     },
-                    { new: true }
+                    { new: true },
                 );
             } else {
                 // Nếu đã có trường assigned_count, tăng giá trị lên 1
@@ -1208,9 +1100,9 @@ export default class AppointmentService {
                     slot._id,
                     {
                         $inc: { assigned_count: 1 }, // $inc ~ increment
-                        updated_at: new Date()
+                        updated_at: new Date(),
                     },
-                    { new: true }
+                    { new: true },
                 );
             }
 
@@ -1221,9 +1113,9 @@ export default class AppointmentService {
                     slot._id,
                     {
                         status: SlotStatusEnum.BOOKED,
-                        updated_at: new Date()
+                        updated_at: new Date(),
                     },
-                    { new: true }
+                    { new: true },
                 );
             } else if (updatedSlot && updatedSlot?.status !== SlotStatusEnum.AVAILABLE) {
                 // Nếu chưa đạt giới hạn nhưng slot không ở trạng thái AVAILABLE, đặt lại trạng thái
@@ -1231,9 +1123,9 @@ export default class AppointmentService {
                     slot._id,
                     {
                         status: SlotStatusEnum.AVAILABLE,
-                        updated_at: new Date()
+                        updated_at: new Date(),
                     },
-                    { new: true }
+                    { new: true },
                 );
             }
 
@@ -1245,7 +1137,7 @@ export default class AppointmentService {
                     this.convertStatusToLogType(updatedAppointment.status),
                     staffId,
                     UserRoleEnum.STAFF,
-                    'Appointment confirmed by staff'
+                    'Appointment confirmed by staff',
                 );
             } catch (logError) {
                 console.error('Failed to create appointment log for confirmation:', logError);
@@ -1259,8 +1151,7 @@ export default class AppointmentService {
             }
 
             return updatedAppointment;
-        }
-        catch (error) {
+        } catch (error) {
             console.error('Failed to update slot assigned count:', error);
             // Không fail quá trình xác nhận nếu cập nhật slot thất bại
         }
@@ -1283,24 +1174,14 @@ export default class AppointmentService {
         }
         // Add check-in log
         const checkinLog = { staff_id: staffId, time: new Date(), note };
-        const updated = await this.appointmentRepository.findByIdAndUpdate(
-            appointmentId,
-            { checkin_logs: [...(appointment.checkin_logs || []), checkinLog] },
-            { new: true }
-        );
+        const updated = await this.appointmentRepository.findByIdAndUpdate(appointmentId, { checkin_logs: [...(appointment.checkin_logs || []), checkinLog] }, { new: true });
         if (!updated) {
             throw new HttpException(HttpStatus.InternalServerError, 'Failed to checkin appointment');
         }
 
         // Log the checkin
         try {
-            await this.appointmentLogService.logCheckin(
-                updated,
-                staffId,
-                UserRoleEnum.STAFF,
-                note,
-                appointment.collection_address
-            );
+            await this.appointmentLogService.logCheckin(updated, staffId, UserRoleEnum.STAFF, note, appointment.collection_address);
         } catch (logError) {
             console.error('Failed to create appointment log for checkin:', logError);
         }
@@ -1313,11 +1194,7 @@ export default class AppointmentService {
      */
     public async addAppointmentNote(appointmentId: string, note: string): Promise<IAppointment> {
         const appointment = await this.getAppointmentById(appointmentId);
-        const updated = await this.appointmentRepository.findByIdAndUpdate(
-            appointmentId,
-            { notes: [...(appointment.notes || []), note] },
-            { new: true }
-        );
+        const updated = await this.appointmentRepository.findByIdAndUpdate(appointmentId, { notes: [...(appointment.notes || []), note] }, { new: true });
         if (!updated) {
             throw new HttpException(HttpStatus.InternalServerError, 'Failed to add appointment note');
         }
@@ -1328,7 +1205,7 @@ export default class AppointmentService {
                 updated,
                 note,
                 'system', // Could be enhanced to track actual user
-                UserRoleEnum.STAFF
+                UserRoleEnum.STAFF,
             );
         } catch (logError) {
             console.error('Failed to create appointment log for note addition:', logError);
@@ -1340,11 +1217,7 @@ export default class AppointmentService {
     /**
      * Search appointments with filters
      */
-    public async searchAppointments(
-        searchParams: SearchAppointmentDto,
-        userRole: UserRoleEnum,
-        userId?: string
-    ): Promise<SearchPaginationResponseModel<IAppointment>> {
+    public async searchAppointments(searchParams: SearchAppointmentDto, userRole: UserRoleEnum, userId?: string): Promise<SearchPaginationResponseModel<IAppointment>> {
         try {
             // Process pagination parameters
             const pageNum = searchParams.pageNum || 1;
@@ -1428,7 +1301,7 @@ export default class AppointmentService {
 
                 // Filter by search term
                 const searchRegex = new RegExp(searchParams.search_term, 'i');
-                const filteredAppointments = allAppointments.filter(appointment => {
+                const filteredAppointments = allAppointments.filter((appointment) => {
                     const user = appointment.user_id as any;
                     if (user && (user.first_name || user.last_name)) {
                         const fullName = `${user.first_name || ''} ${user.last_name || ''}`;
@@ -1453,12 +1326,7 @@ export default class AppointmentService {
                 const sort = { appointment_date: -1 };
 
                 // Fetch appointments with pagination
-                appointments = await this.appointmentRepository.findWithPaginationAndPopulate(
-                    query,
-                    sort,
-                    skip,
-                    pageSize
-                );
+                appointments = await this.appointmentRepository.findWithPaginationAndPopulate(query, sort, skip, pageSize);
             }
 
             return {
@@ -1467,8 +1335,8 @@ export default class AppointmentService {
                     totalItems: totalCount,
                     pageNum,
                     pageSize,
-                    totalPages: Math.ceil(totalCount / pageSize)
-                }
+                    totalPages: Math.ceil(totalCount / pageSize),
+                },
             };
         } catch (error) {
             if (error instanceof HttpException) {
@@ -1486,7 +1354,7 @@ export default class AppointmentService {
         return {
             pageNum: parseInt(pageNum),
             pageSize: parseInt(pageSize),
-            ...rest
+            ...rest,
         };
     }
 
@@ -1508,9 +1376,9 @@ export default class AppointmentService {
             appointmentId,
             {
                 status: status,
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
 
         if (!updatedAppointment) {
@@ -1523,7 +1391,7 @@ export default class AppointmentService {
                 updatedAppointment,
                 this.convertStatusToLogType(oldStatus),
                 this.convertStatusToLogType(updatedAppointment.status),
-                'system' // Could be enhanced to track actual user
+                'system', // Could be enhanced to track actual user
             );
         } catch (logError) {
             console.error('Failed to create appointment log for status change:', logError);
@@ -1601,31 +1469,31 @@ export default class AppointmentService {
             // Pagination
             const skip = (pageNum - 1) * pageSize;
             const totalItems = await UserSchema.countDocuments(staffQuery);
-            const staffUsers = await UserSchema.find(staffQuery)
-                .select('_id first_name last_name email phone_number address role')
-                .skip(skip)
-                .limit(pageSize)
-                .lean();
+            const staffUsers = await UserSchema.find(staffQuery).select('_id first_name last_name email phone_number address role').skip(skip).limit(pageSize).lean();
 
             // Get staff profiles for these users
-            const userIds = staffUsers.map(user => user._id);
+            const userIds = staffUsers.map((user) => user._id);
             const staffProfiles = await StaffProfileSchema.find({
                 user_id: { $in: userIds },
-                status: StaffStatusEnum.ACTIVE
-            }).select('user_id status department').lean();
+                status: StaffStatusEnum.ACTIVE,
+            })
+                .select('user_id status department')
+                .lean();
 
             // Combine user and profile information
-            const staffWithRoles = staffUsers.map(user => {
-                const profile = staffProfiles.find(p => p.user_id?.toString() === user._id.toString());
-                if (!profile) return null;
-                return {
-                    ...user,
-                    staff_profile: {
-                        status: profile.status,
-                        department: profile.department_id
-                    }
-                };
-            }).filter(Boolean);
+            const staffWithRoles = staffUsers
+                .map((user) => {
+                    const profile = staffProfiles.find((p) => p.user_id?.toString() === user._id.toString());
+                    if (!profile) return null;
+                    return {
+                        ...user,
+                        staff_profile: {
+                            status: profile.status,
+                            department: profile.department_id,
+                        },
+                    };
+                })
+                .filter(Boolean);
 
             return {
                 pageData: staffWithRoles,
@@ -1633,8 +1501,8 @@ export default class AppointmentService {
                     totalItems,
                     pageNum,
                     pageSize,
-                    totalPages: Math.ceil(totalItems / pageSize)
-                }
+                    totalPages: Math.ceil(totalItems / pageSize),
+                },
             };
         } catch (error) {
             if (error instanceof HttpException) {
@@ -1658,8 +1526,8 @@ export default class AppointmentService {
             // Get all slots assigned to this staff
             const slots = await SlotSchema.find({
                 staff_profile_ids: { $in: [staffProfile._id] },
-                status: SlotStatusEnum.AVAILABLE
-            })
+                status: SlotStatusEnum.AVAILABLE,
+            });
 
             return slots;
         } catch (error) {
@@ -1673,10 +1541,7 @@ export default class AppointmentService {
     /**
      * Get appointments assigned to a staff member
      */
-    public async getStaffAssignedAppointments(
-        staffId: string,
-        searchParams: SearchAppointmentDto
-    ): Promise<SearchPaginationResponseModel<IAppointment>> {
+    public async getStaffAssignedAppointments(staffId: string, searchParams: SearchAppointmentDto): Promise<SearchPaginationResponseModel<IAppointment>> {
         try {
             // staff_id will be automatically set by role-based filtering in searchAppointments
             return this.searchAppointments(searchParams, UserRoleEnum.STAFF, staffId);
@@ -1694,10 +1559,7 @@ export default class AppointmentService {
     /**
      * Get appointments assigned to a laboratory technician
      */
-    public async getLabTechAssignedAppointments(
-        labTechId: string,
-        searchParams: SearchAppointmentDto
-    ): Promise<SearchPaginationResponseModel<IAppointment>> {
+    public async getLabTechAssignedAppointments(labTechId: string, searchParams: SearchAppointmentDto): Promise<SearchPaginationResponseModel<IAppointment>> {
         try {
             // laboratory_technician_id will be automatically set by role-based filtering in searchAppointments
             return this.searchAppointments(searchParams, UserRoleEnum.LABORATORY_TECHNICIAN, labTechId);
@@ -1712,10 +1574,7 @@ export default class AppointmentService {
     /**
      * Assign laboratory technician to an appointment
      */
-    public async assignLabTechnician(
-        appointmentId: string,
-        labTechId: string
-    ): Promise<IAppointment> {
+    public async assignLabTechnician(appointmentId: string, labTechId: string): Promise<IAppointment> {
         try {
             // Validate appointment exists
             const appointment = await this.getAppointmentById(appointmentId);
@@ -1726,7 +1585,7 @@ export default class AppointmentService {
             // Validate lab technician exists and has correct role
             const labTech = await UserSchema.findOne({
                 _id: labTechId,
-                role: UserRoleEnum.LABORATORY_TECHNICIAN
+                role: UserRoleEnum.LABORATORY_TECHNICIAN,
             });
             if (!labTech) {
                 throw new HttpException(HttpStatus.NotFound, 'Laboratory technician not found');
@@ -1737,9 +1596,9 @@ export default class AppointmentService {
                 appointmentId,
                 {
                     laboratory_technician_id: labTechId,
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 },
-                { new: true }
+                { new: true },
             );
 
             if (!updatedAppointment) {
@@ -1752,7 +1611,7 @@ export default class AppointmentService {
                     updatedAppointment,
                     labTechId,
                     'system', // Could be enhanced to track actual user
-                    UserRoleEnum.STAFF
+                    UserRoleEnum.STAFF,
                 );
             } catch (logError) {
                 console.error('Failed to create appointment log for lab tech assignment:', logError);
@@ -1773,30 +1632,29 @@ export default class AppointmentService {
     public async getAvailableLabTechnicians(): Promise<any[]> {
         try {
             // Get all laboratory technician users
-            const labTechUsers = await UserSchema.find({ role: UserRoleEnum.LABORATORY_TECHNICIAN })
-                .select('_id first_name last_name email phone_number');
+            const labTechUsers = await UserSchema.find({ role: UserRoleEnum.LABORATORY_TECHNICIAN }).select('_id first_name last_name email phone_number');
 
             // Get staff profiles for these users
             const labTechProfiles = await StaffProfileSchema.find({
-                user_id: { $in: labTechUsers.map(user => user._id) },
-                status: StaffStatusEnum.ACTIVE
+                user_id: { $in: labTechUsers.map((user) => user._id) },
+                status: StaffStatusEnum.ACTIVE,
             }).select('user_id status department');
 
             // Only include users who have a staff profile
             const availableLabTechs = labTechUsers
-                .map(user => {
-                    const profile = labTechProfiles.find(p => p.user_id?.toString() === user._id.toString());
+                .map((user) => {
+                    const profile = labTechProfiles.find((p) => p.user_id?.toString() === user._id.toString());
                     if (!profile) return null;
 
                     return {
                         ...user.toObject(),
                         staff_profile: {
                             status: profile.status,
-                            department: profile.department_id
-                        }
+                            department: profile.department_id,
+                        },
                     };
                 })
-                .filter(tech => tech !== null);
+                .filter((tech) => tech !== null);
 
             return availableLabTechs;
         } catch (error) {
@@ -1831,9 +1689,9 @@ export default class AppointmentService {
                         slot._id,
                         {
                             $inc: { assigned_count: -1 },
-                            updated_at: new Date()
+                            updated_at: new Date(),
                         },
-                        { new: true }
+                        { new: true },
                     );
                 }
 
@@ -1842,16 +1700,14 @@ export default class AppointmentService {
                 const updatedSlot = await SlotSchema.findById(slot._id);
                 const assignedCount = updatedSlot?.assigned_count || 0;
                 const appointmentLimit = updatedSlot?.appointment_limit || 1;
-                if (updatedSlot &&
-                    updatedSlot.status === SlotStatusEnum.BOOKED &&
-                    assignedCount < appointmentLimit) {
+                if (updatedSlot && updatedSlot.status === SlotStatusEnum.BOOKED && assignedCount < appointmentLimit) {
                     await SlotSchema.findByIdAndUpdate(
                         slot._id,
                         {
                             status: SlotStatusEnum.AVAILABLE,
-                            updated_at: new Date()
+                            updated_at: new Date(),
                         },
-                        { new: true }
+                        { new: true },
                     );
                 }
             }
@@ -1866,9 +1722,9 @@ export default class AppointmentService {
             {
                 // Sử dụng type assertion để tránh lỗi TypeScript
                 staff_id: undefined as unknown as string,
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
 
         if (!updatedAppointment) {
@@ -1898,9 +1754,7 @@ export default class AppointmentService {
             }
 
             const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
-            const appointmentDate = appointment.appointment_date
-                ? new Date(appointment.appointment_date).toLocaleString()
-                : 'To be confirmed';
+            const appointmentDate = appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleString() : 'To be confirmed';
 
             const title = 'Appointment Created Successfully';
             const message = `
@@ -1922,7 +1776,7 @@ export default class AppointmentService {
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
                 subject: 'Appointment Created - Bloodline DNA Testing Service',
-                html: createNotificationEmailTemplate(userName, title, message)
+                html: createNotificationEmailTemplate(userName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -1981,9 +1835,7 @@ export default class AppointmentService {
                 <br>
                 Status: ${appointment.status}
                 <br><br>
-                ${appointment.type === TypeEnum.HOME ?
-                    `Our staff will visit your location at the scheduled time.` :
-                    `Please arrive at our facility at the scheduled time.`}
+                ${appointment.type === TypeEnum.HOME ? `Our staff will visit your location at the scheduled time.` : `Please arrive at our facility at the scheduled time.`}
                 <br><br>
                 If you need to reschedule or cancel your appointment, please contact us as soon as possible.
             `;
@@ -1991,7 +1843,7 @@ export default class AppointmentService {
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
                 subject: 'Appointment Confirmed - Bloodline DNA Testing Service',
-                html: createNotificationEmailTemplate(userName, title, message)
+                html: createNotificationEmailTemplate(userName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -2021,9 +1873,7 @@ export default class AppointmentService {
             }
 
             const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
-            const appointmentDate = appointment.appointment_date
-                ? new Date(appointment.appointment_date).toLocaleString()
-                : 'To be confirmed';
+            const appointmentDate = appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleString() : 'To be confirmed';
 
             let title = 'Appointment Status Updated';
             let message = `
@@ -2078,7 +1928,7 @@ export default class AppointmentService {
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
                 subject: `${title} - Bloodline DNA Testing Service`,
-                html: createNotificationEmailTemplate(userName, title, message)
+                html: createNotificationEmailTemplate(userName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -2100,38 +1950,59 @@ export default class AppointmentService {
         const normalizedAddress = address.toLowerCase().trim();
 
         // List of keywords that indicate the address is in Ho Chi Minh City
-        const hcmKeywords = [
-            'tp. hcm',
-            'tp.hcm',
-            'thành phố hồ chí minh',
-            'ho chi minh city',
-            'hcm city',
-            'saigon',
-            'sài gòn',
-            'tp hcm',
-            'tphcm',
-            'hồ chí minh',
-            'hcm'
-        ];
+        const hcmKeywords = ['tp. hcm', 'tp.hcm', 'thành phố hồ chí minh', 'ho chi minh city', 'hcm city', 'saigon', 'sài gòn', 'tp hcm', 'tphcm', 'hồ chí minh', 'hcm'];
 
         // List of Ho Chi Minh City districts
         const hcmDistricts = [
-            'quận 1', 'quận 2', 'quận 3', 'quận 4', 'quận 5', 'quận 6', 'quận 7', 'quận 8', 'quận 9', 'quận 10',
-            'quận 11', 'quận 12', 'quận bình thạnh', 'quận gò vấp', 'quận phú nhuận', 'quận tân bình',
-            'quận tân phú', 'quận bình tân', 'quận thủ đức', 'district 1', 'district 2', 'district 3', 'district 4',
-            'district 5', 'district 6', 'district 7', 'district 8', 'district 9', 'district 10', 'district 11',
-            'district 12', 'binh thanh', 'go vap', 'phu nhuan', 'tan binh', 'tan phu', 'binh tan', 'thu duc'
+            'quận 1',
+            'quận 2',
+            'quận 3',
+            'quận 4',
+            'quận 5',
+            'quận 6',
+            'quận 7',
+            'quận 8',
+            'quận 9',
+            'quận 10',
+            'quận 11',
+            'quận 12',
+            'quận bình thạnh',
+            'quận gò vấp',
+            'quận phú nhuận',
+            'quận tân bình',
+            'quận tân phú',
+            'quận bình tân',
+            'quận thủ đức',
+            'district 1',
+            'district 2',
+            'district 3',
+            'district 4',
+            'district 5',
+            'district 6',
+            'district 7',
+            'district 8',
+            'district 9',
+            'district 10',
+            'district 11',
+            'district 12',
+            'binh thanh',
+            'go vap',
+            'phu nhuan',
+            'tan binh',
+            'tan phu',
+            'binh tan',
+            'thu duc',
         ];
 
         // Check if address contains any HCM keywords
-        const hasHcmKeyword = hcmKeywords.some(keyword => normalizedAddress.includes(keyword));
+        const hasHcmKeyword = hcmKeywords.some((keyword) => normalizedAddress.includes(keyword));
 
         // Check if address contains any HCM district
-        const hasHcmDistrict = hcmDistricts.some(district => normalizedAddress.includes(district));
+        const hasHcmDistrict = hcmDistricts.some((district) => normalizedAddress.includes(district));
 
         // Check if address contains Vietnam keywords
         const vietnamKeywords = ['việt nam', 'vietnam', 'vn'];
-        const hasVietnamKeyword = vietnamKeywords.some(keyword => normalizedAddress.includes(keyword));
+        const hasVietnamKeyword = vietnamKeywords.some((keyword) => normalizedAddress.includes(keyword));
 
         // Address is valid if it contains HCM indicators and optionally Vietnam
         return hasHcmKeyword || hasHcmDistrict || (hasVietnamKeyword && (hasHcmKeyword || hasHcmDistrict));
@@ -2150,7 +2021,7 @@ export default class AppointmentService {
             laboratory_technician_id?: string;
             participants: string[]; // IDs of participants
         },
-        createdByUserId: string
+        createdByUserId: string,
     ): Promise<IAppointment> {
         try {
             // Verify administrative case exists and is approved
@@ -2160,10 +2031,7 @@ export default class AppointmentService {
             }
 
             if (adminCase.status !== 'approved') {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'Administrative case must be approved before scheduling appointment'
-                );
+                throw new HttpException(HttpStatus.BadRequest, 'Administrative case must be approved before scheduling appointment');
             }
 
             // Validate service
@@ -2190,7 +2058,7 @@ export default class AppointmentService {
                 laboratory_technician_id: appointmentData.laboratory_technician_id,
                 agency_contact_email: adminCase.agency_contact_email,
                 created_at: new Date(),
-                updated_at: new Date()
+                updated_at: new Date(),
             };
 
             const appointment = await this.appointmentRepository.create(newAppointment);
@@ -2248,7 +2116,7 @@ export default class AppointmentService {
                     
                     <p>Best regards,<br/>
                     Bloodline DNA Testing Service</p>
-                `
+                `,
             };
 
             await sendMail(emailDetails);
@@ -2281,14 +2149,10 @@ export default class AppointmentService {
             }
 
             if (caseStatus) {
-                await this.administrativeCaseService.updateCaseStatus(
-                    appointment.administrative_case_id,
-                    caseStatus
-                );
+                await this.administrativeCaseService.updateCaseStatus(appointment.administrative_case_id, caseStatus);
             }
         } catch (error) {
             console.error('Error updating administrative case progress:', error);
         }
     }
 }
-

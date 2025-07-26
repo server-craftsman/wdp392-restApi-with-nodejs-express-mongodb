@@ -1,7 +1,7 @@
-import { NextFunction, Request, Response } from "express";
-import { HttpStatus } from "../../core/enums";
-import { formatResponse } from "../../core/utils";
-import { version } from "../../../package.json";
+import { NextFunction, Request, Response } from 'express';
+import { HttpStatus } from '../../core/enums';
+import { formatResponse } from '../../core/utils';
+import { version } from '../../../package.json';
 import path from 'path';
 import fs from 'fs';
 
@@ -13,11 +13,11 @@ export default class IndexController {
     public index = (req: Request, res: Response, next: NextFunction) => {
         try {
             const apiInfo = {
-                name: "Bloodline DNA Testing Service API",
+                name: 'Bloodline DNA Testing Service API',
                 version: version,
-                status: "running",
-                documentation: "/api-docs",
-                timestamp: new Date().toISOString()
+                status: 'running',
+                documentation: '/api-docs',
+                timestamp: new Date().toISOString(),
             };
 
             // Get the Accept header

@@ -26,4 +26,4 @@ export class CreateAppointmentLogDto {
 
     @IsEnum(TypeEnum)
     type: TypeEnum = TypeEnum.SELF;
-} 
+}

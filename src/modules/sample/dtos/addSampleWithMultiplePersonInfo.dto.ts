@@ -25,4 +25,4 @@ export class AddSampleWithMultiplePersonInfoDto {
     @Type(() => PersonInfoDto)
     @ArrayMinSize(2)
     person_info_list: PersonInfoDto[] = [];
-} 
+}

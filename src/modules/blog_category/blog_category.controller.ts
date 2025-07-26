@@ -86,7 +86,7 @@ class BlogCategoryController {
             id: blogCategory._id,
             name: blogCategory.name,
             created_at: blogCategory.created_at,
-            updated_at: blogCategory.updated_at
+            updated_at: blogCategory.updated_at,
         };
     }
 }

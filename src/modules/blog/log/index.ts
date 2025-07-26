@@ -5,12 +5,4 @@ import LogRepository from './log.repository';
 import LogController from './log.controller';
 import LogRoute from './log.route';
 
-
-export {
-    LogSchema,
-    ILog,
-    LogService,
-    LogRepository,
-    LogController,
-    LogRoute
-};
+export { LogSchema, ILog, LogService, LogRepository, LogController, LogRoute };

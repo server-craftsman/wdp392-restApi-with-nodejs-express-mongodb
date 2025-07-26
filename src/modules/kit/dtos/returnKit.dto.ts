@@ -7,4 +7,4 @@ export class ReturnKitDto {
     @IsString()
     @IsOptional()
     notes?: string;
-} 
+}

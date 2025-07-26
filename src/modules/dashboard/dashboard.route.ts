@@ -16,38 +16,18 @@ export default class DashboardRoute implements IRoute {
 
     private initializeRoutes() {
         // GET /api/dashboard/summary
-        this.router.get(
-            `${this.path}/summary`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.dashboardController.getSummary
-        );
+        this.router.get(`${this.path}/summary`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.dashboardController.getSummary);
 
         // GET /api/dashboard/revenue?from=YYYY-MM-DD&to=YYYY-MM-DD
-        this.router.get(
-            `${this.path}/revenue`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.dashboardController.getRevenue
-        );
+        this.router.get(`${this.path}/revenue`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.dashboardController.getRevenue);
 
         // GET /api/dashboard/payments/status
-        this.router.get(
-            `${this.path}/payments/status`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.dashboardController.getPaymentStatusCounts
-        );
+        this.router.get(`${this.path}/payments/status`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.dashboardController.getPaymentStatusCounts);
 
         // GET /api/dashboard/staff/summary
-        this.router.get(
-            `${this.path}/staff/summary`,
-            authMiddleWare([UserRoleEnum.STAFF]),
-            this.dashboardController.getStaffSummary
-        );
+        this.router.get(`${this.path}/staff/summary`, authMiddleWare([UserRoleEnum.STAFF]), this.dashboardController.getStaffSummary);
 
         // GET /api/dashboard/lab-tech/summary
-        this.router.get(
-            `${this.path}/lab-tech/summary`,
-            authMiddleWare([UserRoleEnum.LABORATORY_TECHNICIAN]),
-            this.dashboardController.getLabTechSummary
-        );
+        this.router.get(`${this.path}/lab-tech/summary`, authMiddleWare([UserRoleEnum.LABORATORY_TECHNICIAN]), this.dashboardController.getLabTechSummary);
     }
-} 
+}

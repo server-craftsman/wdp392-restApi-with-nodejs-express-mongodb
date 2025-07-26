@@ -21,7 +21,7 @@ export default class DepartmentController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Lấy danh sách phòng ban
@@ -33,7 +33,7 @@ export default class DepartmentController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Lấy thông tin phòng ban theo ID
@@ -45,7 +45,7 @@ export default class DepartmentController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Cập nhật thông tin phòng ban
@@ -58,7 +58,7 @@ export default class DepartmentController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Xóa phòng ban
@@ -70,7 +70,7 @@ export default class DepartmentController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Lấy danh sách phòng ban của một manager
@@ -83,7 +83,7 @@ export default class DepartmentController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Đếm tổng số phòng ban trong hệ thống
@@ -91,11 +91,13 @@ export default class DepartmentController {
     public countDepartments = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const count = await this.departmentService.countDepartments(req.query);
-            res.status(HttpStatus.Success).json(formatResponse({
-                totalDepartments: count
-            }));
+            res.status(HttpStatus.Success).json(
+                formatResponse({
+                    totalDepartments: count,
+                }),
+            );
         } catch (error) {
             next(error);
         }
-    }
+    };
 }

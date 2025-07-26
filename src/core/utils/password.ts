@@ -5,12 +5,12 @@ import logger from './logger';
  * Interface định nghĩa cấu hình bảo mật password từ environment variables
  */
 interface PasswordConfig {
-    saltRounds: number;           // Số rounds cho bcrypt salt từ env
-    minLength: number;            // Độ dài tối thiểu password từ env
-    maxLength: number;            // Độ dài tối đa password từ env
-    requireUppercase: boolean;    // Yêu cầu chữ hoa từ env
-    requireLowercase: boolean;    // Yêu cầu chữ thường từ env  
-    requireNumbers: boolean;      // Yêu cầu số từ env
+    saltRounds: number; // Số rounds cho bcrypt salt từ env
+    minLength: number; // Độ dài tối thiểu password từ env
+    maxLength: number; // Độ dài tối đa password từ env
+    requireUppercase: boolean; // Yêu cầu chữ hoa từ env
+    requireLowercase: boolean; // Yêu cầu chữ thường từ env
+    requireNumbers: boolean; // Yêu cầu số từ env
     requireSpecialChars: boolean; // Yêu cầu ký tự đặc biệt từ env
 }
 
@@ -26,7 +26,7 @@ function getPasswordConfig(): PasswordConfig {
         requireUppercase: process.env.PASSWORD_REQUIRE_UPPERCASE === 'true',
         requireLowercase: process.env.PASSWORD_REQUIRE_LOWERCASE === 'true',
         requireNumbers: process.env.PASSWORD_REQUIRE_NUMBERS === 'true',
-        requireSpecialChars: process.env.PASSWORD_REQUIRE_SPECIAL_CHARS === 'true'
+        requireSpecialChars: process.env.PASSWORD_REQUIRE_SPECIAL_CHARS === 'true',
     };
 }
 
@@ -76,7 +76,7 @@ export const validatePassword = (password: string): { isValid: boolean; errors: 
 
     return {
         isValid: errors.length === 0,
-        errors
+        errors,
     };
 };
 
@@ -191,7 +191,10 @@ export const generateSecurePassword = (length?: number): string => {
     }
 
     // Trộn các ký tự để tránh pattern dễ đoán
-    password = password.split('').sort(() => 0.5 - Math.random()).join('');
+    password = password
+        .split('')
+        .sort(() => 0.5 - Math.random())
+        .join('');
 
     logger.info(`Generated secure password with length ${password.length}`);
     return password;
@@ -206,10 +209,7 @@ export const checkPasswordSecurity = async (password: string): Promise<{ isSafe:
     const warnings: string[] = [];
 
     // Kiểm tra các pattern phổ biến không an toàn
-    const commonPatterns = [
-        'password', '123456', 'qwerty', 'admin', 'letmein',
-        'welcome', 'monkey', '1234567890', 'abc123'
-    ];
+    const commonPatterns = ['password', '123456', 'qwerty', 'admin', 'letmein', 'welcome', 'monkey', '1234567890', 'abc123'];
 
     const lowerPassword = password.toLowerCase();
     for (const pattern of commonPatterns) {
@@ -266,8 +266,8 @@ export const getPasswordConfigInfo = () => {
             uppercase: config.requireUppercase,
             lowercase: config.requireLowercase,
             numbers: config.requireNumbers,
-            specialChars: config.requireSpecialChars
-        }
+            specialChars: config.requireSpecialChars,
+        },
     };
 };
 

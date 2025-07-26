@@ -11,18 +11,4 @@ import { UpdateKitDto } from './dtos/updateKit.dto';
 import { SearchKitDto } from './dtos/searchKit.dto';
 import { ReturnKitDto } from './dtos/returnKit.dto';
 
-export {
-    KitSchema,
-    IKit,
-    KitStatus,
-    KitStatusEnum,
-    KitStatuses,
-    KitRepository,
-    KitService,
-    KitController,
-    KitRoute,
-    CreateKitDto,
-    UpdateKitDto,
-    SearchKitDto,
-    ReturnKitDto
-}; 
+export { KitSchema, IKit, KitStatus, KitStatusEnum, KitStatuses, KitRepository, KitService, KitController, KitRoute, CreateKitDto, UpdateKitDto, SearchKitDto, ReturnKitDto };

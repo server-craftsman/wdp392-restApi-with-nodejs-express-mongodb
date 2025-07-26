@@ -17,70 +17,40 @@ export default class AdministrativeCasesRouter implements IRoute {
 
     private initializeRoutes() {
         // GET: domain:/api/administrative-cases/search -> Search administrative cases
-        this.router.get(
-            `${this.path}/search`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.administrativeCasesController.searchCases
-        );
+        this.router.get(`${this.path}/search`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.searchCases);
 
         // GET: domain:/api/administrative-cases/generate-case-number -> Generate case number
-        this.router.get(
-            `${this.path}/generate-case-number`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.administrativeCasesController.generateCaseNumber
-        );
+        this.router.get(`${this.path}/generate-case-number`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.generateCaseNumber);
 
         // GET: domain:/api/administrative-cases/case-number/:caseNumber -> Get case by case number
-        this.router.get(
-            `${this.path}/case-number/:caseNumber`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.administrativeCasesController.getCaseByCaseNumber
-        );
+        this.router.get(`${this.path}/case-number/:caseNumber`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.getCaseByCaseNumber);
 
         // POST: domain:/api/administrative-cases -> Create administrative case
         this.router.post(
             `${this.path}`,
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             // validationMiddleware(CreateAdministrativeCaseDto),
-            this.administrativeCasesController.createCase
+            this.administrativeCasesController.createCase,
         );
 
         // PUT: domain:/api/administrative-cases/:id/status -> Update administrative case status
-        this.router.put(
-            `${this.path}/:id/status`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.administrativeCasesController.updateCaseStatus
-        );
+        this.router.put(`${this.path}/:id/status`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.updateCaseStatus);
 
         // GET: domain:/api/administrative-cases/:id -> Get administrative case by id
-        this.router.get(
-            `${this.path}/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.administrativeCasesController.getCaseById
-        );
+        this.router.get(`${this.path}/:id`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.getCaseById);
 
         // PUT: domain:/api/administrative-cases/:id -> Update administrative case
         this.router.put(
             `${this.path}/:id`,
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
             // validationMiddleware(CreateAdministrativeCaseDto),
-            this.administrativeCasesController.updateCase
+            this.administrativeCasesController.updateCase,
         );
 
         // DELETE: domain:/api/administrative-cases/:id -> Delete administrative case
-        this.router.delete(
-            `${this.path}/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.administrativeCasesController.deleteCase
-        );
+        this.router.delete(`${this.path}/:id`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.deleteCase);
 
         // GET: domain:/api/administrative-cases -> Get all administrative cases
-        this.router.get(
-            `${this.path}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.administrativeCasesController.listCases
-        );
+        this.router.get(`${this.path}`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.listCases);
     }
 }
-
-

@@ -16,4 +16,4 @@ export class CreateAppointmentPaymentDto {
     @IsOptional()
     @IsString()
     custom_amount?: string;
-} 
+}

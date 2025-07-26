@@ -4,13 +4,7 @@ import { UserRole } from '../user.interface';
 import { UserRoleEnum } from '../user.enum';
 
 export default class SearchUserDto {
-    constructor(
-        keyword: string = '',
-        role: UserRole[] | string[] = [],
-        status: boolean = true,
-        is_verified: boolean | string = '',
-        is_deleted: boolean = false,
-    ) {
+    constructor(keyword: string = '', role: UserRole[] | string[] = [], status: boolean = true, is_verified: boolean | string = '', is_deleted: boolean = false) {
         this.keyword = keyword;
         this.role = role;
         this.status = status;

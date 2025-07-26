@@ -4,10 +4,4 @@ import DepartmentController from './department.controller';
 import DepartmentService from './department.service';
 import DepartmentRoute from './department.route';
 
-export {
-    DepartmentSchema,
-    IDepartment,
-    DepartmentController,
-    DepartmentService,
-    DepartmentRoute
-}; 
+export { DepartmentSchema, IDepartment, DepartmentController, DepartmentService, DepartmentRoute };

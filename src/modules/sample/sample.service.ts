@@ -13,7 +13,7 @@ import { KitStatusEnum } from '../kit/kit.enum';
 import { SampleSelectionDto } from '../appointment/dtos/createAppointment.dto';
 import { TypeEnum } from '../appointment/appointment.enum';
 import { AddSampleDto } from './dtos/addSample.dto';
-import { SearchPaginationResponseModel } from "../../core/models";
+import { SearchPaginationResponseModel } from '../../core/models';
 import { CollectSampleDto } from './dtos/collect-sample.dto';
 import AppointmentSchema from '../appointment/appointment.model';
 import ServiceSchema from '../service/service.model';
@@ -158,17 +158,17 @@ export default class SampleService {
     private convertStatusToLogType(status: any): AppointmentLogTypeEnum {
         // Map appointment status to log type
         const statusMap: Record<string, AppointmentLogTypeEnum> = {
-            'pending': AppointmentLogTypeEnum.PENDING,
-            'confirmed': AppointmentLogTypeEnum.CONFIRMED,
-            'sample_assigned': AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
-            'sample_collected': AppointmentLogTypeEnum.SAMPLE_COLLECTED,
-            'sample_received': AppointmentLogTypeEnum.SAMPLE_RECEIVED,
-            'testing': AppointmentLogTypeEnum.TESTING,
-            'completed': AppointmentLogTypeEnum.COMPLETED,
-            'cancelled': AppointmentLogTypeEnum.CANCELLED,
-            'awaiting_authorization': AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
-            'authorized': AppointmentLogTypeEnum.AUTHORIZED,
-            'ready_for_collection': AppointmentLogTypeEnum.READY_FOR_COLLECTION
+            pending: AppointmentLogTypeEnum.PENDING,
+            confirmed: AppointmentLogTypeEnum.CONFIRMED,
+            sample_assigned: AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
+            sample_collected: AppointmentLogTypeEnum.SAMPLE_COLLECTED,
+            sample_received: AppointmentLogTypeEnum.SAMPLE_RECEIVED,
+            testing: AppointmentLogTypeEnum.TESTING,
+            completed: AppointmentLogTypeEnum.COMPLETED,
+            cancelled: AppointmentLogTypeEnum.CANCELLED,
+            awaiting_authorization: AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
+            authorized: AppointmentLogTypeEnum.AUTHORIZED,
+            ready_for_collection: AppointmentLogTypeEnum.READY_FOR_COLLECTION,
         };
 
         return statusMap[status] || AppointmentLogTypeEnum.PENDING;
@@ -219,15 +219,12 @@ export default class SampleService {
 
             // Verify that the sample is in PENDING status
             if (sample.status !== SampleStatusEnum.PENDING) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    `Cannot submit sample with status ${sample.status}`
-                );
+                throw new HttpException(HttpStatus.BadRequest, `Cannot submit sample with status ${sample.status}`);
             }
 
             // Update sample with collection date
             const updateData: any = {
-                updated_at: new Date()
+                updated_at: new Date(),
             };
 
             // Chỉ cập nhật collection_date nếu người dùng cung cấp giá trị mới
@@ -235,11 +232,7 @@ export default class SampleService {
                 updateData.collection_date = new Date(collectionDate);
             }
 
-            const updatedSample = await this.sampleRepository.findByIdAndUpdate(
-                sampleId,
-                updateData,
-                { new: true }
-            );
+            const updatedSample = await this.sampleRepository.findByIdAndUpdate(sampleId, updateData, { new: true });
 
             if (!updatedSample) {
                 throw new HttpException(HttpStatus.InternalServerError, 'Failed to update sample');
@@ -247,19 +240,11 @@ export default class SampleService {
 
             // Update appointment status to SAMPLE_COLLECTED if not already
             if (appointment.status !== AppointmentStatusEnum.SAMPLE_COLLECTED) {
-                await this.getAppointmentService().updateAppointmentStatus(
-                    appointment._id.toString(),
-                    AppointmentStatusEnum.SAMPLE_COLLECTED
-                );
+                await this.getAppointmentService().updateAppointmentStatus(appointment._id.toString(), AppointmentStatusEnum.SAMPLE_COLLECTED);
 
                 // Log the status change
                 try {
-                    await this.appointmentLogService.logStatusChange(
-                        appointment,
-                        this.convertStatusToLogType(appointment.status),
-                        AppointmentLogTypeEnum.SAMPLE_COLLECTED,
-                        userId
-                    );
+                    await this.appointmentLogService.logStatusChange(appointment, this.convertStatusToLogType(appointment.status), AppointmentLogTypeEnum.SAMPLE_COLLECTED, userId);
                 } catch (logError) {
                     console.error('Failed to create appointment log for sample submission:', logError);
                 }
@@ -320,18 +305,12 @@ export default class SampleService {
 
             // Verify that the sample is in PENDING status
             if (sample.status !== SampleStatusEnum.PENDING) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    `Cannot receive sample with status ${sample.status}`
-                );
+                throw new HttpException(HttpStatus.BadRequest, `Cannot receive sample with status ${sample.status}`);
             }
 
             // Verify that the sample has been collected
             if (!sample.collection_date) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'Sample must be collected before it can be received'
-                );
+                throw new HttpException(HttpStatus.BadRequest, 'Sample must be collected before it can be received');
             }
 
             // Update sample with received date and status
@@ -340,9 +319,9 @@ export default class SampleService {
                 {
                     received_date: new Date(receivedDate),
                     status: SampleStatusEnum.RECEIVED,
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 },
-                { new: true }
+                { new: true },
             );
 
             if (!updatedSample) {
@@ -368,19 +347,11 @@ export default class SampleService {
             }
 
             if (appointment.status !== AppointmentStatusEnum.SAMPLE_RECEIVED) {
-                await this.getAppointmentService().updateAppointmentStatus(
-                    appointment._id.toString(),
-                    AppointmentStatusEnum.SAMPLE_RECEIVED
-                );
+                await this.getAppointmentService().updateAppointmentStatus(appointment._id.toString(), AppointmentStatusEnum.SAMPLE_RECEIVED);
 
                 // Log the status change
                 try {
-                    await this.appointmentLogService.logStatusChange(
-                        appointment,
-                        this.convertStatusToLogType(appointment.status),
-                        AppointmentLogTypeEnum.SAMPLE_RECEIVED,
-                        staffId
-                    );
+                    await this.appointmentLogService.logStatusChange(appointment, this.convertStatusToLogType(appointment.status), AppointmentLogTypeEnum.SAMPLE_RECEIVED, staffId);
                 } catch (logError) {
                     console.error('Failed to create appointment log for sample reception:', logError);
                 }
@@ -428,12 +399,10 @@ export default class SampleService {
         // Log sample details for debugging
         console.log('Retrieved sample:', {
             _id: sample._id,
-            appointment_id: typeof sample.appointment_id === 'object' ?
-                (sample.appointment_id as any)?._id : sample.appointment_id,
-            kit_id: typeof sample.kit_id === 'object' ?
-                (sample.kit_id as any)?._id : sample.kit_id,
+            appointment_id: typeof sample.appointment_id === 'object' ? (sample.appointment_id as any)?._id : sample.appointment_id,
+            kit_id: typeof sample.kit_id === 'object' ? (sample.kit_id as any)?._id : sample.kit_id,
             type: sample.type,
-            status: sample.status
+            status: sample.status,
         });
 
         return sample;
@@ -457,9 +426,9 @@ export default class SampleService {
                 sampleId,
                 {
                     status: status,
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 },
-                { new: true }
+                { new: true },
             );
 
             if (!updatedSample) {
@@ -515,11 +484,7 @@ export default class SampleService {
      * @param collectionMethod The collection method (SELF, FACILITY, HOME)
      * @deprecated Use addSampleToAppointment instead
      */
-    public async createSamplesForAppointment(
-        appointmentId: string,
-        sampleTypes: SampleSelectionDto[],
-        collectionMethod: TypeEnum
-    ): Promise<ISample[]> {
+    public async createSamplesForAppointment(appointmentId: string, sampleTypes: SampleSelectionDto[], collectionMethod: TypeEnum): Promise<ISample[]> {
         console.warn('DEPRECATED: createSamplesForAppointment is deprecated. Use addSampleToAppointment instead.');
         try {
             if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
@@ -531,8 +496,7 @@ export default class SampleService {
                 console.log(`No sample types provided for appointment ${appointmentId}, using default SALIVA`);
                 sampleTypes = [{ type: SampleTypeEnum.SALIVA }];
             } else {
-                console.log(`Creating ${sampleTypes.length} samples for appointment ${appointmentId}:`,
-                    sampleTypes.map(s => s.type).join(', '));
+                console.log(`Creating ${sampleTypes.length} samples for appointment ${appointmentId}:`, sampleTypes.map((s) => s.type).join(', '));
             }
 
             // Get available kits for the samples
@@ -541,10 +505,7 @@ export default class SampleService {
             console.log(`Found ${availableKits.length} available kits`);
 
             if (availableKits.length < sampleTypes.length) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    `Not enough available kits. Need ${sampleTypes.length} but only ${availableKits.length} available.`
-                );
+                throw new HttpException(HttpStatus.BadRequest, `Not enough available kits. Need ${sampleTypes.length} but only ${availableKits.length} available.`);
             }
 
             // Get appointment data for logging
@@ -585,7 +546,7 @@ export default class SampleService {
                         collection_date: new Date(),
                         status: SampleStatusEnum.PENDING,
                         created_at: new Date(),
-                        updated_at: new Date()
+                        updated_at: new Date(),
                     });
 
                     console.log(`Sample created with ID ${sample._id}, type ${sample.type}`);
@@ -651,12 +612,8 @@ export default class SampleService {
             }
 
             // Check if person_info_list is provided and matches the length of sample_types
-            if (addSampleData.person_info_list &&
-                addSampleData.person_info_list.length !== addSampleData.sample_types.length) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'The number of person_info entries must match the number of sample types'
-                );
+            if (addSampleData.person_info_list && addSampleData.person_info_list.length !== addSampleData.sample_types.length) {
+                throw new HttpException(HttpStatus.BadRequest, 'The number of person_info entries must match the number of sample types');
             }
 
             const samples: ISample[] = [];
@@ -727,18 +684,10 @@ export default class SampleService {
 
             // Change appointment status to SAMPLE_ASSIGNED if not already
             if (appointment.status !== AppointmentStatusEnum.SAMPLE_ASSIGNED) {
-                await this.getAppointmentService().updateAppointmentStatus(
-                    addSampleData.appointment_id,
-                    AppointmentStatusEnum.SAMPLE_ASSIGNED
-                );
+                await this.getAppointmentService().updateAppointmentStatus(addSampleData.appointment_id, AppointmentStatusEnum.SAMPLE_ASSIGNED);
                 // Optionally, log the status change if you have a log method for this
                 try {
-                    await this.appointmentLogService.logStatusChange(
-                        appointment,
-                        this.convertStatusToLogType(appointment.status),
-                        AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
-                        userId
-                    );
+                    await this.appointmentLogService.logStatusChange(appointment, this.convertStatusToLogType(appointment.status), AppointmentLogTypeEnum.SAMPLE_ASSIGNED, userId);
                 } catch (logError) {
                     console.error('Failed to create appointment log for SAMPLE_ASSIGNED:', logError);
                 }
@@ -799,17 +748,13 @@ export default class SampleService {
                 const appointmentUserId = extractUserIdFromAppointment(appointment);
 
                 if (!areIdsEqual(appointmentUserId, userId)) {
-                    throw new HttpException(HttpStatus.Forbidden,
-                        `You are not authorized to submit samples for appointment ${appointmentId}`);
+                    throw new HttpException(HttpStatus.Forbidden, `You are not authorized to submit samples for appointment ${appointmentId}`);
                 }
 
                 // Verify that all samples are in PENDING status
                 for (const sample of appointmentSamples) {
                     if (sample.status !== SampleStatusEnum.PENDING) {
-                        throw new HttpException(
-                            HttpStatus.BadRequest,
-                            `Cannot submit sample ${sample._id} with status ${sample.status}`
-                        );
+                        throw new HttpException(HttpStatus.BadRequest, `Cannot submit sample ${sample._id} with status ${sample.status}`);
                     }
                 }
             }
@@ -817,7 +762,7 @@ export default class SampleService {
             // Update all samples
             const updatedSamples: ISample[] = [];
             const updateData: any = {
-                updated_at: new Date()
+                updated_at: new Date(),
             };
 
             // Only update collection_date if provided
@@ -827,11 +772,7 @@ export default class SampleService {
 
             // Update each sample
             for (const sampleId of sampleIds) {
-                const updatedSample = await this.sampleRepository.findByIdAndUpdate(
-                    sampleId,
-                    updateData,
-                    { new: true }
-                );
+                const updatedSample = await this.sampleRepository.findByIdAndUpdate(sampleId, updateData, { new: true });
 
                 if (!updatedSample) {
                     throw new HttpException(HttpStatus.InternalServerError, `Failed to update sample ${sampleId}`);
@@ -846,19 +787,11 @@ export default class SampleService {
 
                 // Update appointment status to SAMPLE_COLLECTED if not already
                 if (appointment.status !== AppointmentStatusEnum.SAMPLE_COLLECTED) {
-                    await this.getAppointmentService().updateAppointmentStatus(
-                        appointmentId,
-                        AppointmentStatusEnum.SAMPLE_COLLECTED
-                    );
+                    await this.getAppointmentService().updateAppointmentStatus(appointmentId, AppointmentStatusEnum.SAMPLE_COLLECTED);
 
                     // Log the status change
                     try {
-                        await this.appointmentLogService.logStatusChange(
-                            appointment,
-                            this.convertStatusToLogType(appointment.status),
-                            AppointmentLogTypeEnum.SAMPLE_COLLECTED,
-                            userId
-                        );
+                        await this.appointmentLogService.logStatusChange(appointment, this.convertStatusToLogType(appointment.status), AppointmentLogTypeEnum.SAMPLE_COLLECTED, userId);
                     } catch (logError) {
                         console.error('Failed to create appointment log for batch sample submission:', logError);
                     }
@@ -936,17 +869,11 @@ export default class SampleService {
                 // Verify that all samples are in PENDING status and have been collected
                 for (const sample of appointmentSamples) {
                     if (sample.status !== SampleStatusEnum.PENDING) {
-                        throw new HttpException(
-                            HttpStatus.BadRequest,
-                            `Cannot receive sample ${sample._id} with status ${sample.status}`
-                        );
+                        throw new HttpException(HttpStatus.BadRequest, `Cannot receive sample ${sample._id} with status ${sample.status}`);
                     }
 
                     if (!sample.collection_date) {
-                        throw new HttpException(
-                            HttpStatus.BadRequest,
-                            `Sample ${sample._id} must be collected before it can be received`
-                        );
+                        throw new HttpException(HttpStatus.BadRequest, `Sample ${sample._id} must be collected before it can be received`);
                     }
                 }
             }
@@ -962,9 +889,9 @@ export default class SampleService {
                     {
                         received_date: receivedDate_obj,
                         status: SampleStatusEnum.RECEIVED,
-                        updated_at: new Date()
+                        updated_at: new Date(),
                     },
-                    { new: true }
+                    { new: true },
                 );
 
                 if (!updatedSample) {
@@ -980,19 +907,11 @@ export default class SampleService {
 
                 // Update appointment status to SAMPLE_RECEIVED if not already
                 if (appointment.status !== AppointmentStatusEnum.SAMPLE_RECEIVED) {
-                    await this.getAppointmentService().updateAppointmentStatus(
-                        appointmentId,
-                        AppointmentStatusEnum.SAMPLE_RECEIVED
-                    );
+                    await this.getAppointmentService().updateAppointmentStatus(appointmentId, AppointmentStatusEnum.SAMPLE_RECEIVED);
 
                     // Log the status change
                     try {
-                        await this.appointmentLogService.logStatusChange(
-                            appointment,
-                            this.convertStatusToLogType(appointment.status),
-                            AppointmentLogTypeEnum.SAMPLE_RECEIVED,
-                            staffId
-                        );
+                        await this.appointmentLogService.logStatusChange(appointment, this.convertStatusToLogType(appointment.status), AppointmentLogTypeEnum.SAMPLE_RECEIVED, staffId);
                     } catch (logError) {
                         console.error('Failed to create appointment log for batch sample reception:', logError);
                     }
@@ -1019,14 +938,9 @@ export default class SampleService {
      * @param userId ID of the user making the request
      * @param userRole Role of the user making the request
      */
-    public async updatePersonImage(
-        sampleId: string,
-        imageUrl: string,
-        userId: string,
-        userRole?: string
-    ): Promise<ISample> {
+    public async updatePersonImage(sampleId: string, imageUrl: string, userId: string, userRole?: string): Promise<ISample> {
         try {
-            console.log("updatePersonImage called with:", { sampleId, imageUrl, userId, userRole });
+            console.log('updatePersonImage called with:', { sampleId, imageUrl, userId, userRole });
 
             // Validate sampleId
             if (!mongoose.Types.ObjectId.isValid(sampleId)) {
@@ -1039,11 +953,11 @@ export default class SampleService {
                 throw new HttpException(HttpStatus.NotFound, 'Sample not found');
             }
 
-            console.log("Sample found:", {
+            console.log('Sample found:', {
                 id: sample._id,
                 hasSinglePersonInfo: !!sample.person_info,
                 hasPersonInfoList: !!sample.person_info_list,
-                personInfoListLength: sample.person_info_list?.length
+                personInfoListLength: sample.person_info_list?.length,
             });
 
             // Extract appointment_id using the helper function
@@ -1069,11 +983,7 @@ export default class SampleService {
             }
 
             // Update the sample
-            const updatedSample = await this.sampleRepository.findByIdAndUpdate(
-                sampleId,
-                { person_info: sample.person_info, updated_at: new Date() },
-                { new: true }
-            );
+            const updatedSample = await this.sampleRepository.findByIdAndUpdate(sampleId, { person_info: sample.person_info, updated_at: new Date() }, { new: true });
 
             if (!updatedSample) {
                 throw new HttpException(HttpStatus.InternalServerError, 'Failed to update sample');
@@ -1111,21 +1021,18 @@ export default class SampleService {
                 query,
                 { received_date: -1 }, // Sort by received date, newest first
                 skip,
-                limit
+                limit,
             );
 
             // Calculate total pages
             const pages = Math.ceil(total / limit);
 
-            return new SearchPaginationResponseModel<ISample>(
-                samples,
-                {
-                    totalItems: total,
-                    totalPages: pages,
-                    pageNum: page,
-                    pageSize: limit
-                }
-            );
+            return new SearchPaginationResponseModel<ISample>(samples, {
+                totalItems: total,
+                totalPages: pages,
+                pageNum: page,
+                pageSize: limit,
+            });
         } catch (error) {
             console.error('Error in getSamplesReadyForTesting:', error);
             if (error instanceof HttpException) {
@@ -1153,21 +1060,18 @@ export default class SampleService {
                 query,
                 { received_date: -1 }, // Sort by received date, newest first
                 skip,
-                limit
+                limit,
             );
 
             // Calculate total pages
             const pages = Math.ceil(total / limit);
 
-            return new SearchPaginationResponseModel<ISample>(
-                samples,
-                {
-                    totalItems: total,
-                    totalPages: pages,
-                    pageNum: page,
-                    pageSize: limit
-                }
-            );
+            return new SearchPaginationResponseModel<ISample>(samples, {
+                totalItems: total,
+                totalPages: pages,
+                pageNum: page,
+                pageSize: limit,
+            });
         } catch (error) {
             console.error('Error in getSamplesForTesting:', error);
             if (error instanceof HttpException) {
@@ -1181,30 +1085,20 @@ export default class SampleService {
      * Search samples by various criteria
      * This allows laboratory technicians to search for samples by different parameters
      */
-    public async searchSamples(
-        options: {
-            status?: SampleStatusEnum,
-            type?: SampleTypeEnum,
-            appointmentId?: string,
-            kitCode?: string,
-            personName?: string,
-            startDate?: Date,
-            endDate?: Date,
-            page?: number,
-            limit?: number
-        }
-    ): Promise<SearchPaginationResponseModel<ISample>> {
+    public async searchSamples(options: {
+        status?: SampleStatusEnum;
+        type?: SampleTypeEnum;
+        appointmentId?: string;
+        kitCode?: string;
+        personName?: string;
+        startDate?: Date;
+        endDate?: Date;
+        page?: number;
+        limit?: number;
+    }): Promise<SearchPaginationResponseModel<ISample>> {
         try {
             // Extract options with default values and validation
-            const {
-                status,
-                type,
-                appointmentId,
-                kitCode,
-                personName,
-                startDate,
-                endDate
-            } = options;
+            const { status, type, appointmentId, kitCode, personName, startDate, endDate } = options;
 
             // Ensure page and limit are valid numbers with defaults
             const page = options.page && options.page > 0 ? Math.floor(options.page) : 1;
@@ -1212,8 +1106,16 @@ export default class SampleService {
             const skip = (page - 1) * limit;
 
             console.log('Search options in service:', {
-                status, type, appointmentId, kitCode, personName,
-                startDate, endDate, page, limit, skip
+                status,
+                type,
+                appointmentId,
+                kitCode,
+                personName,
+                startDate,
+                endDate,
+                page,
+                limit,
+                skip,
             });
 
             // Build query object
@@ -1282,7 +1184,7 @@ export default class SampleService {
                 query,
                 { updated_at: -1 }, // Sort by updated date, newest first
                 skip,
-                limit
+                limit,
             );
 
             // In-memory filtering for properties that can't be filtered in the database query
@@ -1290,36 +1192,24 @@ export default class SampleService {
 
             // Filter by kit code if provided
             if (kitCode && kitCode.trim() !== '') {
-                samples = samples.filter(sample => {
+                samples = samples.filter((sample) => {
                     const kit = sample.kit_id as any;
-                    return kit &&
-                        kit.code &&
-                        typeof kit.code === 'string' &&
-                        kit.code.toLowerCase().includes(kitCode.toLowerCase());
+                    return kit && kit.code && typeof kit.code === 'string' && kit.code.toLowerCase().includes(kitCode.toLowerCase());
                 });
                 filteredTotal = samples.length;
             }
 
             // Filter by person name if provided
             if (personName && personName.trim() !== '') {
-                samples = samples.filter(sample => {
+                samples = samples.filter((sample) => {
                     // Check in single person_info
-                    if (sample.person_info &&
-                        sample.person_info.name &&
-                        typeof sample.person_info.name === 'string') {
+                    if (sample.person_info && sample.person_info.name && typeof sample.person_info.name === 'string') {
                         return sample.person_info.name.toLowerCase().includes(personName.toLowerCase());
                     }
 
                     // Check in person_info_list
-                    if (sample.person_info_list &&
-                        Array.isArray(sample.person_info_list) &&
-                        sample.person_info_list.length > 0) {
-                        return sample.person_info_list.some(person =>
-                            person &&
-                            person.name &&
-                            typeof person.name === 'string' &&
-                            person.name.toLowerCase().includes(personName.toLowerCase())
-                        );
+                    if (sample.person_info_list && Array.isArray(sample.person_info_list) && sample.person_info_list.length > 0) {
+                        return sample.person_info_list.some((person) => person && person.name && typeof person.name === 'string' && person.name.toLowerCase().includes(personName.toLowerCase()));
                     }
 
                     return false;
@@ -1337,8 +1227,8 @@ export default class SampleService {
                     totalItems: filteredTotal,
                     totalPages: pages > 0 ? pages : 1, // Ensure at least 1 page even if no results
                     pageNum: page,
-                    pageSize: limit
-                }
+                    pageSize: limit,
+                },
             );
         } catch (error) {
             console.error('Error in searchSamples service:', error);
@@ -1358,7 +1248,12 @@ export default class SampleService {
             throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
         }
 
-        if (appointment.status !== AppointmentStatusEnum.CONFIRMED && appointment.status !== AppointmentStatusEnum.PENDING && appointment.status !== AppointmentStatusEnum.AUTHORIZED && appointment.status !== AppointmentStatusEnum.READY_FOR_COLLECTION) {
+        if (
+            appointment.status !== AppointmentStatusEnum.CONFIRMED &&
+            appointment.status !== AppointmentStatusEnum.PENDING &&
+            appointment.status !== AppointmentStatusEnum.AUTHORIZED &&
+            appointment.status !== AppointmentStatusEnum.READY_FOR_COLLECTION
+        ) {
             throw new HttpException(HttpStatus.BadRequest, 'Appointment must be confirmed or pending before collecting sample');
         }
 
@@ -1389,7 +1284,7 @@ export default class SampleService {
                         identity_document: participant.id_number || '',
                         phone_number: participant.phone || '',
                         nationality: 'Vietnamese', // Default for administrative cases
-                        birth_place: participant.address || ''
+                        birth_place: participant.address || '',
                     }));
 
                     console.log(`Mapped ${personInfoList.length} participants to person_info`);
@@ -1407,7 +1302,7 @@ export default class SampleService {
                         personInfoList.push({
                             name: `Participant ${personInfoList.length + 1}`,
                             relationship: 'Unknown',
-                            nationality: 'Vietnamese'
+                            nationality: 'Vietnamese',
                         });
                     }
                 }
@@ -1417,7 +1312,6 @@ export default class SampleService {
                     console.log(`Too many participants (${personInfoList.length}) for sample types (${model.type.length}), trimming`);
                     personInfoList = personInfoList.slice(0, model.type.length);
                 }
-
             } catch (adminError) {
                 console.error('Error fetching administrative case participants:', adminError);
                 // Fall back to provided person_info
@@ -1431,26 +1325,17 @@ export default class SampleService {
 
         // Validate that we have person info for each sample type
         if (personInfoList.length === 0) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                'No person information available. For administrative appointments, ensure the case has participants.'
-            );
+            throw new HttpException(HttpStatus.BadRequest, 'No person information available. For administrative appointments, ensure the case has participants.');
         }
 
         if (personInfoList.length !== model.type.length) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                `Number of person information entries (${personInfoList.length}) must match number of sample types (${model.type.length})`
-            );
+            throw new HttpException(HttpStatus.BadRequest, `Number of person information entries (${personInfoList.length}) must match number of sample types (${model.type.length})`);
         }
 
         // Get available kits
         const availableKits = await this.kitService.getAvailableKits();
         if (availableKits.length < model.type.length) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                `Not enough available kits. Need ${model.type.length} but only ${availableKits.length} available.`
-            );
+            throw new HttpException(HttpStatus.BadRequest, `Not enough available kits. Need ${model.type.length} but only ${availableKits.length} available.`);
         }
 
         const samples: ISample[] = [];
@@ -1479,7 +1364,7 @@ export default class SampleService {
                 created_at: new Date(),
                 updated_at: new Date(),
                 created_by: staff_id,
-                updated_by: staff_id
+                updated_by: staff_id,
             };
 
             console.log(`Creating sample ${i + 1} with person_info:`, personInfoList[i]);
@@ -1489,12 +1374,9 @@ export default class SampleService {
         }
 
         // Update appointment status to SAMPLE_COLLECTED
-        await this.getAppointmentService().updateAppointmentStatus(
-            model.appointment_id,
-            AppointmentStatusEnum.SAMPLE_COLLECTED
-        );
+        await this.getAppointmentService().updateAppointmentStatus(model.appointment_id, AppointmentStatusEnum.SAMPLE_COLLECTED);
 
         console.log(`Successfully collected ${samples.length} samples at facility`);
         return samples;
     }
-} 
+}

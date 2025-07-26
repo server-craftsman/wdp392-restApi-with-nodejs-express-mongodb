@@ -126,12 +126,7 @@ export default class SlotController {
             const requestingUserRole = req.user?.role;
             const requestingUserId = req.user?.id;
 
-            const slots = await this.slotService.getSlotsByUser(
-                userId,
-                req.query,
-                requestingUserRole,
-                requestingUserId
-            );
+            const slots = await this.slotService.getSlotsByUser(userId, req.query, requestingUserRole, requestingUserId);
 
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<ISlot>>(slots));
         } catch (error) {
@@ -174,7 +169,6 @@ export default class SlotController {
     //     }
     // };
 
-
     /**
      * Lấy thống kê performance của phòng ban
      */
@@ -209,12 +203,16 @@ export default class SlotController {
                 throw new HttpException(HttpStatus.Forbidden, 'Staff role is not allowed to filter by staff_profile_id');
             }
 
-            const availableSlots = await this.slotService.getAvailableSlots({
-                start_date: start_date as string,
-                end_date: end_date as string,
-                type: type as string,
-                staff_profile_ids: staff_profile_ids as string | string[]
-            }, userRole, userId);
+            const availableSlots = await this.slotService.getAvailableSlots(
+                {
+                    start_date: start_date as string,
+                    end_date: end_date as string,
+                    type: type as string,
+                    staff_profile_ids: staff_profile_ids as string | string[],
+                },
+                userRole,
+                userId,
+            );
 
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<ISlot>>(availableSlots));
         } catch (error) {

@@ -1,5 +1,5 @@
-import { IBlogCategory } from "./blog_category.interface";
-import { BlogCategoryModel } from "./blog_category.model";
+import { IBlogCategory } from './blog_category.interface';
+import { BlogCategoryModel } from './blog_category.model';
 
 export default class BlogCategoryRepository {
     public async createBlogCategory(model: IBlogCategory): Promise<IBlogCategory> {
@@ -19,11 +19,7 @@ export default class BlogCategoryRepository {
     }
 
     public async deleteBlogCategory(id: string): Promise<IBlogCategory> {
-        const blogCategory = await BlogCategoryModel.findByIdAndUpdate(
-            id,
-            { is_deleted: true },
-            { new: true }
-        );
+        const blogCategory = await BlogCategoryModel.findByIdAndUpdate(id, { is_deleted: true }, { new: true });
         if (!blogCategory) {
             throw new Error('Blog category not found');
         }

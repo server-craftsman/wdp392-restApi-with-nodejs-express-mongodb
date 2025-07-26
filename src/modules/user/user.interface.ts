@@ -5,11 +5,11 @@ export type UserReviewStatus = UserReviewStatusEnum.APPROVE | UserReviewStatusEn
 export type UserGender = UserGenderEnum.MALE | UserGenderEnum.FEMALE | UserGenderEnum.OTHER;
 
 export interface IAddress {
-    street: string;         // Số nhà, tên đường
-    ward: string;           // Phường/Xã
-    district: string;       // Quận/Huyện
-    city: string;           // Tỉnh/Thành phố
-    country: string;        // Quốc gia (mặc định: 'Việt Nam')
+    street: string; // Số nhà, tên đường
+    ward: string; // Phường/Xã
+    district: string; // Quận/Huyện
+    city: string; // Tỉnh/Thành phố
+    country: string; // Quốc gia (mặc định: 'Việt Nam')
 }
 
 export interface IUser extends Document {
@@ -42,7 +42,6 @@ export interface IUser extends Document {
     created_at?: Date; // default new Date()
     updated_at?: Date; // default new Date()
     is_deleted?: boolean; // flag remove logic when user is deleted, default is false
-
 
     // citizen id
     citizen_id?: string;

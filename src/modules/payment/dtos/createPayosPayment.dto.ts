@@ -5,15 +5,7 @@ import { IsNotEmpty, IsNumber, IsString, IsOptional, Min, MaxLength, IsEmail, Ma
  * Định nghĩa dữ liệu cần thiết để tạo link thanh toán online qua cổng PayOS
  */
 export class CreatePayosPaymentDto {
-    constructor(
-        amount: number,
-        order_code: string,
-        description: string,
-        buyer_name?: string,
-        buyer_email?: string,
-        buyer_phone?: string,
-        appointment_id?: string
-    ) {
+    constructor(amount: number, order_code: string, description: string, buyer_name?: string, buyer_email?: string, buyer_phone?: string, appointment_id?: string) {
         this.amount = amount;
         this.order_code = order_code;
         this.description = description;

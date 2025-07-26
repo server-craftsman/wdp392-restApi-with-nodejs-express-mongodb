@@ -8,4 +8,4 @@ export class BatchSubmitSamplesDto {
     @IsOptional()
     @IsDateString()
     collection_date?: string;
-} 
+}

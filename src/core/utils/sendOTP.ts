@@ -29,12 +29,7 @@ export function generateOTP(length: number = 6): string {
 /**
  * Create OTP message template for consultation
  */
-export function createConsultationOTPTemplate(
-    customerName: string,
-    consultationType: string,
-    otp: string,
-    consultationId: string
-): string {
+export function createConsultationOTPTemplate(customerName: string, consultationType: string, otp: string, consultationId: string): string {
     return `
 Xin chao ${customerName}!
 
@@ -56,12 +51,7 @@ Bloodline DNA Testing Service
 /**
  * Create OTP message template for consultation status update
  */
-export function createConsultationStatusOTPTemplate(
-    customerName: string,
-    status: string,
-    consultationId: string,
-    additionalInfo?: string
-): string {
+export function createConsultationStatusOTPTemplate(customerName: string, status: string, consultationId: string, additionalInfo?: string): string {
     let statusText = '';
     switch (status) {
         case 'ASSIGNED':
@@ -105,7 +95,7 @@ export async function sendOTP(otpDetail: IOTPDetail): Promise<IOTPResponse> {
         if (!isValidVietnamesePhoneNumber(otpDetail.phoneNumber)) {
             return {
                 success: false,
-                message: 'Invalid Vietnamese phone number format'
+                message: 'Invalid Vietnamese phone number format',
             };
         }
 
@@ -119,7 +109,7 @@ export async function sendOTP(otpDetail: IOTPDetail): Promise<IOTPResponse> {
             return {
                 success: true,
                 message: 'OTP sent successfully (development mode)',
-                messageId: `dev_${Date.now()}`
+                messageId: `dev_${Date.now()}`,
             };
         }
 
@@ -154,14 +144,13 @@ export async function sendOTP(otpDetail: IOTPDetail): Promise<IOTPResponse> {
         return {
             success: true,
             message: 'OTP sent successfully (simulation)',
-            messageId: `sim_${Date.now()}`
+            messageId: `sim_${Date.now()}`,
         };
-
     } catch (error: any) {
         console.error('Error sending OTP:', error);
         return {
             success: false,
-            message: error.message || 'Failed to send OTP'
+            message: error.message || 'Failed to send OTP',
         };
     }
 }
@@ -177,12 +166,12 @@ export function isValidVietnamesePhoneNumber(phoneNumber: string): boolean {
     // Mobile: 09x, 08x, 07x, 05x, 03x (10 digits)
     // With country code: +84 or 84 (starts with 84)
     const mobilePatterns = [
-        /^(09|08|07|05|03)\d{8}$/,  // 10 digits starting with 09x, 08x, 07x, 05x, 03x
-        /^84(9|8|7|5|3)\d{8}$/,     // With 84 country code
-        /^\+84(9|8|7|5|3)\d{8}$/    // With +84 country code
+        /^(09|08|07|05|03)\d{8}$/, // 10 digits starting with 09x, 08x, 07x, 05x, 03x
+        /^84(9|8|7|5|3)\d{8}$/, // With 84 country code
+        /^\+84(9|8|7|5|3)\d{8}$/, // With +84 country code
     ];
 
-    return mobilePatterns.some(pattern => pattern.test(cleanNumber));
+    return mobilePatterns.some((pattern) => pattern.test(cleanNumber));
 }
 
 /**
@@ -218,7 +207,7 @@ const otpStore = new Map<string, { otp: string; expires: number; phoneNumber: st
  * Store OTP for verification
  */
 export function storeOTP(phoneNumber: string, otp: string, expirationMinutes: number = 5): void {
-    const expires = Date.now() + (expirationMinutes * 60 * 1000);
+    const expires = Date.now() + expirationMinutes * 60 * 1000;
     const key = `otp_${phoneNumber}_${Date.now()}`;
 
     // Clean expired OTPs
@@ -227,7 +216,7 @@ export function storeOTP(phoneNumber: string, otp: string, expirationMinutes: nu
     otpStore.set(key, {
         otp,
         expires,
-        phoneNumber: formatPhoneNumber(phoneNumber)
+        phoneNumber: formatPhoneNumber(phoneNumber),
     });
 
     console.log(`OTP stored for ${phoneNumber}, expires in ${expirationMinutes} minutes`);
@@ -273,6 +262,6 @@ export function getOTPStats(): { total: number; active: number } {
     cleanExpiredOTPs();
     return {
         total: otpStore.size,
-        active: otpStore.size
+        active: otpStore.size,
     };
 }

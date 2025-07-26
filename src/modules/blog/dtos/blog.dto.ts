@@ -143,4 +143,4 @@ export class BlogSearchDto {
     @IsOptional()
     @Type(() => Boolean)
     is_published?: boolean;
-} 
+}

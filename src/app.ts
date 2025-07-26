@@ -17,8 +17,8 @@ let cachedConnection: typeof mongoose | null = null;
 
 export default class App {
     public app: express.Application; // Instance của Express app
-    public port: string | number;    // Port để chạy server
-    public production: boolean;      // Flag kiểm tra môi trường production
+    public port: string | number; // Port để chạy server
+    public production: boolean; // Flag kiểm tra môi trường production
 
     constructor(routes: IRoute[]) {
         // Khởi tạo Express application
@@ -92,7 +92,7 @@ export default class App {
 
                 // Logic retry khi có lỗi từ environment variables
                 retryWrites: process.env.DB_RETRY_WRITES === 'true',
-                retryReads: process.env.DB_RETRY_READS === 'true'
+                retryReads: process.env.DB_RETRY_READS === 'true',
             };
 
             // Tạo connection mới và lưu vào cache
@@ -129,19 +129,21 @@ export default class App {
     // Hàm setup các middleware được tối ưu với environment variables
     private initializeMiddleware() {
         // Compression phải được đặt đầu tiên để nén response với config từ env
-        this.app.use(compression({
-            // Filter function để quyết định có nén hay không
-            filter: (req, res) => {
-                // Không nén nếu client yêu cầu
-                if (req.headers['x-no-compression']) {
-                    return false;
-                }
-                // Sử dụng filter mặc định của compression
-                return compression.filter(req, res);
-            },
-            level: parseInt(process.env.COMPRESSION_LEVEL || '6'),        // Mức nén từ env
-            threshold: parseInt(process.env.COMPRESSION_THRESHOLD || '1024')  // Threshold từ env
-        }));
+        this.app.use(
+            compression({
+                // Filter function để quyết định có nén hay không
+                filter: (req, res) => {
+                    // Không nén nếu client yêu cầu
+                    if (req.headers['x-no-compression']) {
+                        return false;
+                    }
+                    // Sử dụng filter mặc định của compression
+                    return compression.filter(req, res);
+                },
+                level: parseInt(process.env.COMPRESSION_LEVEL || '6'), // Mức nén từ env
+                threshold: parseInt(process.env.COMPRESSION_THRESHOLD || '1024'), // Threshold từ env
+            }),
+        );
 
         // Security middleware chỉ chạy trong production
         if (this.production) {
@@ -149,32 +151,38 @@ export default class App {
             this.app.use(hpp());
 
             // Helmet cho security headers
-            this.app.use(helmet({
-                contentSecurityPolicy: {
-                    directives: {
-                        defaultSrc: ["'self'"],           // Chỉ cho phép resource từ cùng origin
-                        styleSrc: ["'self'", "'unsafe-inline'"], // CSS từ cùng origin + inline
-                        scriptSrc: ["'self'"],            // JS chỉ từ cùng origin
-                        imgSrc: ["'self'", "data:", "https:"], // Images từ nhiều nguồn
+            this.app.use(
+                helmet({
+                    contentSecurityPolicy: {
+                        directives: {
+                            defaultSrc: ["'self'"], // Chỉ cho phép resource từ cùng origin
+                            styleSrc: ["'self'", "'unsafe-inline'"], // CSS từ cùng origin + inline
+                            scriptSrc: ["'self'"], // JS chỉ từ cùng origin
+                            imgSrc: ["'self'", 'data:', 'https:'], // Images từ nhiều nguồn
+                        },
                     },
-                },
-                crossOriginEmbedderPolicy: false // Tắt COEP để tương thích
-            }));
+                    crossOriginEmbedderPolicy: false, // Tắt COEP để tương thích
+                }),
+            );
 
             // Logging tối ưu cho production - bỏ qua health check và swagger
-            this.app.use(morgan('combined', {
-                skip: (req) => req.url.includes('/health') || req.url.includes('/swagger')
-            }));
+            this.app.use(
+                morgan('combined', {
+                    skip: (req) => req.url.includes('/health') || req.url.includes('/swagger'),
+                }),
+            );
 
             // CORS với origins từ environment variables
             const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['https://your-frontend-domain.com'];
-            this.app.use(cors({
-                origin: allowedOrigins,           // Danh sách domains được phép từ env
-                credentials: true,                // Cho phép cookies
-                optionsSuccessStatus: 200,        // Status cho preflight requests
-                methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Methods được phép
-                allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'] // Headers được phép
-            }));
+            this.app.use(
+                cors({
+                    origin: allowedOrigins, // Danh sách domains được phép từ env
+                    credentials: true, // Cho phép cookies
+                    optionsSuccessStatus: 200, // Status cho preflight requests
+                    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Methods được phép
+                    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'], // Headers được phép
+                }),
+            );
         } else {
             // Development environment - logging đơn giản và CORS mở
             this.app.use(morgan('dev'));
@@ -182,17 +190,21 @@ export default class App {
         }
 
         // Body parsing với giới hạn kích thước
-        this.app.use(express.json({
-            limit: '10mb', // Giới hạn JSON payload 10MB
-            verify: (req, res, buf) => {
-                // Lưu raw body để verify webhooks nếu cần
-                (req as any).rawBody = buf;
-            }
-        }));
-        this.app.use(express.urlencoded({
-            extended: true,  // Cho phép parse objects phức tạp
-            limit: '10mb'    // Giới hạn form data 10MB
-        }));
+        this.app.use(
+            express.json({
+                limit: '10mb', // Giới hạn JSON payload 10MB
+                verify: (req, res, buf) => {
+                    // Lưu raw body để verify webhooks nếu cần
+                    (req as any).rawBody = buf;
+                },
+            }),
+        );
+        this.app.use(
+            express.urlencoded({
+                extended: true, // Cho phép parse objects phức tạp
+                limit: '10mb', // Giới hạn form data 10MB
+            }),
+        );
 
         // Middleware thêm response time header với threshold từ env
         this.app.use((req, res, next) => {
@@ -236,7 +248,7 @@ export default class App {
                 timestamp: new Date().toISOString(),
                 environment: process.env.NODE_ENV,
                 database: dbStatus,
-                vercel: !!process.env.VERCEL
+                vercel: !!process.env.VERCEL,
             });
         });
 
@@ -252,29 +264,31 @@ export default class App {
                 // Trong serverless, thử kết nối lại database
                 if (process.env.VERCEL) {
                     logger.warn(`API request to ${req.path} - Database not connected, attempting reconnection`);
-                    this.connectToDatabase().then(() => {
-                        if (mongoose.connection.readyState === 1) {
-                            next();
-                        } else {
+                    this.connectToDatabase()
+                        .then(() => {
+                            if (mongoose.connection.readyState === 1) {
+                                next();
+                            } else {
+                                res.status(503).json({
+                                    success: false,
+                                    message: 'Database service temporarily unavailable',
+                                    error: 'DATABASE_CONNECTION_FAILED',
+                                });
+                            }
+                        })
+                        .catch(() => {
                             res.status(503).json({
                                 success: false,
                                 message: 'Database service temporarily unavailable',
-                                error: 'DATABASE_CONNECTION_FAILED'
+                                error: 'DATABASE_CONNECTION_FAILED',
                             });
-                        }
-                    }).catch(() => {
-                        res.status(503).json({
-                            success: false,
-                            message: 'Database service temporarily unavailable',
-                            error: 'DATABASE_CONNECTION_FAILED'
                         });
-                    });
                 } else {
                     // Local environment - trả về lỗi ngay
                     res.status(503).json({
                         success: false,
                         message: 'Database service unavailable',
-                        error: 'DATABASE_CONNECTION_FAILED'
+                        error: 'DATABASE_CONNECTION_FAILED',
                     });
                 }
             } else {
@@ -303,8 +317,8 @@ export default class App {
         // Đường dẫn tìm views - thứ tự ưu tiên
         this.app.set('views', [
             path.join(__dirname, 'modules/index/view'), // Thư mục view chính
-            path.join(__dirname, 'modules/index'),      // Backup
-            path.join(__dirname, 'modules')             // Fallback
+            path.join(__dirname, 'modules/index'), // Backup
+            path.join(__dirname, 'modules'), // Fallback
         ]);
 
         // Cấu hình serve static files với caching từ environment variables
@@ -313,7 +327,7 @@ export default class App {
 
         const staticOptions = {
             maxAge: this.production ? staticCacheMaxAge : devCacheMaxAge, // Cache time từ env
-            etag: true,         // Bật ETag để kiểm tra file thay đổi
+            etag: true, // Bật ETag để kiểm tra file thay đổi
             lastModified: true, // Bật Last-Modified header
             setHeaders: (res: express.Response, path: string) => {
                 // Set cache headers dựa theo loại file
@@ -321,27 +335,21 @@ export default class App {
                     // Static assets cache với maxAge từ env
                     res.set('Cache-Control', `public, max-age=${staticCacheMaxAge}, immutable`);
                 }
-            }
+            },
         };
 
         // Route serve Swagger UI files
-        this.app.use('/swagger', express.static(
-            path.join(__dirname, '../node_modules/swagger-ui-dist'),
-            staticOptions
-        ));
+        this.app.use('/swagger', express.static(path.join(__dirname, '../node_modules/swagger-ui-dist'), staticOptions));
 
         // Route serve images
-        this.app.use('/images', express.static(
-            path.join(__dirname, '../public/images'),
-            staticOptions
-        ));
+        this.app.use('/images', express.static(path.join(__dirname, '../public/images'), staticOptions));
 
         // 404 handler cho routes không tồn tại
         this.app.use((req, res) => {
             res.status(404).json({
                 success: false,
                 message: 'Route not found',
-                path: req.path // Trả về path để debug
+                path: req.path, // Trả về path để debug
             });
         });
     }

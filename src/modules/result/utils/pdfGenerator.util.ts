@@ -14,13 +14,13 @@ dotenv.config();
 const s3 = new AWS.S3({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_REGION
+    region: process.env.AWS_REGION,
 });
 
 // Font paths for UTF-8 Vietnamese support
 const FONT_PATHS = {
     regular: path.join(__dirname, '../../../../assets/fonts/DejaVuSans.ttf'),
-    bold: path.join(__dirname, '../../../../assets/fonts/DejaVuSans-Bold.ttf')
+    bold: path.join(__dirname, '../../../../assets/fonts/DejaVuSans-Bold.ttf'),
 };
 
 /**
@@ -103,17 +103,11 @@ function checkAndGetFont(fontPath: string, fallbackFont: string): string {
 export async function generateTestResultPDF(data: TestResultReportData, template?: string): Promise<string> {
     // Validate AWS environment variables
     if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_REGION) {
-        throw new HttpException(
-            HttpStatus.InternalServerError,
-            'AWS credentials not configured. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION environment variables.'
-        );
+        throw new HttpException(HttpStatus.InternalServerError, 'AWS credentials not configured. Please set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_REGION environment variables.');
     }
 
     if (!process.env.AWS_S3_BUCKET_NAME) {
-        throw new HttpException(
-            HttpStatus.InternalServerError,
-            'AWS S3 bucket not configured. Please set AWS_S3_BUCKET_NAME environment variable.'
-        );
+        throw new HttpException(HttpStatus.InternalServerError, 'AWS S3 bucket not configured. Please set AWS_S3_BUCKET_NAME environment variable.');
     }
 
     const tempFilePath = path.join(__dirname, `temp-report-${uuidv4()}.pdf`);
@@ -127,9 +121,9 @@ export async function generateTestResultPDF(data: TestResultReportData, template
                 Title: `Báo cáo kết quả xét nghiệm - ${data.resultId}`,
                 Author: 'Hệ thống Y tế',
                 Subject: 'Kết quả xét nghiệm y tế',
-                Keywords: 'xét nghiệm, y tế, kết quả'
+                Keywords: 'xét nghiệm, y tế, kết quả',
             },
-            autoFirstPage: true
+            autoFirstPage: true,
         });
         const writeStream = fs.createWriteStream(tempFilePath);
 
@@ -172,10 +166,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
             doc.moveDown(1);
         } else {
             // Add decorative line for header
-            doc.lineWidth(1)
-                .moveTo(50, 110)
-                .lineTo(550, 110)
-                .stroke('#0066cc');
+            doc.lineWidth(1).moveTo(50, 110).lineTo(550, 110).stroke('#0066cc');
             // Add header with better styling
             doc.fontSize(22).fillColor('#0066cc').font(boldFontName).text('BÁO CÁO KẾT QUẢ XÉT NGHIỆM', { align: 'center' });
             doc.moveDown(0.5);
@@ -215,7 +206,10 @@ export async function generateTestResultPDF(data: TestResultReportData, template
                 doc.roundedRect(50, doc.y, 500, 220, 5).fillAndStroke('#f0f7ff', '#bbddff');
                 doc.y += 10;
 
-                doc.fontSize(14).fillColor('#0066cc').font(boldFontName).text(`NGƯỜI THỨ ${i + 1}`, 70, doc.y);
+                doc.fontSize(14)
+                    .fillColor('#0066cc')
+                    .font(boldFontName)
+                    .text(`NGƯỜI THỨ ${i + 1}`, 70, doc.y);
                 doc.moveDown(0.2);
 
                 // Add person image if available
@@ -223,7 +217,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
                     try {
                         // Download the image from the URL
                         const response = await axios.get(person.imageUrl, {
-                            responseType: 'arraybuffer'
+                            responseType: 'arraybuffer',
                         });
 
                         // Create a buffer from the response data
@@ -236,7 +230,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
                         // Add the image to the PDF with a maximum width/height of 100px
                         doc.image(imageBuffer, imageX, imageY, {
                             fit: [100, 100],
-                            align: 'right'
+                            align: 'right',
                         });
                     } catch (error) {
                         console.error(`Error adding person image for ${person.name}:`, error);
@@ -308,10 +302,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
         doc.addPage();
 
         // Add decorative line for results page
-        doc.lineWidth(2)
-            .moveTo(50, 70)
-            .lineTo(550, 70)
-            .stroke('#0066cc');
+        doc.lineWidth(2).moveTo(50, 70).lineTo(550, 70).stroke('#0066cc');
 
         doc.fontSize(20).fillColor('#0066cc').font(boldFontName).text('KẾT QUẢ XÉT NGHIỆM', { align: 'center' });
         doc.moveDown(1);
@@ -320,13 +311,14 @@ export async function generateTestResultPDF(data: TestResultReportData, template
         const resultBoxHeight = 60;
         const resultBoxY = doc.y;
 
-        doc.roundedRect(150, resultBoxY, 300, resultBoxHeight, 10)
-            .fillAndStroke(data.isMatch ? '#e6ffe6' : '#ffe6e6', data.isMatch ? '#00cc00' : '#cc0000');
+        doc.roundedRect(150, resultBoxY, 300, resultBoxHeight, 10).fillAndStroke(data.isMatch ? '#e6ffe6' : '#ffe6e6', data.isMatch ? '#00cc00' : '#cc0000');
 
-        doc.fontSize(18).fillColor(data.isMatch ? '#006600' : '#990000').font(boldFontName);
+        doc.fontSize(18)
+            .fillColor(data.isMatch ? '#006600' : '#990000')
+            .font(boldFontName);
         doc.text(`Kết quả: ${data.isMatch ? 'KHỚP' : 'KHÔNG KHỚP'}`, 150, resultBoxY + 20, {
             align: 'center',
-            width: 300
+            width: 300,
         });
 
         doc.y = resultBoxY + resultBoxHeight + 20;
@@ -346,7 +338,10 @@ export async function generateTestResultPDF(data: TestResultReportData, template
 
             // Draw table header
             doc.rect(50, currentY, 500, 30).fillAndStroke('#0066cc', '#0066cc');
-            doc.fillColor('#ffffff').fontSize(14).font(boldFontName).text('Thông số', 70, currentY + 8);
+            doc.fillColor('#ffffff')
+                .fontSize(14)
+                .font(boldFontName)
+                .text('Thông số', 70, currentY + 8);
             doc.text('Giá trị', 350, currentY + 8);
             currentY += 30;
 
@@ -358,7 +353,9 @@ export async function generateTestResultPDF(data: TestResultReportData, template
                 doc.rect(50, currentY, 500, 25).fill(rowColor);
 
                 const formattedKey = translateResultKey(key);
-                doc.fillColor('#333333').fontSize(12).font(regularFontName)
+                doc.fillColor('#333333')
+                    .fontSize(12)
+                    .font(regularFontName)
                     .text(formattedKey, 70, currentY + 6);
                 doc.text(`${details[key]}`, 350, currentY + 6);
 
@@ -407,7 +404,10 @@ export async function generateTestResultPDF(data: TestResultReportData, template
 
         // Add placeholder for company seal
         doc.circle(400, doc.y + 30, 40).stroke('#999999');
-        doc.fontSize(10).fillColor('#999999').font(regularFontName).text('Con dấu', 380, doc.y + 25);
+        doc.fontSize(10)
+            .fillColor('#999999')
+            .font(regularFontName)
+            .text('Con dấu', 380, doc.y + 25);
         doc.text('chính thức', 375, doc.y + 38);
 
         // Add footer with disclaimer but no page numbering
@@ -417,11 +417,10 @@ export async function generateTestResultPDF(data: TestResultReportData, template
             .lineTo(550, footerY - 15)
             .stroke('#cccccc');
 
-        doc.fontSize(10).fillColor('#666666').font(regularFontName).text(
-            'Báo cáo này được tạo tự động và có hiệu lực mà không cần chữ ký. ' +
-            'Kết quả cần được giải thích bởi chuyên gia y tế có trình độ.',
-            50, footerY, { width: 500, align: 'center' }
-        );
+        doc.fontSize(10)
+            .fillColor('#666666')
+            .font(regularFontName)
+            .text('Báo cáo này được tạo tự động và có hiệu lực mà không cần chữ ký. ' + 'Kết quả cần được giải thích bởi chuyên gia y tế có trình độ.', 50, footerY, { width: 500, align: 'center' });
 
         // Finalize PDF
         doc.end();
@@ -449,7 +448,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
                 Body: fileContent,
                 ContentType: 'application/pdf',
                 // TODO: Uncomment this when we have a way to handle the ACL
-                // ACL: 'public-read' 
+                // ACL: 'public-read'
             };
 
             console.log('Starting S3 upload...');
@@ -461,10 +460,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
 
             return uploadResult.Location;
         } catch (error: any) {
-            throw new HttpException(
-                HttpStatus.InternalServerError,
-                `Error processing PDF: ${error.message}`
-            );
+            throw new HttpException(HttpStatus.InternalServerError, `Error processing PDF: ${error.message}`);
         }
     } catch (error: any) {
         // Clean up temporary file if it exists
@@ -477,10 +473,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
         }
 
         console.error('Error generating or uploading PDF:', error);
-        throw new HttpException(
-            HttpStatus.InternalServerError,
-            `Failed to generate or upload PDF report: ${error.message}`
-        );
+        throw new HttpException(HttpStatus.InternalServerError, `Failed to generate or upload PDF report: ${error.message}`);
     }
 }
 
@@ -489,34 +482,34 @@ export async function generateTestResultPDF(data: TestResultReportData, template
  */
 function translateGender(gender: string): string {
     const genderMap: Record<string, string> = {
-        'male': 'Nam',
-        'female': 'Nữ',
-        'other': 'Khác'
+        male: 'Nam',
+        female: 'Nữ',
+        other: 'Khác',
     };
     return genderMap[gender.toLowerCase()] || gender;
 }
 
 function translateSampleType(sampleType: string): string {
     const sampleTypeMap: Record<string, string> = {
-        'blood': 'Máu',
-        'urine': 'Nước tiểu',
-        'hair': 'Tóc',
-        'saliva': 'Nước bọt',
-        'tissue': 'Mô',
-        'swab': 'Tăm bông'
+        blood: 'Máu',
+        urine: 'Nước tiểu',
+        hair: 'Tóc',
+        saliva: 'Nước bọt',
+        tissue: 'Mô',
+        swab: 'Tăm bông',
     };
     return sampleTypeMap[sampleType.toLowerCase()] || sampleType;
 }
 
 function translateCollectionMethod(method: string): string {
     const methodMap: Record<string, string> = {
-        'venipuncture': 'Lấy máu tĩnh mạch',
+        venipuncture: 'Lấy máu tĩnh mạch',
         'finger prick': 'Lấy máu đầu ngón tay',
         'swab collection': 'Thu thập bằng tăm bông',
         'clean catch': 'Thu thập sạch',
-        'self': 'Tự thu thập',
-        'facility': 'Tại cơ sở y tế',
-        'home': 'Tại nhà'
+        self: 'Tự thu thập',
+        facility: 'Tại cơ sở y tế',
+        home: 'Tại nhà',
     };
     return methodMap[method.toLowerCase()] || method;
 }
@@ -530,7 +523,7 @@ function translateServiceType(serviceType: string): string {
         'covid test': 'Xét nghiệm COVID',
         'dna test': 'Xét nghiệm ADN',
         'DNA Paternity Test': 'Xét nghiệm ADN xác định huyết thống',
-        'administrative': 'Xét nghiệm hành chính'
+        administrative: 'Xét nghiệm hành chính',
     };
     return serviceTypeMap[serviceType.toLowerCase()] || serviceType;
 }
@@ -539,23 +532,23 @@ function translateResultKey(key: string): string {
     // Convert snake_case to readable format and translate
     const formattedKey = key
         .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 
     const resultKeyMap: Record<string, string> = {
         'Blood Pressure': 'Huyết áp',
         'Heart Rate': 'Nhịp tim',
         'Glucose Level': 'Mức đường huyết',
-        'Cholesterol': 'Cholesterol',
-        'Hemoglobin': 'Hemoglobin',
+        Cholesterol: 'Cholesterol',
+        Hemoglobin: 'Hemoglobin',
         'White Blood Cell Count': 'Số lượng bạch cầu',
         'Red Blood Cell Count': 'Số lượng hồng cầu',
         'Platelet Count': 'Số lượng tiểu cầu',
         'Dna Match': 'Khớp ADN',
         'Match Percentage': 'Tỷ lệ khớp',
         'Match Score': 'Điểm khớp',
-        'Confidence Level': 'Mức độ tin cậy'
+        'Confidence Level': 'Mức độ tin cậy',
     };
 
     return resultKeyMap[formattedKey] || formattedKey;
-}         
+}

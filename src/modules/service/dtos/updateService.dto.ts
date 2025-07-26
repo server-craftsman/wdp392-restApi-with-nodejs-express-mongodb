@@ -1,7 +1,7 @@
-import { SampleMethod, ServiceType } from "../service.interface";
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsEnum } from "class-validator";
-import { ServiceTypeEnum, SampleMethodEnum } from "../service.enum";
-import { Type } from "class-transformer";
+import { SampleMethod, ServiceType } from '../service.interface';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsEnum } from 'class-validator';
+import { ServiceTypeEnum, SampleMethodEnum } from '../service.enum';
+import { Type } from 'class-transformer';
 
 export default class UpdateServiceDto {
     constructor(
@@ -60,4 +60,3 @@ export default class UpdateServiceDto {
     @IsOptional()
     image_url?: string;
 }
-

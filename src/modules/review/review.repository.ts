@@ -15,11 +15,7 @@ export const getReviewById = async (id: string) => {
 };
 
 export const updateReview = async (id: string, updateData: Partial<IReview>, customer_id: string) => {
-    return await ReviewSchema.findOneAndUpdate(
-        { _id: id, customer_id },
-        updateData,
-        { new: true }
-    );
+    return await ReviewSchema.findOneAndUpdate({ _id: id, customer_id }, updateData, { new: true });
 };
 
 export const deleteReview = async (id: string) => {

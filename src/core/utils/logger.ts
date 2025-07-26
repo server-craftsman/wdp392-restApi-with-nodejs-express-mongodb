@@ -1,4 +1,4 @@
-import winston from "winston";
+import winston from 'winston';
 
 const logger: winston.Logger = winston.createLogger({
     // transports: [
@@ -11,7 +11,7 @@ const logger: winston.Logger = winston.createLogger({
 });
 
 // If we're not in production then log to the `console` with the format:
-if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV !== 'production') {
     // logger.add(
     //     new winston.transports.Console({
     //         format: winston.format.combine(winston.format.colorize({ all: true }), winston.format.simple()),

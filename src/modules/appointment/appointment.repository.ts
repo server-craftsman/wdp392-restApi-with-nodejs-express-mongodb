@@ -55,12 +55,7 @@ export default class AppointmentRepository {
             .populate('laboratory_technician_id', 'first_name last_name email phone_number');
     }
 
-    public async findWithPaginationAndPopulate(
-        query: any,
-        sort: any,
-        skip: number,
-        limit: number
-    ): Promise<IAppointment[]> {
+    public async findWithPaginationAndPopulate(query: any, sort: any, skip: number, limit: number): Promise<IAppointment[]> {
         return AppointmentSchema.find(query)
             .sort(sort)
             .skip(skip)
@@ -72,13 +67,9 @@ export default class AppointmentRepository {
             .populate('laboratory_technician_id', 'first_name last_name email phone_number');
     }
 
-    public async findByUserIdWithPagination(
-        userId: string,
-        skip: number,
-        limit: number,
-        sort: any = { created_at: -1 }
-    ): Promise<IAppointment[]> {
-        const appointments = await this.appointmentSchema.find({ user_id: userId })
+    public async findByUserIdWithPagination(userId: string, skip: number, limit: number, sort: any = { created_at: -1 }): Promise<IAppointment[]> {
+        const appointments = await this.appointmentSchema
+            .find({ user_id: userId })
             .sort(sort)
             .skip(skip)
             .limit(limit)
@@ -89,17 +80,12 @@ export default class AppointmentRepository {
         return appointments;
     }
 
-    public async findByStaffIdWithPagination(
-        staffId: string,
-        skip: number,
-        limit: number,
-        query: any = {},
-        sort: any = { created_at: -1 }
-    ): Promise<IAppointment[]> {
-        const appointments = await this.appointmentSchema.find({
-            staff_id: staffId,
-            ...query
-        })
+    public async findByStaffIdWithPagination(staffId: string, skip: number, limit: number, query: any = {}, sort: any = { created_at: -1 }): Promise<IAppointment[]> {
+        const appointments = await this.appointmentSchema
+            .find({
+                staff_id: staffId,
+                ...query,
+            })
             .sort(sort)
             .skip(skip)
             .limit(limit)
@@ -109,17 +95,12 @@ export default class AppointmentRepository {
         return appointments;
     }
 
-    public async findByLabTechIdWithPagination(
-        labTechId: string,
-        skip: number,
-        limit: number,
-        query: any = {},
-        sort: any = { created_at: -1 }
-    ): Promise<IAppointment[]> {
-        const appointments = await this.appointmentSchema.find({
-            laboratory_technician_id: labTechId,
-            ...query
-        })
+    public async findByLabTechIdWithPagination(labTechId: string, skip: number, limit: number, query: any = {}, sort: any = { created_at: -1 }): Promise<IAppointment[]> {
+        const appointments = await this.appointmentSchema
+            .find({
+                laboratory_technician_id: labTechId,
+                ...query,
+            })
             .sort(sort)
             .skip(skip)
             .limit(limit)
@@ -133,7 +114,7 @@ export default class AppointmentRepository {
     public async countAppointmentsByStaffAndSlot(staffId: string, slotId: string): Promise<number> {
         return AppointmentSchema.countDocuments({
             staff_id: staffId,
-            slot_id: slotId
+            slot_id: slotId,
         });
     }
 }

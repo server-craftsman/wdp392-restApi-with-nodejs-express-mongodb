@@ -1,7 +1,6 @@
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class UpdateReviewDto {
-
     @IsNotEmpty()
     @IsNumber()
     rating: number = 0;
@@ -13,4 +12,4 @@ export class UpdateReviewDto {
     @IsNotEmpty()
     @IsString()
     appointment_id: string = '';
-};
+}

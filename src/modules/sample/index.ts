@@ -25,5 +25,5 @@ export {
     SampleRepository,
     SampleRoute,
     SubmitSampleDto,
-    ReceiveSampleDto
-}; 
+    ReceiveSampleDto,
+};

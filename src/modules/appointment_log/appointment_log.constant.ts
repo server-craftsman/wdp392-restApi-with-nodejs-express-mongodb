@@ -7,5 +7,5 @@ export const AppointmentLogTypes = [
     AppointmentLogTypeEnum.SAMPLE_COLLECTED,
     AppointmentLogTypeEnum.TESTING,
     AppointmentLogTypeEnum.COMPLETED,
-    AppointmentLogTypeEnum.CANCELLED
+    AppointmentLogTypeEnum.CANCELLED,
 ];

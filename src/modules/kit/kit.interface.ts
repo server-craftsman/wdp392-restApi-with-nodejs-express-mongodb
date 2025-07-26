@@ -1,16 +1,9 @@
 import { Document, Schema } from 'mongoose';
 import { KitStatusEnum, KitTypeEnum } from './kit.enum';
 
-export type KitStatus =
-    KitStatusEnum.AVAILABLE |
-    KitStatusEnum.ASSIGNED |
-    KitStatusEnum.USED |
-    KitStatusEnum.RETURNED |
-    KitStatusEnum.DAMAGED;
+export type KitStatus = KitStatusEnum.AVAILABLE | KitStatusEnum.ASSIGNED | KitStatusEnum.USED | KitStatusEnum.RETURNED | KitStatusEnum.DAMAGED;
 
-export type KitType =
-    KitTypeEnum.REGULAR |
-    KitTypeEnum.ADMINISTRATIVE;
+export type KitType = KitTypeEnum.REGULAR | KitTypeEnum.ADMINISTRATIVE;
 
 export interface IKit extends Document {
     _id: string;
@@ -27,4 +20,4 @@ export interface IKit extends Document {
     agency_authority?: string; // Cơ quan thẩm quyền
     created_at: Date;
     updated_at: Date;
-} 
+}

@@ -58,10 +58,7 @@ export default class PaymentService {
 
             // Find the payment
             const payment = await this.paymentSchema.findOne({
-                $or: [
-                    { payment_no: payment_no },
-                    { payos_order_code: parseInt(payment_no) || 0 }
-                ]
+                $or: [{ payment_no: payment_no }, { payos_order_code: parseInt(payment_no) || 0 }],
             });
 
             if (!payment) {
@@ -117,7 +114,6 @@ export default class PaymentService {
 
                 console.log(`Payment webhook ${payment_no} processed successfully - stage: ${payment.payment_stage}`);
                 return { success: true, message: 'Payment webhook processed successfully' };
-
             } else if (status === TransactionStatusEnum.FAILED || status === 'CANCELLED') {
                 console.log(`Payment ${payment_no} failed/cancelled with status ${status}`);
 
@@ -130,7 +126,6 @@ export default class PaymentService {
 
                 console.log(`Payment webhook ${payment_no} processed - failure status recorded`);
                 return { success: true, message: 'Payment webhook processed - failure recorded' };
-
             } else {
                 console.log(`Payment ${payment_no} webhook received with unknown status: ${status}`);
 
@@ -140,7 +135,6 @@ export default class PaymentService {
 
                 return { success: true, message: `Webhook processed - status: ${status}` };
             }
-
         } catch (error) {
             console.error('PayOS Webhook processing error:', error);
             return { success: false, message: 'Internal webhook processing error' };
@@ -153,7 +147,11 @@ export default class PaymentService {
      * @param paymentData Payment data including method and appointment ID
      * @returns Payment details including checkout URL if PAY_OS is selected
      */
-    public async createAppointmentPayment(userId: string, paymentData: CreateAppointmentPaymentDto, userRole?: string): Promise<{
+    public async createAppointmentPayment(
+        userId: string,
+        paymentData: CreateAppointmentPaymentDto,
+        userRole?: string,
+    ): Promise<{
         payment_no: string;
         payment_method: string;
         status: string;
@@ -215,7 +213,7 @@ export default class PaymentService {
             const existingPayment = await this.paymentSchema.findOne({
                 appointment_id: paymentData.appointment_id,
                 payment_stage: stage,
-                status: PaymentStatusEnum.PENDING
+                status: PaymentStatusEnum.PENDING,
             });
 
             if (existingPayment) {
@@ -226,7 +224,7 @@ export default class PaymentService {
 
             // Get samples for this appointment
             const samples = await this.sampleService.getSamplesByAppointmentId(paymentData.appointment_id);
-            const sampleIds = samples.map(sample => sample._id.toString());
+            const sampleIds = samples.map((sample) => sample._id.toString());
 
             const payment = await this.paymentSchema.create({
                 appointment_id: paymentData.appointment_id,
@@ -276,7 +274,7 @@ export default class PaymentService {
                     description,
                     `${user.first_name || ''} ${user.last_name || ''}`.trim(),
                     user.email || '',
-                    user.phone_number ? user.phone_number.toString() : ''
+                    user.phone_number ? user.phone_number.toString() : '',
                 );
 
                 const payosWebId = checkoutUrl.split('/web/')[1];
@@ -286,14 +284,14 @@ export default class PaymentService {
                     {
                         payos_payment_url: checkoutUrl,
                         payos_order_code: orderCode,
-                        payos_web_id: payosWebId
+                        payos_web_id: payosWebId,
                     },
-                    { new: true }
+                    { new: true },
                 );
 
                 return {
                     ...result,
-                    checkout_url: checkoutUrl
+                    checkout_url: checkoutUrl,
                 };
             }
 
@@ -315,9 +313,9 @@ export default class PaymentService {
                 paymentId,
                 {
                     status: PaymentStatusEnum.COMPLETED,
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 },
-                { new: true }
+                { new: true },
             );
 
             if (payment) {
@@ -358,15 +356,12 @@ export default class PaymentService {
                 return; // Unknown stage, don't update
             }
 
-            await this.appointmentSchema.findByIdAndUpdate(
-                appointment._id,
-                {
-                    amount_paid: newAmountPaid,
-                    payment_stage: newPaymentStage,
-                    payment_status: newPaymentStatus,
-                    updated_at: new Date()
-                }
-            );
+            await this.appointmentSchema.findByIdAndUpdate(appointment._id, {
+                amount_paid: newAmountPaid,
+                payment_stage: newPaymentStage,
+                payment_status: newPaymentStatus,
+                updated_at: new Date(),
+            });
 
             console.log(`Appointment ${appointment._id} updated - Amount paid: ${newAmountPaid}, Stage: ${newPaymentStage}`);
         } catch (error) {
@@ -410,7 +405,7 @@ export default class PaymentService {
                     payment_status: payment.status,
                     payment_stage: payment.payment_stage,
                     appointment_id: payment.appointment_id || '',
-                    last_verified_at: new Date()
+                    last_verified_at: new Date(),
                 };
             }
 
@@ -420,11 +415,7 @@ export default class PaymentService {
                     console.log(`Checking PayOS status for order code: ${payment.payos_order_code}`);
 
                     const PayOS = require('@payos/node');
-                    const payosClient = new PayOS(
-                        process.env.PAYOS_CLIENT_ID,
-                        process.env.PAYOS_API_KEY,
-                        process.env.PAYOS_CHECKSUM_KEY
-                    );
+                    const payosClient = new PayOS(process.env.PAYOS_CLIENT_ID, process.env.PAYOS_API_KEY, process.env.PAYOS_CHECKSUM_KEY);
 
                     const payosResponse = await payosClient.getPaymentLinkInformation(payment.payos_order_code);
                     console.log(`PayOS API response:`, JSON.stringify(payosResponse, null, 2));
@@ -433,7 +424,7 @@ export default class PaymentService {
                     const updateData: any = {
                         payos_payment_status: payosResponse.status,
                         payos_payment_status_time: new Date(),
-                        updated_at: new Date()
+                        updated_at: new Date(),
                     };
 
                     if (payosResponse.transactions && payosResponse.transactions.length > 0) {
@@ -450,7 +441,7 @@ export default class PaymentService {
                         // Mark payment as completed
                         await this.paymentSchema.findByIdAndUpdate(payment._id, {
                             status: PaymentStatusEnum.COMPLETED,
-                            updated_at: new Date()
+                            updated_at: new Date(),
                         });
 
                         payment.status = PaymentStatusEnum.COMPLETED;
@@ -475,9 +466,8 @@ export default class PaymentService {
                         payment_stage: payment.payment_stage,
                         appointment_id: payment.appointment_id || '',
                         payos_status: payosResponse.status,
-                        last_verified_at: new Date()
+                        last_verified_at: new Date(),
                     };
-
                 } catch (payosError: any) {
                     console.error(`PayOS API error for payment ${paymentIdentifier}:`, payosError.message);
 
@@ -487,7 +477,7 @@ export default class PaymentService {
                         payment_stage: payment.payment_stage,
                         appointment_id: payment.appointment_id || '',
                         payos_status: 'API_ERROR',
-                        last_verified_at: new Date()
+                        last_verified_at: new Date(),
                     };
                 }
             }
@@ -498,9 +488,8 @@ export default class PaymentService {
                 payment_status: payment.status,
                 payment_stage: payment.payment_stage,
                 appointment_id: payment.appointment_id || '',
-                last_verified_at: new Date()
+                last_verified_at: new Date(),
             };
-
         } catch (error) {
             console.error(`Error verifying payment ${paymentIdentifier}:`, error);
             if (error instanceof HttpException) {
@@ -521,11 +510,8 @@ export default class PaymentService {
     }> {
         try {
             const payment = await this.paymentSchema.findOne({
-                $or: [
-                    { payment_no: paymentNo },
-                    { order_code: paymentNo }
-                ],
-                status: PaymentStatusEnum.PENDING
+                $or: [{ payment_no: paymentNo }, { order_code: paymentNo }],
+                status: PaymentStatusEnum.PENDING,
             });
 
             if (!payment) {
@@ -538,11 +524,7 @@ export default class PaymentService {
             await payment.save();
 
             // Update appointment payment status to failed
-            const appointment = await this.appointmentSchema.findByIdAndUpdate(
-                payment.appointment_id,
-                { payment_status: AppointmentPaymentStatusEnum.FAILED },
-                { new: true }
-            );
+            const appointment = await this.appointmentSchema.findByIdAndUpdate(payment.appointment_id, { payment_status: AppointmentPaymentStatusEnum.FAILED }, { new: true });
 
             // Send payment cancelled email
             try {
@@ -555,7 +537,7 @@ export default class PaymentService {
 
             return {
                 success: true,
-                message: 'Payment cancelled successfully'
+                message: 'Payment cancelled successfully',
             };
         } catch (error) {
             if (error instanceof HttpException) {
@@ -682,7 +664,7 @@ export default class PaymentService {
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
                 subject: `${stageText} Initiated - Bloodline DNA Testing Service`,
-                html: createNotificationEmailTemplate(userName, title, message)
+                html: createNotificationEmailTemplate(userName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -770,7 +752,7 @@ export default class PaymentService {
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
                 subject: `${stageText} Successful - Bloodline DNA Testing Service`,
-                html: createNotificationEmailTemplate(userName, title, message)
+                html: createNotificationEmailTemplate(userName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -827,7 +809,7 @@ export default class PaymentService {
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
                 subject: 'Payment Failed - Bloodline DNA Testing Service',
-                html: createNotificationEmailTemplate(userName, title, message)
+                html: createNotificationEmailTemplate(userName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -884,7 +866,7 @@ export default class PaymentService {
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
                 subject: 'Payment Cancelled - Bloodline DNA Testing Service',
-                html: createNotificationEmailTemplate(userName, title, message)
+                html: createNotificationEmailTemplate(userName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -908,7 +890,7 @@ export default class PaymentService {
             payment_method: PaymentMethodEnum.GOVERNMENT,
             status: PaymentStatusEnum.COMPLETED,
             created_at: new Date(),
-            updated_at: new Date()
+            updated_at: new Date(),
         });
     }
 
@@ -918,7 +900,7 @@ export default class PaymentService {
     public async createCertificatePayment(
         certificateRequestId: string,
         customerId: string,
-        amount: number = 100000 // Default 100k VND for certificate
+        amount: number = 100000, // Default 100k VND for certificate
     ): Promise<any> {
         try {
             // Generate payment number
@@ -935,8 +917,8 @@ export default class PaymentService {
                 status: PaymentStatusEnum.PENDING,
                 metadata: {
                     certificate_request_id: certificateRequestId,
-                    fee_type: 'certificate_reissuance'
-                }
+                    fee_type: 'certificate_reissuance',
+                },
             };
 
             const payment = await PaymentSchema.create(paymentData);
@@ -948,14 +930,14 @@ export default class PaymentService {
                 `Phí phát giấy kết quả lần 2+`,
                 `Customer ${customerId}`,
                 'customer@example.com', // Placeholder email, replace with actual customer email
-                '0000000000' // Placeholder phone number, replace with actual customer phone number
+                '0000000000', // Placeholder phone number, replace with actual customer phone number
             );
 
             // Update payment with PayOS details
             await PaymentSchema.findByIdAndUpdate(payment._id, {
                 payos_order_code: payOSResponse.orderCode,
                 payos_payment_url: payOSResponse.checkoutUrl,
-                updated_at: new Date()
+                updated_at: new Date(),
             });
 
             return {
@@ -964,14 +946,11 @@ export default class PaymentService {
                 amount: amount,
                 payos_order_code: payOSResponse.orderCode,
                 checkout_url: payOSResponse.checkoutUrl,
-                description: paymentData.description
+                description: paymentData.description,
             };
         } catch (error) {
             console.error('Error creating certificate payment:', error);
-            throw new HttpException(
-                HttpStatus.InternalServerError,
-                'Failed to create certificate payment'
-            );
+            throw new HttpException(HttpStatus.InternalServerError, 'Failed to create certificate payment');
         }
     }
 
@@ -997,12 +976,10 @@ export default class PaymentService {
                     sample_id: null, // No specific sample
                     receipt_number: receiptNumber,
                     payos_transaction_id: payment.payos_payment_id || null,
-                    payos_payment_status: payment.payment_method === PaymentMethodEnum.CASH
-                        ? TransactionStatusEnum.SUCCESS
-                        : TransactionStatusEnum.PENDING,
+                    payos_payment_status: payment.payment_method === PaymentMethodEnum.CASH ? TransactionStatusEnum.SUCCESS : TransactionStatusEnum.PENDING,
                     transaction_date: new Date(),
                     created_at: new Date(),
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 };
 
                 console.log(`Creating appointment-level transaction with data:`, transactionData);
@@ -1025,12 +1002,10 @@ export default class PaymentService {
                     sample_id: sampleId,
                     receipt_number: receiptNumber,
                     payos_transaction_id: payment.payos_payment_id || null,
-                    payos_payment_status: payment.payment_method === PaymentMethodEnum.CASH
-                        ? TransactionStatusEnum.SUCCESS
-                        : TransactionStatusEnum.PENDING,
+                    payos_payment_status: payment.payment_method === PaymentMethodEnum.CASH ? TransactionStatusEnum.SUCCESS : TransactionStatusEnum.PENDING,
                     transaction_date: new Date(),
                     created_at: new Date(),
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 };
 
                 console.log(`Creating sample transaction ${index + 1}/${payment.sample_ids.length} with data:`, transactionData);
@@ -1055,7 +1030,7 @@ export default class PaymentService {
                 payment_id: payment._id,
                 payment_no: payment.payment_no,
                 sample_ids: payment.sample_ids,
-                appointment_id: appointment._id
+                appointment_id: appointment._id,
             });
             // Don't throw error to avoid breaking payment flow, but log it thoroughly
         }
@@ -1069,17 +1044,14 @@ export default class PaymentService {
             const updateData: any = {
                 payos_payment_status: newStatus,
                 payos_payment_status_time: new Date(),
-                updated_at: new Date()
+                updated_at: new Date(),
             };
 
             if (newStatus === TransactionStatusEnum.SUCCESS) {
                 updateData.payos_webhook_received_at = new Date();
             }
 
-            const result = await this.transactionSchema.updateMany(
-                { payment_id: payment._id },
-                updateData
-            );
+            const result = await this.transactionSchema.updateMany({ payment_id: payment._id }, updateData);
 
             console.log(`Updated ${result.modifiedCount} transaction records for payment ${payment.payment_no} to status ${newStatus}`);
         } catch (error) {
@@ -1092,11 +1064,7 @@ export default class PaymentService {
      */
     public async getPaymentTransactions(paymentId: string): Promise<any[]> {
         try {
-            const transactions = await this.transactionSchema
-                .find({ payment_id: paymentId })
-                .populate('sample_id', 'sample_code sample_type')
-                .populate('customer_id', 'first_name last_name email')
-                .sort({ created_at: 1 });
+            const transactions = await this.transactionSchema.find({ payment_id: paymentId }).populate('sample_id', 'sample_code sample_type').populate('customer_id', 'first_name last_name email').sort({ created_at: 1 });
 
             return transactions;
         } catch (error) {
@@ -1112,7 +1080,7 @@ export default class PaymentService {
         try {
             // First get all payments for this appointment
             const payments = await this.paymentSchema.find({ appointment_id: appointmentId });
-            const paymentIds = payments.map(p => p._id);
+            const paymentIds = payments.map((p) => p._id);
 
             // Then get all transactions for these payments
             const transactions = await this.transactionSchema
@@ -1141,12 +1109,12 @@ export default class PaymentService {
                 payment_stage: PaymentStageEnum.DEPOSIT,
                 payment_method: PaymentMethodEnum.CASH,
                 payos_payment_id: null,
-                sample_ids: [] // Test with empty sample_ids
+                sample_ids: [], // Test with empty sample_ids
             };
 
             const mockAppointment = {
                 _id: new Date().getTime().toString(), // Simple mock ID
-                user_id: new Date().getTime().toString()
+                user_id: new Date().getTime().toString(),
             };
 
             console.log('Testing transaction creation with mock data...');
@@ -1161,8 +1129,8 @@ export default class PaymentService {
                 message: 'Transaction creation test completed successfully',
                 details: {
                     payment: mockPayment,
-                    appointment: mockAppointment
-                }
+                    appointment: mockAppointment,
+                },
             };
         } catch (error: any) {
             console.error('Transaction creation test failed:', error);
@@ -1171,8 +1139,8 @@ export default class PaymentService {
                 message: 'Transaction creation test failed',
                 details: {
                     error: error.message,
-                    stack: error.stack
-                }
+                    stack: error.stack,
+                },
             };
         }
     }

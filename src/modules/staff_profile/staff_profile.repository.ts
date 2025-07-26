@@ -31,18 +31,10 @@ export default class StaffProfileRepository {
     }
 
     public async findWithPopulate(query: any, sort: any = {}, skip = 0, limit = 10): Promise<IStaffProfile[]> {
-        return StaffProfileSchema.find(query)
-            .sort(sort)
-            .skip(skip)
-            .limit(limit)
-            .populate('address', 'street ward district city country')
-            .populate('user_id', 'first_name last_name email')
-            .populate('department_id', 'name');
+        return StaffProfileSchema.find(query).sort(sort).skip(skip).limit(limit).populate('address', 'street ward district city country').populate('user_id', 'first_name last_name email').populate('department_id', 'name');
     }
 
     public async findByIdWithPopulate(id: string): Promise<IStaffProfile | null> {
-        return StaffProfileSchema.findById(id)
-            .populate('user_id', 'first_name last_name email')
-            .populate('department_id', 'name');
+        return StaffProfileSchema.findById(id).populate('user_id', 'first_name last_name email').populate('department_id', 'name');
     }
 }

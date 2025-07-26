@@ -11,12 +11,12 @@ const KitSchemaEntity = new Schema({
         type: String,
         enum: Object.values(KitTypeEnum),
         required: true,
-        default: KitTypeEnum.REGULAR
+        default: KitTypeEnum.REGULAR,
     },
     status: {
         type: String,
         enum: KitStatuses,
-        required: true
+        required: true,
     },
     appointment_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.APPOINTMENT, required: false },
     assigned_date: { type: Date },
@@ -27,9 +27,9 @@ const KitSchemaEntity = new Schema({
     administrative_case_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.ADMINISTRATIVE_CASE, required: false },
     agency_authority: { type: String }, // Cơ quan thẩm quyền
     created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
+    updated_at: { type: Date, default: Date.now },
 });
 
 // Create and export the model with explicit typing
 const KitSchema = mongoose.model<IKit>(COLLECTION_NAME.KIT, KitSchemaEntity);
-export default KitSchema; 
+export default KitSchema;

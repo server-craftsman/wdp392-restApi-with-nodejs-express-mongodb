@@ -6,14 +6,4 @@ import StaffProfileController from './staff_profile.controller';
 import StaffProfileService from './staff_profile.service';
 import StaffProfileRoute from './staff_profile.route';
 
-export {
-    StaffProfileSchema,
-    IStaffProfile,
-    StaffStatus,
-    IQualification,
-    StaffStatusEnum,
-    StaffStatuses,
-    StaffProfileController,
-    StaffProfileService,
-    StaffProfileRoute
-}; 
+export { StaffProfileSchema, IStaffProfile, StaffStatus, IQualification, StaffStatusEnum, StaffStatuses, StaffProfileController, StaffProfileService, StaffProfileRoute };

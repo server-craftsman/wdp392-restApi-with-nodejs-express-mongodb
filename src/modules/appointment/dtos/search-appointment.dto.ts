@@ -41,4 +41,4 @@ export class SearchAppointmentDto {
     @IsOptional()
     @IsString()
     search_term?: string;
-} 
+}

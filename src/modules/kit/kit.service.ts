@@ -10,7 +10,7 @@ import { SearchKitDto } from './dtos/searchKit.dto';
 import { ReturnKitDto } from './dtos/returnKit.dto';
 import { SearchPaginationResponseModel } from '../../core/models/searchPagination.model';
 import { PaginationResponseModel } from '../../core/models/pagination.model';
-import { format, isValid, parse } from "date-fns";
+import { format, isValid, parse } from 'date-fns';
 
 export default class KitService {
     private kitRepository = new KitRepository();
@@ -18,16 +18,16 @@ export default class KitService {
     // Hàm tự động sinh mã kit
     private async generateKitCode(): Promise<string> {
         const today = new Date();
-        const dateStr = format(today, "yyyyMMdd"); // e.g., 20250528
+        const dateStr = format(today, 'yyyyMMdd'); // e.g., 20250528
 
         // Tìm số lượng kit đã tạo trong ngày để xác định số thứ tự
         const kitsToday = await this.kitRepository.countDocuments({
-            code: { $regex: `^KIT-${dateStr}-` }
+            code: { $regex: `^KIT-${dateStr}-` },
         });
 
-        const sequence = (kitsToday + 1).toString().padStart(3, "0"); // e.g., 001, 002, ...
+        const sequence = (kitsToday + 1).toString().padStart(3, '0'); // e.g., 001, 002, ...
         if (parseInt(sequence) > 999) {
-            throw new HttpException(HttpStatus.Conflict, "Maximum kits for today reached (999)");
+            throw new HttpException(HttpStatus.Conflict, 'Maximum kits for today reached (999)');
         }
 
         return `KIT-${dateStr}-${sequence}`; // e.g., KIT-20250528-001
@@ -42,14 +42,14 @@ export default class KitService {
         }
 
         // Kiểm tra phần ngày
-        const dateStr = code.split("-")[1]; // e.g., 20250528
-        const parsedDate = parse(dateStr, "yyyyMMdd", new Date());
+        const dateStr = code.split('-')[1]; // e.g., 20250528
+        const parsedDate = parse(dateStr, 'yyyyMMdd', new Date());
         if (!isValid(parsedDate)) {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid date');
         }
 
         // Kiểm tra số thứ tự
-        const sequence = parseInt(code.split("-")[2], 10); // e.g., 001 -> 1
+        const sequence = parseInt(code.split('-')[2], 10); // e.g., 001 -> 1
         if (sequence < 1 || sequence > 999) {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid sequence');
         }
@@ -81,7 +81,7 @@ export default class KitService {
                 code,
                 status: KitStatusEnum.AVAILABLE,
                 created_at: new Date(),
-                updated_at: new Date()
+                updated_at: new Date(),
             };
 
             // Create kit in database
@@ -162,16 +162,17 @@ export default class KitService {
             const skip = (pageNum - 1) * pageSize; // skip: bỏ qua bao nhiêu dòng
             const limit = pageSize; // limit: lấy bao nhiêu dòng
 
-            const [kits, totalCount] = await Promise.all([ // Promise.all: chạy song song các promise
+            const [kits, totalCount] = await Promise.all([
+                // Promise.all: chạy song song các promise
                 this.kitRepository.findWithPopulate(query, { created_at: -1 }, skip, limit), // findWithPopulate: lấy dữ liệu và populate dữ liệu
-                this.kitRepository.countDocuments(query) // countDocuments: đếm số dòng
+                this.kitRepository.countDocuments(query), // countDocuments: đếm số dòng
             ]);
 
             const paginationInfo = new PaginationResponseModel(
                 pageNum,
                 pageSize,
                 totalCount,
-                Math.ceil(totalCount / pageSize) // Math.ceil: làm tròn lên
+                Math.ceil(totalCount / pageSize), // Math.ceil: làm tròn lên
             );
 
             return new SearchPaginationResponseModel<IKit>(kits, paginationInfo); // trả về dữ liệu và phân trang
@@ -208,9 +209,9 @@ export default class KitService {
             kitId,
             {
                 ...kitData,
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
 
         if (!updatedKit) {
@@ -234,10 +235,7 @@ export default class KitService {
         }
 
         if (kit.status === KitStatusEnum.ASSIGNED || kit.status === KitStatusEnum.USED) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                'Cannot delete kit that is currently assigned or in use'
-            );
+            throw new HttpException(HttpStatus.BadRequest, 'Cannot delete kit that is currently assigned or in use');
         }
 
         await this.kitRepository.findByIdAndUpdate(kitId, { status: KitStatusEnum.DAMAGED });
@@ -264,9 +262,9 @@ export default class KitService {
             kitId,
             {
                 status,
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
 
         if (!updatedKit) {
@@ -304,9 +302,9 @@ export default class KitService {
                 appointment_id: appointmentId as any,
                 assigned_to_user_id: technicianId as any,
                 assigned_date: new Date(),
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
 
         if (!updatedKit) {
@@ -330,10 +328,7 @@ export default class KitService {
         }
 
         if (kit.status !== KitStatusEnum.ASSIGNED && kit.status !== KitStatusEnum.USED) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                'Only assigned or used kits can be returned'
-            );
+            throw new HttpException(HttpStatus.BadRequest, 'Only assigned or used kits can be returned');
         }
 
         const updatedKit = await this.kitRepository.findByIdAndUpdate(
@@ -342,9 +337,9 @@ export default class KitService {
                 status: KitStatusEnum.RETURNED,
                 return_date: new Date(),
                 notes,
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
 
         if (!updatedKit) {
@@ -362,7 +357,7 @@ export default class KitService {
         return {
             pageNum: parseInt(pageNum),
             pageSize: parseInt(pageSize),
-            ...rest
+            ...rest,
         };
     }
-} 
+}

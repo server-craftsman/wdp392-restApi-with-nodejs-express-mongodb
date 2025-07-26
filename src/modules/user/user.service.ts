@@ -4,14 +4,7 @@ import { HttpStatus } from '../../core/enums';
 import { HttpException } from '../../core/exceptions';
 import { IError } from '../../core/interfaces';
 import { SearchPaginationResponseModel } from '../../core/models';
-import {
-    checkValidUrl,
-    createTokenVerifiedUser,
-    encodePasswordUserNormal,
-    isEmptyObject,
-    sendMail,
-    createVerificationEmailTemplate
-} from '../../core/utils';
+import { checkValidUrl, createTokenVerifiedUser, encodePasswordUserNormal, isEmptyObject, sendMail, createVerificationEmailTemplate } from '../../core/utils';
 import { uploadFileToS3, s3Folders } from '../../core/utils/s3Upload';
 import ChangePasswordDto from './dtos/changePassword.dto';
 import ChangeRoleDto from './dtos/changeRole.dto';
@@ -35,12 +28,7 @@ export default class UserService {
     public userSchema = UserSchema;
     // public subscriptionSchema = SubscriptionSchema;
 
-    public async createUser(
-        model: RegisterDto,
-        isGoogle = false,
-        isRegister = true,
-        avatarFile?: Express.Multer.File
-    ): Promise<IUser> {
+    public async createUser(model: RegisterDto, isGoogle = false, isRegister = true, avatarFile?: Express.Multer.File): Promise<IUser> {
         if (isEmptyObject(model)) {
             throw new HttpException(HttpStatus.BadRequest, 'Model data is empty');
         }
@@ -56,7 +44,7 @@ export default class UserService {
                 ward: addressObj.ward || '',
                 district: addressObj.district || '',
                 city: addressObj.city || '',
-                country: addressObj.country || 'Việt Nam'
+                country: addressObj.country || 'Việt Nam',
             },
             role: model.role || UserRoleEnum.CUSTOMER,
             google_id: model.google_id || '',
@@ -80,10 +68,7 @@ export default class UserService {
         }
 
         if (isRegister && newUser.role === UserRoleEnum.ADMIN) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                `You can only register with the Customer or Staff or Manager role!`,
-            );
+            throw new HttpException(HttpStatus.BadRequest, `You can only register with the Customer or Staff or Manager role!`);
         }
 
         // create a new user by google
@@ -91,10 +76,7 @@ export default class UserService {
             if (model.google_id) {
                 newUser = await this.formatUserByGoogle(model.google_id, newUser);
             } else {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'Field google_id via IdToken is empty, please send google_id!',
-                );
+                throw new HttpException(HttpStatus.BadRequest, 'Field google_id via IdToken is empty, please send google_id!');
             }
         }
 
@@ -135,7 +117,7 @@ export default class UserService {
                 toMail: newUser.email,
                 subject: subject,
                 content: content,
-                html: htmlContent
+                html: htmlContent,
             });
 
             if (!sendMailResult) {
@@ -159,22 +141,18 @@ export default class UserService {
 
         let query: any = {
             role: { $ne: UserRoleEnum.ADMIN },
-            is_deleted: is_deleted
+            is_deleted: is_deleted,
         };
 
         if (keyword) {
             const keywordValue = keyword.toLowerCase().trim();
-            query.$or = [
-                { email: { $regex: keywordValue, $options: 'i' } },
-                { first_name: { $regex: keywordValue, $options: 'i' } },
-                { last_name: { $regex: keywordValue, $options: 'i' } },
-            ];
+            query.$or = [{ email: { $regex: keywordValue, $options: 'i' } }, { first_name: { $regex: keywordValue, $options: 'i' } }, { last_name: { $regex: keywordValue, $options: 'i' } }];
         }
 
         // Handle role filtering with array support
         if (role && Array.isArray(role) && role.length > 0) {
             // Filter out 'all' role if present
-            const filteredRoles = role.filter(r => r !== UserRoleEnum.ALL);
+            const filteredRoles = role.filter((r) => r !== UserRoleEnum.ALL);
 
             // Only apply role filter if there are specific roles to filter by
             if (filteredRoles.length > 0) {
@@ -205,11 +183,7 @@ export default class UserService {
         return result;
     }
 
-    public async getUserById(
-        userId: string,
-        is_deletedPassword = true,
-        userData: DataStoredInToken = UserInfoInTokenDefault,
-    ): Promise<IUser & { administrative_cases?: any[] }> {
+    public async getUserById(userId: string, is_deletedPassword = true, userData: DataStoredInToken = UserInfoInTokenDefault): Promise<IUser & { administrative_cases?: any[] }> {
         const user = await this.userRepository.findUserByIdWithStaffProfile(userId);
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `Item is not exists.`);
@@ -228,11 +202,7 @@ export default class UserService {
         return user;
     }
 
-    public async updateUser(
-        userId: string,
-        model: UpdateUserDto,
-        avatarFile?: Express.Multer.File
-    ): Promise<IUser> {
+    public async updateUser(userId: string, model: UpdateUserDto, avatarFile?: Express.Multer.File): Promise<IUser> {
         if (isEmptyObject(model)) {
             throw new HttpException(HttpStatus.BadRequest, 'Model data is empty');
         }
@@ -484,27 +454,27 @@ export default class UserService {
             // Get users with STAFF or LABORATORY_TECHNICIAN role
             const users = await UserSchema.find({
                 role: { $in: [UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN] },
-                is_deleted: { $ne: true } // Exclude deleted users
-            }).select('_id first_name last_name email phone_number role').lean();
+                is_deleted: { $ne: true }, // Exclude deleted users
+            })
+                .select('_id first_name last_name email phone_number role')
+                .lean();
 
             if (!users || users.length === 0) {
                 return [];
             }
 
             // Get staff profiles for these users
-            const userIds = users.map(user => user._id);
+            const userIds = users.map((user) => user._id);
             const staffProfiles = await StaffProfileSchema.find({
                 user_id: { $in: userIds },
-                status: StaffStatusEnum.ACTIVE
-            }).lean().select('user_id status department');
+                status: StaffStatusEnum.ACTIVE,
+            })
+                .lean()
+                .select('user_id status department');
 
             // Combine user and profile information
-            const usersWithProfiles = users.map(user => {
-                const profile = staffProfiles.find(p =>
-                    p.user_id &&
-                    user._id &&
-                    p.user_id.toString() === user._id.toString()
-                );
+            const usersWithProfiles = users.map((user) => {
+                const profile = staffProfiles.find((p) => p.user_id && user._id && p.user_id.toString() === user._id.toString());
 
                 return {
                     _id: user._id,
@@ -513,10 +483,12 @@ export default class UserService {
                     email: user.email,
                     phone_number: user.phone_number,
                     role: user.role,
-                    staff_profile: profile ? {
-                        status: profile.status,
-                        department: profile.department_id
-                    } : null
+                    staff_profile: profile
+                        ? {
+                              status: profile.status,
+                              department: profile.department_id,
+                          }
+                        : null,
                 };
             });
 
@@ -576,8 +548,10 @@ export default class UserService {
             const customer = await UserSchema.findOne({
                 $or: searchConditions,
                 role: UserRoleEnum.CUSTOMER,
-                is_deleted: { $ne: true }
-            }).select('-password -verification_token -verification_token_expires -token_version').lean();
+                is_deleted: { $ne: true },
+            })
+                .select('-password -verification_token -verification_token_expires -token_version')
+                .lean();
 
             if (!customer) {
                 return null;
@@ -585,12 +559,14 @@ export default class UserService {
 
             // Get administrative cases for this customer
             const administrative_cases = await AdministrativeCaseSchema.find({
-                applicant_id: customer._id
-            }).select('case_number case_type status requesting_agency created_at').lean();
+                applicant_id: customer._id,
+            })
+                .select('case_number case_type status requesting_agency created_at')
+                .lean();
 
             return {
                 ...customer,
-                administrative_cases
+                administrative_cases,
             };
         } catch (error) {
             console.error('Error in searchCustomerByPhoneOrEmail:', error);

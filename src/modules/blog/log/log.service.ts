@@ -1,9 +1,9 @@
-import { HttpStatus } from "../../../core/enums";
-import { HttpException } from "../../../core/exceptions";
-import { SearchPaginationResponseModel } from "../../../core/models";
-import { ILog } from "./log.interface";
-import LogRepository from "./log.repository";
-import { CreateLogDto, LogSearchDto } from "./dtos/log.dto";
+import { HttpStatus } from '../../../core/enums';
+import { HttpException } from '../../../core/exceptions';
+import { SearchPaginationResponseModel } from '../../../core/models';
+import { ILog } from './log.interface';
+import LogRepository from './log.repository';
+import { CreateLogDto, LogSearchDto } from './dtos/log.dto';
 import { plainToInstance } from 'class-transformer';
 import { validateOrReject } from 'class-validator';
 
@@ -33,7 +33,7 @@ export default class LogService {
                 ...createLogDto,
                 created_at: createLogDto.created_at || new Date(),
                 updated_at: createLogDto.updated_at || new Date(),
-                is_deleted: createLogDto.is_deleted || false
+                is_deleted: createLogDto.is_deleted || false,
             };
 
             // Validate the DTO with more lenient approach
@@ -52,7 +52,7 @@ export default class LogService {
                     author_id: logData.author_id,
                     created_at: logData.created_at,
                     updated_at: logData.updated_at,
-                    is_deleted: logData.is_deleted
+                    is_deleted: logData.is_deleted,
                 };
 
                 console.log('LogService: Attempting to create log with minimal data:', JSON.stringify(minimalLogData, null, 2));
@@ -129,15 +129,12 @@ export default class LogService {
 
             const logs = await this.logRepository.getLogsWithPagination(query, skip, pageSize);
 
-            return new SearchPaginationResponseModel<ILog>(
-                logs,
-                {
-                    pageNum,
-                    pageSize,
-                    totalItems,
-                    totalPages
-                }
-            );
+            return new SearchPaginationResponseModel<ILog>(logs, {
+                pageNum,
+                pageSize,
+                totalItems,
+                totalPages,
+            });
         } catch (error) {
             throw new HttpException(HttpStatus.InternalServerError, 'Error searching blog logs');
         }

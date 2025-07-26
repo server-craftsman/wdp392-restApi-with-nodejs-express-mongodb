@@ -15,7 +15,7 @@ export default class DashboardService {
             SampleSchema.countDocuments({}),
             ResultSchema.countDocuments({}),
             PaymentSchema.countDocuments({}),
-            this.getTotalRevenue()
+            this.getTotalRevenue(),
         ]);
 
         return {
@@ -24,15 +24,16 @@ export default class DashboardService {
             samples,
             results,
             payments,
-            revenue
+            revenue,
         };
     }
 
     // Phương thức tính tổng doanh thu từ các giao dịch đã hoàn thành
     public async getTotalRevenue(): Promise<number> {
-        const res = await PaymentSchema.aggregate([ // aggregation để truy vấn dữ liệu - nhóm tất cả và tính tổng
+        const res = await PaymentSchema.aggregate([
+            // aggregation để truy vấn dữ liệu - nhóm tất cả và tính tổng
             { $match: { status: PaymentStatusEnum.COMPLETED } },
-            { $group: { _id: null, total: { $sum: '$amount' } } } // Nhóm tất cả và tính tổng amount
+            { $group: { _id: null, total: { $sum: '$amount' } } }, // Nhóm tất cả và tính tổng amount
         ]);
         return res[0]?.total || 0;
     }
@@ -58,16 +59,16 @@ export default class DashboardService {
                 $group: {
                     _id: {
                         // Chuyển đổi ngày thành chuỗi định dạng YYYY-MM-DD
-                        $dateToString: { format: '%Y-%m-%d', date: '$created_at' }
+                        $dateToString: { format: '%Y-%m-%d', date: '$created_at' },
                     },
                     // Tính tổng tiền trong ngày
                     total: { $sum: '$amount' },
                     // Đếm số giao dịch trong ngày
-                    count: { $sum: 1 }
-                }
+                    count: { $sum: 1 },
+                },
             },
             // Sắp xếp theo ngày tăng dần
-            { $sort: { _id: 1 } }
+            { $sort: { _id: 1 } },
         ]);
         return data;
     }
@@ -75,10 +76,11 @@ export default class DashboardService {
     // Phương thức đếm số lượng giao dịch theo từng trạng thái
     public async getPaymentStatusCounts() {
         const aggregation = await PaymentSchema.aggregate([
-            { $group: { _id: '$status', count: { $sum: 1 } } } // nhóm theo trạng thái và đếm số lượng
+            { $group: { _id: '$status', count: { $sum: 1 } } }, // nhóm theo trạng thái và đếm số lượng
         ]);
         const result: Record<string, number> = {}; // tạo object để lưu kết quả
-        aggregation.forEach((item) => { // duyệt qua kết quả aggregation và gán vào object
+        aggregation.forEach((item) => {
+            // duyệt qua kết quả aggregation và gán vào object
             result[item._id] = item.count; // gán số lượng theo từng trạng thái
         });
         return result;
@@ -92,11 +94,11 @@ export default class DashboardService {
             // Lọc các cuộc hẹn có staff_id trùng với userId
             { $match: { staff_id: objectId } },
             // Nhóm theo trạng thái cuộc hẹn và đếm số lượng
-            { $group: { _id: '$status', count: { $sum: 1 } } }
+            { $group: { _id: '$status', count: { $sum: 1 } } },
         ]);
         // Khởi tạo object kết quả với tổng số cuộc hẹn được phân công
         const result: Record<string, number> = {
-            total_assigned: 0
+            total_assigned: 0,
         } as any;
         // Duyệt qua kết quả và tính tổng
         aggregation.forEach((item) => {
@@ -116,11 +118,11 @@ export default class DashboardService {
             // Lọc các cuộc hẹn có laboratory_technician_id trùng với userId
             { $match: { laboratory_technician_id: objectId } },
             // Nhóm theo trạng thái cuộc hẹn và đếm số lượng
-            { $group: { _id: '$status', count: { $sum: 1 } } }
+            { $group: { _id: '$status', count: { $sum: 1 } } },
         ]);
         // Khởi tạo object kết quả với tổng số cuộc hẹn được phân công
         const result: Record<string, number> = {
-            total_assigned: 0
+            total_assigned: 0,
         } as any;
         // Duyệt qua kết quả và tính tổng
         aggregation.forEach((item) => {
@@ -131,4 +133,4 @@ export default class DashboardService {
         });
         return result;
     }
-} 
+}

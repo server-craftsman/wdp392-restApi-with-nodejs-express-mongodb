@@ -20,7 +20,7 @@ export const formatResponse = <T>(data: T, success: boolean = true, message?: st
     return {
         success,
         data,
-        message
+        message,
     };
 };
 

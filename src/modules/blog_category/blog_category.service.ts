@@ -1,12 +1,12 @@
-import mongoose, { Schema } from "mongoose";
-import { IBlogCategory } from "./blog_category.interface";
-import { HttpStatus } from "../../core/enums";
-import { HttpException } from "../../core/exceptions";
-import { SearchPaginationResponseModel } from "../../core/models";
-import { isEmptyObject } from "../../core/utils";
-import { UserRoleEnum, UserSchema } from "../user";
-import BlogCategoryRepository from "./blog_category.repository";
-import { BlogCategorySearchDto, CreateBlogCategoryDto, UpdateBlogCategoryDto } from "./dtos/blog_category.dto";
+import mongoose, { Schema } from 'mongoose';
+import { IBlogCategory } from './blog_category.interface';
+import { HttpStatus } from '../../core/enums';
+import { HttpException } from '../../core/exceptions';
+import { SearchPaginationResponseModel } from '../../core/models';
+import { isEmptyObject } from '../../core/utils';
+import { UserRoleEnum, UserSchema } from '../user';
+import BlogCategoryRepository from './blog_category.repository';
+import { BlogCategorySearchDto, CreateBlogCategoryDto, UpdateBlogCategoryDto } from './dtos/blog_category.dto';
 
 export default class BlogCategoryService {
     private blogCategoryRepository = new BlogCategoryRepository();
@@ -16,7 +16,8 @@ export default class BlogCategoryService {
             const blogCategory = await this.blogCategoryRepository.createBlogCategory(createBlogCategoryDto as unknown as IBlogCategory);
             return blogCategory;
         } catch (error: any) {
-            if (error.code === 11000) { // Duplicate key error
+            if (error.code === 11000) {
+                // Duplicate key error
                 throw new HttpException(HttpStatus.Conflict, 'Blog category with this name already exists');
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error creating blog category');
@@ -34,7 +35,8 @@ export default class BlogCategoryService {
             if (error instanceof HttpException) {
                 throw error;
             }
-            if (error.code === 11000) { // Duplicate key error
+            if (error.code === 11000) {
+                // Duplicate key error
                 throw new HttpException(HttpStatus.Conflict, 'Blog category with this name already exists');
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error updating blog category');
@@ -87,25 +89,20 @@ export default class BlogCategoryService {
                 query.name = { $regex: searchParams.name, $options: 'i' };
             }
 
-            const totalItems = await this.blogCategoryRepository.getBlogCategoriesWithPagination(query).then(categories => categories.length);
+            const totalItems = await this.blogCategoryRepository.getBlogCategoriesWithPagination(query).then((categories) => categories.length);
             const totalPages = Math.ceil(totalItems / pageSize);
             const skip = (pageNum - 1) * pageSize;
 
-            const blogCategories = await this.blogCategoryRepository.getBlogCategoriesWithPagination(query)
-                .then(categories => categories.slice(skip, skip + pageSize));
+            const blogCategories = await this.blogCategoryRepository.getBlogCategoriesWithPagination(query).then((categories) => categories.slice(skip, skip + pageSize));
 
-            return new SearchPaginationResponseModel<IBlogCategory>(
-                blogCategories,
-                {
-                    pageNum,
-                    pageSize,
-                    totalItems,
-                    totalPages
-                }
-            );
+            return new SearchPaginationResponseModel<IBlogCategory>(blogCategories, {
+                pageNum,
+                pageSize,
+                totalItems,
+                totalPages,
+            });
         } catch (error) {
             throw new HttpException(HttpStatus.InternalServerError, 'Error searching blog categories');
         }
     }
 }
-

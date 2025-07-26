@@ -1,6 +1,6 @@
 export const SETTING = {
     id: '123456789',
-}
+};
 
 export const PAGINATION = {
     pageNum: 1,

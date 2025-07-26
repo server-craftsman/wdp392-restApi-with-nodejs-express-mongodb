@@ -1,15 +1,9 @@
 import { Document, Schema } from 'mongoose';
 import { PaymentMethodEnum, PaymentStatusEnum, PaymentStageEnum } from './payment.enum';
 
-export type PaymentMethod =
-    PaymentMethodEnum.CASH |
-    PaymentMethodEnum.PAYOS;
+export type PaymentMethod = PaymentMethodEnum.CASH | PaymentMethodEnum.PAYOS;
 
-export type PaymentStatus =
-    PaymentStatusEnum.PENDING |
-    PaymentStatusEnum.COMPLETED |
-    PaymentStatusEnum.FAILED |
-    PaymentStatusEnum.CANCELLED;
+export type PaymentStatus = PaymentStatusEnum.PENDING | PaymentStatusEnum.COMPLETED | PaymentStatusEnum.FAILED | PaymentStatusEnum.CANCELLED;
 
 export type PaymentStage = PaymentStageEnum.DEPOSIT | PaymentStageEnum.REMAINING;
 
@@ -46,4 +40,4 @@ export interface IPayment extends Document {
 
     created_at: Date;
     updated_at: Date;
-} 
+}

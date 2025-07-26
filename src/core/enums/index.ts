@@ -1,3 +1,3 @@
-import { HttpStatus } from "./http.enum";
+import { HttpStatus } from './http.enum';
 
 export { HttpStatus };

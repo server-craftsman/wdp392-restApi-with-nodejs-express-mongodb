@@ -26,92 +26,42 @@ export default class UserRoute implements IRoute {
         this.router.post(API_PATH.GENERATE_USERS, this.userController.generateUser);
 
         // POST domain:/api/users -> Register normal user
-        this.router.post(
-            this.path,
-            uploadSingleFile('avatar_image', false),
-            validationMiddleware(RegisterDto),
-            this.userController.register
-        );
+        this.router.post(this.path, uploadSingleFile('avatar_image', false), validationMiddleware(RegisterDto), this.userController.register);
 
         // POST domain:/api/users/google -> Register google user
         this.router.post(API_PATH.USERS_GOOGLE, this.userController.register);
 
         // POST domain:/api/users -> Create normal user
-        this.router.post(
-            API_PATH.CREATE_USERS,
-            authMiddleWare([UserRoleEnum.ADMIN]),
-            uploadSingleFile('avatar_image', false),
-            validationMiddleware(RegisterDto),
-            this.userController.register,
-        );
+        this.router.post(API_PATH.CREATE_USERS, authMiddleWare([UserRoleEnum.ADMIN]), uploadSingleFile('avatar_image', false), validationMiddleware(RegisterDto), this.userController.register);
 
         // POST domain:/api/users/search -> Get all users includes params: keyword, status, role
-        this.router.post(
-            API_PATH.SEARCH_USERS,
-            authMiddleWare([UserRoleEnum.ADMIN]),
-            validationMiddleware(SearchPaginationUserDto),
-            this.userController.getUsers,
-        );
+        this.router.post(API_PATH.SEARCH_USERS, authMiddleWare([UserRoleEnum.ADMIN]), validationMiddleware(SearchPaginationUserDto), this.userController.getUsers);
 
         // PUT domain:/api/users/review-profile-account -> Review profile account
-        this.router.put(
-            API_PATH.REVIEW_PROFILE_ACCOUNT,
-            authMiddleWare([UserRoleEnum.ADMIN]),
-            validationMiddleware(ReviewProfileDto),
-            this.userController.reviewProfileAccount,
-        );
+        this.router.put(API_PATH.REVIEW_PROFILE_ACCOUNT, authMiddleWare([UserRoleEnum.ADMIN]), validationMiddleware(ReviewProfileDto), this.userController.reviewProfileAccount);
 
         // GET: domain:/api/users/staff-lab-tech -> Get staff and laboratory technician users
-        this.router.get(
-            `${this.path}/staff-lab-tech`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.userController.getStaffAndLabTechUsers
-        );
+        this.router.get(`${this.path}/staff-lab-tech`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.userController.getStaffAndLabTechUsers);
 
         // Search customer by phone or email (for staff convenience)
-        this.router.get(
-            `${this.path}/search-customer`,
-            authMiddleWare([UserRoleEnum.STAFF, UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]),
-            this.userController.searchCustomerByPhoneOrEmail
-        );
+        this.router.get(`${this.path}/search-customer`, authMiddleWare([UserRoleEnum.STAFF, UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]), this.userController.searchCustomerByPhoneOrEmail);
 
         // GET domain:/api/users/:id -> Get user by id
         this.router.get(`${this.path}/:id`, authMiddleWare([], true), this.userController.getUserById);
 
         // PUT domain:/api/users/:id -> Update user
-        this.router.put(
-            `${this.path}/:id`,
-            authMiddleWare(),
-            uploadSingleFile('avatar_image', false),
-            validationMiddleware(UpdateUserDto),
-            this.userController.updateUser,
-        );
+        this.router.put(`${this.path}/:id`, authMiddleWare(), uploadSingleFile('avatar_image', false), validationMiddleware(UpdateUserDto), this.userController.updateUser);
 
         // POST domain:/api/users/:id -> Delete user logic
         this.router.delete(`${this.path}/:id`, authMiddleWare([UserRoleEnum.ADMIN]), this.userController.deleteUser);
 
         // PUT domain:/api/users/change-password -> Change password
-        this.router.put(
-            API_PATH.CHANGE_PASSWORD_USERS,
-            authMiddleWare(),
-            validationMiddleware(ChangePasswordDto),
-            this.userController.changePassword,
-        );
+        this.router.put(API_PATH.CHANGE_PASSWORD_USERS, authMiddleWare(), validationMiddleware(ChangePasswordDto), this.userController.changePassword);
 
         // PUT domain:/api/users/change-status -> Change user status (block/unBlock)
-        this.router.put(
-            API_PATH.CHANGE_STATUS_USERS,
-            authMiddleWare([UserRoleEnum.ADMIN]),
-            validationMiddleware(ChangeStatusDto),
-            this.userController.changeStatus,
-        );
+        this.router.put(API_PATH.CHANGE_STATUS_USERS, authMiddleWare([UserRoleEnum.ADMIN]), validationMiddleware(ChangeStatusDto), this.userController.changeStatus);
 
         // PUT domain:/api/users/change-role -> Change user role
-        this.router.put(
-            API_PATH.CHANGE_ROLE_USER,
-            authMiddleWare([UserRoleEnum.ADMIN]),
-            validationMiddleware(ChangeRoleDto),
-            this.userController.changeRole,
-        );
+        this.router.put(API_PATH.CHANGE_ROLE_USER, authMiddleWare([UserRoleEnum.ADMIN]), validationMiddleware(ChangeRoleDto), this.userController.changeRole);
     }
 }

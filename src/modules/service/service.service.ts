@@ -1,15 +1,15 @@
-import { HttpStatus } from "../../core/enums";
-import { HttpException } from "../../core/exceptions";
-import { SearchPaginationResponseModel } from "../../core/models";
-import { IService, SampleMethod, ServiceType } from "./service.interface";
-import CreateServiceDto from "./dtos/createService.dto";
-import UpdateServiceDto from "./dtos/updateService.dto";
-import { isEmptyObject } from "../../core/utils";
-import { SampleMethodEnum, ServiceTypeEnum } from "./service.enum";
+import { HttpStatus } from '../../core/enums';
+import { HttpException } from '../../core/exceptions';
+import { SearchPaginationResponseModel } from '../../core/models';
+import { IService, SampleMethod, ServiceType } from './service.interface';
+import CreateServiceDto from './dtos/createService.dto';
+import UpdateServiceDto from './dtos/updateService.dto';
+import { isEmptyObject } from '../../core/utils';
+import { SampleMethodEnum, ServiceTypeEnum } from './service.enum';
 import AppointmentSchema from '../appointment/appointment.model';
 import ServiceRepository from './service.repository';
-import { uploadFileToS3 } from "../../core/utils/s3Upload";
-import { s3Folders } from "../../core/utils/aws.config";
+import { uploadFileToS3 } from '../../core/utils/s3Upload';
+import { s3Folders } from '../../core/utils/aws.config';
 import ReviewSchema from '../review/review.model';
 import { UserRoleEnum } from '../user/user.enum';
 
@@ -164,11 +164,7 @@ export default class ServiceService {
                 const imageUrl = await uploadFileToS3(file, createdService._id, s3Folders.personImages);
 
                 // Update service with image URL
-                const updatedService = await this.serviceRepository.findByIdAndUpdate(
-                    createdService._id,
-                    { image_url: imageUrl },
-                    { new: true }
-                );
+                const updatedService = await this.serviceRepository.findByIdAndUpdate(createdService._id, { image_url: imageUrl }, { new: true });
 
                 return updatedService || createdService;
             } catch (error) {
@@ -183,7 +179,7 @@ export default class ServiceService {
     /**
      * Lấy danh sách dịch vụ với các bộ lọc tùy chọn và phân trang
      */
-    public async getServices(queryParams: any = {}, user?: any): Promise<SearchPaginationResponseModel<IService & { average_rating?: number, review_count?: number }>> {
+    public async getServices(queryParams: any = {}, user?: any): Promise<SearchPaginationResponseModel<IService & { average_rating?: number; review_count?: number }>> {
         try {
             const query: any = { is_deleted: false };
 
@@ -242,7 +238,7 @@ export default class ServiceService {
                 const keyword = cleanParams.keyword.toLowerCase();
                 query.$or = [
                     { name: { $regex: keyword, $options: 'i' } }, // tìm kiếm theo tên dịch vụ với tùy chọn không phân biệt chữ hoa và chữ thường
-                    { description: { $regex: keyword, $options: 'i' } }
+                    { description: { $regex: keyword, $options: 'i' } },
                 ];
             }
 
@@ -253,10 +249,12 @@ export default class ServiceService {
             const items = await this.serviceRepository.find(query, sortOptions, skip, limit);
 
             // For each service, get average_rating and review_count
-            const itemsWithStats = await Promise.all(items.map(async (service) => {
-                const { average_rating, review_count } = await this.getServiceReviewStats(service._id);
-                return { ...service.toObject(), average_rating, review_count };
-            }));
+            const itemsWithStats = await Promise.all(
+                items.map(async (service) => {
+                    const { average_rating, review_count } = await this.getServiceReviewStats(service._id);
+                    return { ...service.toObject(), average_rating, review_count };
+                }),
+            );
 
             // Tính toán thông tin phân trang
             const totalPages = Math.ceil(totalItems / limit);
@@ -268,7 +266,7 @@ export default class ServiceService {
                     totalPages,
                     pageNum: page,
                     pageSize: limit,
-                }
+                },
             };
         } catch (error) {
             console.error('Error in getServices:', error);
@@ -296,7 +294,7 @@ export default class ServiceService {
         const processedParams: Record<string, any> = {}; // khởi tạo một đối tượng để lưu trữ các tham số đã xử lý
 
         // Duyệt qua từng key của params
-        Object.keys(params).forEach(key => {
+        Object.keys(params).forEach((key) => {
             const trimmedKey = key.trim(); // loại bỏ khoảng trắng ở đầu và cuối của key
             const normalizedKey = trimmedKey.replace(/-/g, '_'); // thay thế dấu gạch ngang bằng dấu gạch dưới
             processedParams[normalizedKey] = params[key]; // lưu trữ giá trị của key vào processedParams
@@ -318,7 +316,7 @@ export default class ServiceService {
             sort_by: allowedSortFields.includes(sortBy) ? sortBy : 'created_at',
             sort_order: processedParams.sort_order === 'asc' ? 'asc' : 'desc',
             start_date: processedParams.start_date,
-            end_date: processedParams.end_date
+            end_date: processedParams.end_date,
         };
     }
 
@@ -392,7 +390,7 @@ export default class ServiceService {
             const serviceWithSameName = await this.serviceRepository.findOne({
                 name: model.name,
                 is_deleted: false,
-                _id: { $ne: id } // Exclude the current service
+                _id: { $ne: id }, // Exclude the current service
             });
             if (serviceWithSameName) {
                 throw new HttpException(HttpStatus.Conflict, 'Service with this name already exists');
@@ -424,14 +422,10 @@ export default class ServiceService {
 
         const updateData = {
             ...model,
-            updated_at: new Date()
+            updated_at: new Date(),
         };
 
-        const updatedService = await this.serviceRepository.findByIdAndUpdate(
-            id,
-            updateData,
-            { new: true }
-        );
+        const updatedService = await this.serviceRepository.findByIdAndUpdate(id, updateData, { new: true });
 
         if (!updatedService) {
             throw new HttpException(HttpStatus.NotFound, 'Service not found');
@@ -444,11 +438,7 @@ export default class ServiceService {
      * Xóa dịch vụ (soft delete - chỉ vô hiệu hóa)
      */
     public async deleteService(id: string): Promise<IService> {
-        const service = await this.serviceRepository.findByIdAndUpdate(
-            id,
-            { is_deleted: true, is_active: false, updated_at: new Date() },
-            { new: true }
-        );
+        const service = await this.serviceRepository.findByIdAndUpdate(id, { is_deleted: true, is_active: false, updated_at: new Date() }, { new: true });
 
         if (!service) {
             throw new HttpException(HttpStatus.NotFound, 'Service not found');
@@ -460,7 +450,7 @@ export default class ServiceService {
     /**
      * Tìm dịch vụ theo ID
      */
-    public async getServiceById(id: string): Promise<IService & { average_rating?: number, review_count?: number }> {
+    public async getServiceById(id: string): Promise<IService & { average_rating?: number; review_count?: number }> {
         const service = await this.serviceRepository.findById(id);
         if (!service) {
             throw new HttpException(HttpStatus.NotFound, 'Service not found');
@@ -556,10 +546,10 @@ export default class ServiceService {
             console.log('Found appointments:', appointments.length);
 
             // Lấy danh sách các service_id từ các appointment
-            const serviceIds = appointments.map(app => app.service_id);
+            const serviceIds = appointments.map((app) => app.service_id);
 
             // Loại bỏ các giá trị trùng lặp và giá trị null/undefined
-            const uniqueServiceIds = [...new Set(serviceIds.filter(id => id))];
+            const uniqueServiceIds = [...new Set(serviceIds.filter((id) => id))];
             console.log('Unique service IDs:', uniqueServiceIds.length);
 
             // Nếu không có service_id nào, trả về danh sách trống
@@ -571,14 +561,14 @@ export default class ServiceService {
                         totalPages: 0,
                         pageNum: page,
                         pageSize: limit,
-                    }
+                    },
                 };
             }
 
             // Tạo query để tìm các service tương ứng
             const serviceQuery: any = {
                 _id: { $in: uniqueServiceIds },
-                is_deleted: false
+                is_deleted: false,
             };
 
             // Xử lý lọc bổ sung cho service
@@ -607,10 +597,7 @@ export default class ServiceService {
             // Tìm kiếm theo từ khóa trên service (nếu có)
             if (cleanParams.keyword) {
                 const keyword = cleanParams.keyword.toLowerCase();
-                serviceQuery.$or = [
-                    { name: { $regex: keyword, $options: 'i' } },
-                    { description: { $regex: keyword, $options: 'i' } }
-                ];
+                serviceQuery.$or = [{ name: { $regex: keyword, $options: 'i' } }, { description: { $regex: keyword, $options: 'i' } }];
             }
 
             console.log('Service query:', serviceQuery);
@@ -641,7 +628,7 @@ export default class ServiceService {
                     totalPages,
                     pageNum: page,
                     pageSize: limit,
-                }
+                },
             };
         } catch (error) {
             console.error('Error in getServicesByAppointment:', error);
@@ -674,7 +661,7 @@ export default class ServiceService {
         const processedParams: Record<string, any> = {};
 
         // Duyệt qua từng key của params
-        Object.keys(params).forEach(key => {
+        Object.keys(params).forEach((key) => {
             const trimmedKey = key.trim();
             const normalizedKey = trimmedKey.replace(/-/g, '_');
             processedParams[normalizedKey] = params[key];
@@ -728,10 +715,7 @@ export default class ServiceService {
 
             if (cleanParams.keyword) {
                 const keyword = cleanParams.keyword.toLowerCase();
-                baseQuery.$or = [
-                    { name: { $regex: keyword, $options: 'i' } },
-                    { description: { $regex: keyword, $options: 'i' } }
-                ];
+                baseQuery.$or = [{ name: { $regex: keyword, $options: 'i' } }, { description: { $regex: keyword, $options: 'i' } }];
             }
 
             // Ghi log query để debug
@@ -744,18 +728,18 @@ export default class ServiceService {
             // Khởi tạo các objects kết quả với giá trị mặc định
             const byType: Record<string, number> = {
                 [ServiceTypeEnum.CIVIL]: 0,
-                [ServiceTypeEnum.ADMINISTRATIVE]: 0
+                [ServiceTypeEnum.ADMINISTRATIVE]: 0,
             };
 
             const bySampleMethod: Record<string, number> = {
                 [SampleMethodEnum.SELF_COLLECTED]: 0,
                 [SampleMethodEnum.FACILITY_COLLECTED]: 0,
-                [SampleMethodEnum.HOME_COLLECTED]: 0
+                [SampleMethodEnum.HOME_COLLECTED]: 0,
             };
 
             const byStatus = {
                 active: 0,
-                inactive: 0
+                inactive: 0,
             };
 
             // Nếu không có dịch vụ nào, trả về kết quả với các giá trị mặc định
@@ -764,15 +748,12 @@ export default class ServiceService {
                     total: 0,
                     byType,
                     byStatus,
-                    bySampleMethod
+                    bySampleMethod,
                 };
             }
 
             // Đếm theo loại dịch vụ
-            const typeCountsPromise = Promise.all([
-                this.serviceRepository.countDocuments({ ...baseQuery, type: ServiceTypeEnum.CIVIL }),
-                this.serviceRepository.countDocuments({ ...baseQuery, type: ServiceTypeEnum.ADMINISTRATIVE })
-            ]);
+            const typeCountsPromise = Promise.all([this.serviceRepository.countDocuments({ ...baseQuery, type: ServiceTypeEnum.CIVIL }), this.serviceRepository.countDocuments({ ...baseQuery, type: ServiceTypeEnum.ADMINISTRATIVE })]);
 
             // Đếm theo trạng thái (luôn đếm cả active và inactive, bất kể giá trị is_active trong query)
             const activeQuery = { ...baseQuery, is_active: true };
@@ -782,24 +763,17 @@ export default class ServiceService {
             if (activeQuery.is_active !== undefined) delete activeQuery.is_active;
             if (inactiveQuery.is_active !== undefined) delete inactiveQuery.is_active;
 
-            const statusCountsPromise = Promise.all([
-                this.serviceRepository.countDocuments({ ...activeQuery, is_active: true }),
-                this.serviceRepository.countDocuments({ ...inactiveQuery, is_active: false })
-            ]);
+            const statusCountsPromise = Promise.all([this.serviceRepository.countDocuments({ ...activeQuery, is_active: true }), this.serviceRepository.countDocuments({ ...inactiveQuery, is_active: false })]);
 
             // Đếm theo phương thức lấy mẫu
             const sampleMethodCountsPromise = Promise.all([
                 this.serviceRepository.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.SELF_COLLECTED }),
                 this.serviceRepository.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.FACILITY_COLLECTED }),
-                this.serviceRepository.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.HOME_COLLECTED })
+                this.serviceRepository.countDocuments({ ...baseQuery, sample_method: SampleMethodEnum.HOME_COLLECTED }),
             ]);
 
             // Đợi tất cả các truy vấn hoàn thành
-            const [typeCounts, statusCounts, sampleMethodCounts] = await Promise.all([
-                typeCountsPromise,
-                statusCountsPromise,
-                sampleMethodCountsPromise
-            ]);
+            const [typeCounts, statusCounts, sampleMethodCounts] = await Promise.all([typeCountsPromise, statusCountsPromise, sampleMethodCountsPromise]);
 
             // Cập nhật kết quả
             byType[ServiceTypeEnum.CIVIL] = typeCounts[0];
@@ -816,14 +790,14 @@ export default class ServiceService {
                 total,
                 byType,
                 byStatus,
-                bySampleMethod
+                bySampleMethod,
             });
 
             return {
                 total,
                 byType,
                 byStatus,
-                bySampleMethod
+                bySampleMethod,
             };
         } catch (error) {
             console.error('Error in countServicesByType:', error);
@@ -856,9 +830,9 @@ export default class ServiceService {
             id,
             {
                 is_active: isActive,
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
 
         if (!updatedService) {
@@ -878,7 +852,7 @@ export default class ServiceService {
             const services = await this.serviceRepository.findAll({
                 image_url: { $exists: true, $ne: null },
                 is_deleted: false,
-                is_active: true
+                is_active: true,
             });
 
             return services;
@@ -893,7 +867,7 @@ export default class ServiceService {
      * @param slug The slug of the service to retrieve
      * @returns The service with the specified slug
      */
-    public async getServiceBySlug(slug: string): Promise<IService & { average_rating?: number, review_count?: number }> {
+    public async getServiceBySlug(slug: string): Promise<IService & { average_rating?: number; review_count?: number }> {
         const service = await this.serviceRepository.findBySlug(slug);
         if (!service) {
             throw new HttpException(HttpStatus.NotFound, `Service with slug '${slug}' not found`);
@@ -905,13 +879,10 @@ export default class ServiceService {
     private async getServiceReviewStats(serviceId: string) {
         // Find all appointments for this service
         const appointments = await this.appointmentSchema.find({ service_id: serviceId }, '_id');
-        const appointmentIds = appointments.map(a => a._id);
+        const appointmentIds = appointments.map((a) => a._id);
         if (appointmentIds.length === 0) return { average_rating: 0, review_count: 0 };
         // Aggregate reviews for these appointments
-        const result = await ReviewSchema.aggregate([
-            { $match: { appointment_id: { $in: appointmentIds }, is_deleted: { $ne: true } } },
-            { $group: { _id: null, average_rating: { $avg: '$rating' }, review_count: { $sum: 1 } } }
-        ]);
+        const result = await ReviewSchema.aggregate([{ $match: { appointment_id: { $in: appointmentIds }, is_deleted: { $ne: true } } }, { $group: { _id: null, average_rating: { $avg: '$rating' }, review_count: { $sum: 1 } } }]);
         if (result.length === 0) return { average_rating: 0, review_count: 0 };
         return { average_rating: result[0].average_rating, review_count: result[0].review_count };
     }

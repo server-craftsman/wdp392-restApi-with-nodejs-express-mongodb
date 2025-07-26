@@ -13,5 +13,5 @@ export interface TokenData {
 export const UserInfoInTokenDefault = {
     id: '',
     role: '',
-    version: 0
+    version: 0,
 };

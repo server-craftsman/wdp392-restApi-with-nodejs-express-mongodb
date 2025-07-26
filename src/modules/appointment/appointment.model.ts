@@ -15,20 +15,20 @@ const AppointmentSchemaEntity: Schema<IAppointment> = new Schema({
     type: {
         type: String,
         enum: Object.values(TypeEnum),
-        required: true
+        required: true,
     },
     collection_address: { type: String },
     status: {
         type: String,
         enum: Object.values(AppointmentStatusEnum),
         required: true,
-        default: AppointmentStatusEnum.PENDING
+        default: AppointmentStatusEnum.PENDING,
     },
     payment_status: {
         type: String,
         enum: Object.values(PaymentStatusEnum),
         required: true,
-        default: PaymentStatusEnum.UNPAID
+        default: PaymentStatusEnum.UNPAID,
     },
     total_amount: { type: Number }, // Tổng số tiền của dịch vụ
     deposit_amount: { type: Number }, // Số tiền đặt cọc
@@ -36,22 +36,21 @@ const AppointmentSchemaEntity: Schema<IAppointment> = new Schema({
     payment_stage: {
         type: String,
         enum: Object.values(AppointmentPaymentStageEnum),
-        default: AppointmentPaymentStageEnum.UNPAID // Trạng thái thanh toán của cuộc hẹn
+        default: AppointmentPaymentStageEnum.UNPAID, // Trạng thái thanh toán của cuộc hẹn
     },
-    checkin_logs: [{
-        staff_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER },
-        time: { type: Date, default: Date.now },
-        note: { type: String }
-    }],
+    checkin_logs: [
+        {
+            staff_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER },
+            time: { type: Date, default: Date.now },
+            note: { type: String },
+        },
+    ],
     notes: [{ type: String }],
     administrative_case_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.ADMINISTRATIVE_CASE, required: false },
     created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
+    updated_at: { type: Date, default: Date.now },
 });
 
-const AppointmentSchema = mongoose.model<IAppointment & mongoose.Document>(
-    COLLECTION_NAME.APPOINTMENT,
-    AppointmentSchemaEntity
-);
+const AppointmentSchema = mongoose.model<IAppointment & mongoose.Document>(COLLECTION_NAME.APPOINTMENT, AppointmentSchemaEntity);
 
 export default AppointmentSchema;

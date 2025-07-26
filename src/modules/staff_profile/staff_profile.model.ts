@@ -10,7 +10,7 @@ const QualificationSchema = new Schema({
     institution: { type: String, required: true },
     issue_date: { type: Date, required: true },
     expiry_date: { type: Date },
-    description: { type: String }
+    description: { type: String },
 });
 
 const AddressSchema = new Schema<IAddress>({
@@ -18,7 +18,7 @@ const AddressSchema = new Schema<IAddress>({
     ward: { type: String, required: true },
     district: { type: String, required: true },
     city: { type: String, required: true },
-    country: { type: String, required: true }
+    country: { type: String, required: true },
 });
 const StaffProfileSchemaEntity: Schema<IStaffProfile> = new Schema({
     user_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true, unique: true },
@@ -31,17 +31,14 @@ const StaffProfileSchemaEntity: Schema<IStaffProfile> = new Schema({
         type: String,
         enum: StaffStatuses,
         required: true,
-        default: StaffStatusEnum.ACTIVE
+        default: StaffStatusEnum.ACTIVE,
     },
     address: { type: AddressSchema, default: {} },
     qualifications: [QualificationSchema],
     created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
+    updated_at: { type: Date, default: Date.now },
 });
 
-const StaffProfileSchema = mongoose.model<IStaffProfile & mongoose.Document>(
-    COLLECTION_NAME.STAFF_PROFILE,
-    StaffProfileSchemaEntity
-);
+const StaffProfileSchema = mongoose.model<IStaffProfile & mongoose.Document>(COLLECTION_NAME.STAFF_PROFILE, StaffProfileSchemaEntity);
 
-export default StaffProfileSchema; 
+export default StaffProfileSchema;

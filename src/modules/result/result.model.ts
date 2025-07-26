@@ -12,12 +12,9 @@ const ResultSchemaEntity: Schema<IResult> = new Schema({
     report_url: { type: String },
     completed_at: { type: Date },
     created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
+    updated_at: { type: Date, default: Date.now },
 });
 
-const ResultSchema = mongoose.model<IResult & mongoose.Document>(
-    COLLECTION_NAME.RESULT,
-    ResultSchemaEntity
-);
+const ResultSchema = mongoose.model<IResult & mongoose.Document>(COLLECTION_NAME.RESULT, ResultSchemaEntity);
 
-export default ResultSchema; 
+export default ResultSchema;

@@ -18,7 +18,7 @@ export default class ServiceController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     public getServices = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -27,7 +27,7 @@ export default class ServiceController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     public getServiceById = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -36,7 +36,7 @@ export default class ServiceController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     public getServiceBySlug = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -45,7 +45,7 @@ export default class ServiceController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     public getChildServices = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -54,7 +54,7 @@ export default class ServiceController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     public updateService = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -64,7 +64,7 @@ export default class ServiceController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     public deleteService = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -73,7 +73,7 @@ export default class ServiceController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Lấy danh sách dịch vụ dựa trên thông tin cuộc hẹn
@@ -85,7 +85,7 @@ export default class ServiceController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Đếm số lượng dịch vụ theo loại
@@ -97,7 +97,7 @@ export default class ServiceController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Thay đổi trạng thái hoạt động của dịch vụ
@@ -108,9 +108,7 @@ export default class ServiceController {
             const { is_active } = req.body;
 
             if (is_active === undefined) {
-                res.status(HttpStatus.BadRequest).json(
-                    formatResponse<string>('is_active field is required')
-                );
+                res.status(HttpStatus.BadRequest).json(formatResponse<string>('is_active field is required'));
                 return;
             }
 
@@ -119,7 +117,7 @@ export default class ServiceController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Get all services with images
@@ -131,5 +129,5 @@ export default class ServiceController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 }

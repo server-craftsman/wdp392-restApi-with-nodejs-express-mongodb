@@ -31,11 +31,7 @@ export default class SampleController {
             const sampleId = req.params.id;
             const submitData: SubmitSampleDto = req.body;
 
-            const updatedSample = await this.sampleService.submitSample(
-                sampleId,
-                submitData.collection_date ?? new Date().toISOString(),
-                userId
-            );
+            const updatedSample = await this.sampleService.submitSample(sampleId, submitData.collection_date ?? new Date().toISOString(), userId);
 
             res.status(HttpStatus.Success).json(formatResponse<ISample>(updatedSample));
         } catch (error) {
@@ -63,11 +59,7 @@ export default class SampleController {
             const sampleId = req.params.id;
             const receiveData: ReceiveSampleDto = req.body;
 
-            const updatedSample = await this.sampleService.receiveSample(
-                sampleId,
-                receiveData.received_date,
-                staffId
-            );
+            const updatedSample = await this.sampleService.receiveSample(sampleId, receiveData.received_date, staffId);
 
             res.status(HttpStatus.Success).json(formatResponse<ISample>(updatedSample));
         } catch (error) {
@@ -113,10 +105,7 @@ export default class SampleController {
 
             // Only laboratory technicians can access this endpoint
             if (userRole !== UserRoleEnum.LABORATORY_TECHNICIAN) {
-                throw new HttpException(
-                    HttpStatus.Forbidden,
-                    'Only laboratory technicians can access samples ready for testing'
-                );
+                throw new HttpException(HttpStatus.Forbidden, 'Only laboratory technicians can access samples ready for testing');
             }
 
             // Get pagination parameters from query string
@@ -141,10 +130,7 @@ export default class SampleController {
 
             // Only laboratory technicians and staff can search samples
             if (userRole !== UserRoleEnum.LABORATORY_TECHNICIAN && userRole !== UserRoleEnum.STAFF) {
-                throw new HttpException(
-                    HttpStatus.Forbidden,
-                    'Only laboratory technicians and staff can search samples'
-                );
+                throw new HttpException(HttpStatus.Forbidden, 'Only laboratory technicians and staff can search samples');
             }
 
             // Extract and safely convert query parameters
@@ -224,7 +210,7 @@ export default class SampleController {
                 startDate,
                 endDate,
                 page,
-                limit
+                limit,
             };
 
             console.log('Search options in controller:', searchOptions);
@@ -249,10 +235,7 @@ export default class SampleController {
 
             // Only laboratory technicians can access this endpoint
             if (userRole !== UserRoleEnum.LABORATORY_TECHNICIAN) {
-                throw new HttpException(
-                    HttpStatus.Forbidden,
-                    'Only laboratory technicians can access samples for testing'
-                );
+                throw new HttpException(HttpStatus.Forbidden, 'Only laboratory technicians can access samples for testing');
             }
 
             // Get pagination parameters from query string
@@ -290,7 +273,7 @@ export default class SampleController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Add samples with multiple person information
@@ -311,10 +294,7 @@ export default class SampleController {
 
             // Validate that sample_types and person_info_list have the same length
             if (addSampleData.sample_types.length !== addSampleData.person_info_list.length) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'The number of sample types must match the number of person info entries'
-                );
+                throw new HttpException(HttpStatus.BadRequest, 'The number of sample types must match the number of person info entries');
             }
 
             // Convert to AddSampleDto and set person_info_list
@@ -323,7 +303,7 @@ export default class SampleController {
                 kit_id: addSampleData.kit_id,
                 sample_types: addSampleData.sample_types,
                 notes: addSampleData.notes,
-                person_info_list: addSampleData.person_info_list
+                person_info_list: addSampleData.person_info_list,
             };
 
             // Call the service to add samples
@@ -333,7 +313,7 @@ export default class SampleController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Batch submit multiple samples (by customer)
@@ -350,11 +330,7 @@ export default class SampleController {
 
             const batchSubmitData: BatchSubmitSamplesDto = req.body;
 
-            const updatedSamples = await this.sampleService.batchSubmitSamples(
-                batchSubmitData.sample_ids,
-                batchSubmitData.collection_date,
-                userId
-            );
+            const updatedSamples = await this.sampleService.batchSubmitSamples(batchSubmitData.sample_ids, batchSubmitData.collection_date, userId);
 
             res.status(HttpStatus.Success).json(formatResponse<ISample[]>(updatedSamples));
         } catch (error) {
@@ -384,11 +360,7 @@ export default class SampleController {
 
             const batchReceiveData: BatchReceiveSamplesDto = req.body;
 
-            const updatedSamples = await this.sampleService.batchReceiveSamples(
-                batchReceiveData.sample_ids,
-                batchReceiveData.received_date,
-                staffId
-            );
+            const updatedSamples = await this.sampleService.batchReceiveSamples(batchReceiveData.sample_ids, batchReceiveData.received_date, staffId);
 
             res.status(HttpStatus.Success).json(formatResponse<ISample[]>(updatedSamples));
         } catch (error) {
@@ -414,8 +386,8 @@ export default class SampleController {
             let sample_id = req.body.sample_id;
 
             // For multipart/form-data, sample_id might be in req.body as a string
-            console.log("Request body:", req.body);
-            console.log("Request file:", req.file);
+            console.log('Request body:', req.body);
+            console.log('Request file:', req.file);
 
             if (!sample_id) {
                 throw new HttpException(HttpStatus.BadRequest, 'Sample ID is required');
@@ -434,22 +406,19 @@ export default class SampleController {
                 imageUrl = await uploadFileToS3(req.file, sample_id);
             }
 
-            console.log("File uploaded successfully to:", imageUrl);
+            console.log('File uploaded successfully to:', imageUrl);
 
             // Update the person's image URL in the sample
-            const updatedSample = await this.sampleService.updatePersonImage(
-                sample_id,
-                imageUrl,
-                userId,
-                userRole
-            );
+            const updatedSample = await this.sampleService.updatePersonImage(sample_id, imageUrl, userId, userRole);
 
-            res.status(HttpStatus.Success).json(formatResponse({
-                sample: updatedSample,
-                // image_url: imageUrl
-            }));
+            res.status(HttpStatus.Success).json(
+                formatResponse({
+                    sample: updatedSample,
+                    // image_url: imageUrl
+                }),
+            );
         } catch (error) {
-            console.error("Error in uploadPersonImage controller:", error);
+            console.error('Error in uploadPersonImage controller:', error);
             next(error);
         }
     };
@@ -467,14 +436,11 @@ export default class SampleController {
 
             const collectSampleData: CollectSampleDto = req.body;
 
-            const result = await this.sampleService.collectSampleAtFacility(
-                collectSampleData,
-                staffId
-            );
+            const result = await this.sampleService.collectSampleAtFacility(collectSampleData, staffId);
 
             res.status(HttpStatus.Success).json(formatResponse<ISample[]>(result));
         } catch (error) {
             next(error);
         }
     };
-} 
+}

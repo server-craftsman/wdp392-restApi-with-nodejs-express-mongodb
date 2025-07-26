@@ -80,8 +80,8 @@ This project uses ESLint to enforce code quality and maintain consistent coding 
 
 To run the linter:
 ```bash
-npm run lint        # Check for linting errors
-npm run lint:fix    # Fix linting errors automatically
+pnpm run lint        # Check for linting errors
+pnpm run lint:fix    # Fix linting errors automatically
 ```
 
 ### Key Linting Rules
@@ -98,8 +98,8 @@ npm run lint:fix    # Fix linting errors automatically
 
 Code formatting is handled by Prettier. To format your code:
 ```bash
-npm run format       # Format all TypeScript files
-npm run format:check # Check formatting without changing files
+pnpm run format       # Format all TypeScript files
+pnpm run format:check # Check formatting without changing files
 ```
 
 ### Pre-commit Hooks

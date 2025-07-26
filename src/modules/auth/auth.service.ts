@@ -13,7 +13,6 @@ import LoginGoogleDto from './dtos/loginGoogle.dto';
 import AuthRepository from './auth.repository';
 import { AdministrativeCaseSchema } from '../administrative_cases';
 
-
 export default class AuthService {
     public userSchema = UserSchema;
     private authRepository = new AuthRepository();
@@ -47,10 +46,7 @@ export default class AuthService {
                     throw new HttpException(HttpStatus.BadRequest, 'Account google is incorrect, please try again!');
                 }
             } else {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'Field google_id via IdToken is empty, please send google_id!',
-                );
+                throw new HttpException(HttpStatus.BadRequest, 'Field google_id via IdToken is empty, please send google_id!');
             }
         }
 
@@ -76,17 +72,11 @@ export default class AuthService {
         }
 
         if (!user.status) {
-            throw new HttpException(
-                HttpStatus.Forbidden,
-                `Your account has been locked. Please contact admin via mail to activate!`,
-            );
+            throw new HttpException(HttpStatus.Forbidden, `Your account has been locked. Please contact admin via mail to activate!`);
         }
 
         if (user.is_deleted) {
-            throw new HttpException(
-                HttpStatus.Forbidden,
-                `Your account has been deleted. Please contact admin via mail to help!`,
-            );
+            throw new HttpException(HttpStatus.Forbidden, `Your account has been deleted. Please contact admin via mail to help!`);
         }
 
         if (!user.token_version) {
@@ -103,10 +93,7 @@ export default class AuthService {
             throw new HttpException(HttpStatus.BadRequest, `Token is not valid.`);
         }
         // use moment to parse verification_token_expires with format 'ddd MMM DD YYYY HH:mm:ss [GMT]ZZ'
-        const tokenExpires = moment(
-            user?.verification_token_expires?.toString(),
-            'ddd MMM DD YYYY HH:mm:ss [GMT]ZZ',
-        ).toDate();
+        const tokenExpires = moment(user?.verification_token_expires?.toString(), 'ddd MMM DD YYYY HH:mm:ss [GMT]ZZ').toDate();
         // if current time is after token expires => throw error
         if (moment(new Date()).isAfter(moment(tokenExpires))) {
             throw new HttpException(HttpStatus.BadRequest, `Token is expired!`);
@@ -132,10 +119,7 @@ export default class AuthService {
         }
 
         if (user.is_verified) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                `User with mail: ${email} has already verified their email.`,
-            );
+            throw new HttpException(HttpStatus.BadRequest, `User with mail: ${email} has already verified their email.`);
         }
 
         // create token verification
@@ -166,10 +150,7 @@ export default class AuthService {
 
     public async getCurrentLoginUser(userId: string): Promise<IUser> {
         // Lấy user kèm staff_profile (nếu có)
-        const user = await this.userSchema
-            .findById(userId)
-            .populate('staff_profile')
-            .lean({ virtuals: true });
+        const user = await this.userSchema.findById(userId).populate('staff_profile').lean({ virtuals: true });
 
         if (!user) {
             throw new HttpException(HttpStatus.BadRequest, `User is not exists.`);
@@ -198,10 +179,7 @@ export default class AuthService {
         }
 
         if (user.google_id) {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                `Your account is logged in by google. Please contact google for reset password!`,
-            );
+            throw new HttpException(HttpStatus.BadRequest, `Your account is logged in by google. Please contact google for reset password!`);
         }
 
         // handle encode password

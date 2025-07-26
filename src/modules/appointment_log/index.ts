@@ -8,14 +8,4 @@ import { CreateAppointmentLogDto } from './dtos/createAppointmentLog.dto';
 import AppointmentLogController from './appointment_log.controller';
 import AppointmentLogRoute from './appointment_log.route';
 
-export {
-    AppointmentLogSchema,
-    IAppointmentLog,
-    AppointmentLogTypeEnum,
-    AppointmentLogTypes,
-    AppointmentLogService,
-    AppointmentLogRepository,
-    CreateAppointmentLogDto,
-    AppointmentLogController,
-    AppointmentLogRoute
-}; 
+export { AppointmentLogSchema, IAppointmentLog, AppointmentLogTypeEnum, AppointmentLogTypes, AppointmentLogService, AppointmentLogRepository, CreateAppointmentLogDto, AppointmentLogController, AppointmentLogRoute };

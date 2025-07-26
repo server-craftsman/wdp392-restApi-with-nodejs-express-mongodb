@@ -13,11 +13,7 @@ import { HttpStatus } from '../enums';
  * @param folder The base folder to upload to (from s3Folders)
  * @returns The URL of the uploaded file
  */
-export const uploadFileToS3 = async (
-    file: Express.Multer.File,
-    sampleId?: string,
-    folder: string = s3Folders.personImages
-): Promise<string> => {
+export const uploadFileToS3 = async (file: Express.Multer.File, sampleId?: string, folder: string = s3Folders.personImages): Promise<string> => {
     try {
         // If the file already has a location (uploaded directly to S3), return it
         if ((file as any).location) {
@@ -35,19 +31,13 @@ export const uploadFileToS3 = async (
         // Check if AWS credentials are configured
         if (!s3Client.config.credentials) {
             console.error('AWS credentials not properly configured');
-            throw new HttpException(
-                HttpStatus.InternalServerError,
-                'AWS credentials not properly configured'
-            );
+            throw new HttpException(HttpStatus.InternalServerError, 'AWS credentials not properly configured');
         }
 
         // Check if bucket name is configured
         if (!bucketName) {
             console.error('AWS S3 bucket name not configured');
-            throw new HttpException(
-                HttpStatus.InternalServerError,
-                'AWS S3 bucket name not configured'
-            );
+            throw new HttpException(HttpStatus.InternalServerError, 'AWS S3 bucket name not configured');
         }
 
         // Determine if we're using buffer or file path
@@ -60,18 +50,12 @@ export const uploadFileToS3 = async (
             // Using multer disk storage (file path)
             // Check if file exists on disk
             if (!fs.existsSync(file.path)) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    `File not found on disk: ${file.path}`
-                );
+                throw new HttpException(HttpStatus.BadRequest, `File not found on disk: ${file.path}`);
             }
             body = fs.createReadStream(file.path);
             console.log('Uploading file from path:', file.path);
         } else {
-            throw new HttpException(
-                HttpStatus.BadRequest,
-                'Invalid file: neither buffer nor path is available'
-            );
+            throw new HttpException(HttpStatus.BadRequest, 'Invalid file: neither buffer nor path is available');
         }
 
         // Upload the file to S3
@@ -86,16 +70,11 @@ export const uploadFileToS3 = async (
             await s3Client.send(new PutObjectCommand(uploadParams));
         } catch (awsError) {
             console.error('AWS S3 upload error:', awsError);
-            throw new HttpException(
-                HttpStatus.InternalServerError,
-                `AWS S3 upload error: ${(awsError as Error).message || 'Unknown error'}`
-            );
+            throw new HttpException(HttpStatus.InternalServerError, `AWS S3 upload error: ${(awsError as Error).message || 'Unknown error'}`);
         }
 
         // Generate the URL for the uploaded file
-        const region = typeof s3Client.config.region === 'string'
-            ? s3Client.config.region
-            : 'ap-southeast-2'; // Default region based on error message
+        const region = typeof s3Client.config.region === 'string' ? s3Client.config.region : 'ap-southeast-2'; // Default region based on error message
 
         // Use the correct S3 URL format with dashed region
         const fileUrl = `https://${bucketName}.s3-${region}.amazonaws.com/${key}`;
@@ -127,11 +106,7 @@ export const uploadFileToS3 = async (
  * @param folder The base folder to upload to (from s3Folders)
  * @returns Array of URLs of the uploaded files
  */
-export const uploadMultipleFilesToS3 = async (
-    files: Express.Multer.File[],
-    sampleId?: string,
-    folder: string = s3Folders.personImages
-): Promise<string[]> => {
+export const uploadMultipleFilesToS3 = async (files: Express.Multer.File[], sampleId?: string, folder: string = s3Folders.personImages): Promise<string[]> => {
     try {
         // Validate files array
         if (!files || !Array.isArray(files) || files.length === 0) {
@@ -141,14 +116,11 @@ export const uploadMultipleFilesToS3 = async (
         // Check if each file has the necessary properties
         files.forEach((file, index) => {
             if (!file || (!file.buffer && !file.path)) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    `Invalid file at index ${index}: missing buffer or path`
-                );
+                throw new HttpException(HttpStatus.BadRequest, `Invalid file at index ${index}: missing buffer or path`);
             }
         });
 
-        const uploadPromises = files.map(file => uploadFileToS3(file, sampleId, folder));
+        const uploadPromises = files.map((file) => uploadFileToS3(file, sampleId, folder));
         return await Promise.all(uploadPromises);
     } catch (error) {
         console.error('Error uploading multiple files to S3:', error);
@@ -166,4 +138,4 @@ export { s3Folders };
 // export const s3Folders = {
 //     ...s3Folders,
 //     blogImages: 'blog-images'
-// }; 
+// };

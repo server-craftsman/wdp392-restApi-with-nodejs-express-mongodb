@@ -23,4 +23,4 @@ export class BlogCategorySearchDto {
     @IsString()
     @IsOptional()
     name?: string;
-} 
+}

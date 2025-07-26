@@ -33,17 +33,17 @@ export default class AdministrativeAppointmentService {
     private convertStatusToLogType(status: any): AppointmentLogTypeEnum {
         // Map appointment status to log type
         const statusMap: Record<string, AppointmentLogTypeEnum> = {
-            'pending': AppointmentLogTypeEnum.PENDING,
-            'confirmed': AppointmentLogTypeEnum.CONFIRMED,
-            'sample_assigned': AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
-            'sample_collected': AppointmentLogTypeEnum.SAMPLE_COLLECTED,
-            'sample_received': AppointmentLogTypeEnum.SAMPLE_RECEIVED,
-            'testing': AppointmentLogTypeEnum.TESTING,
-            'completed': AppointmentLogTypeEnum.COMPLETED,
-            'cancelled': AppointmentLogTypeEnum.CANCELLED,
-            'awaiting_authorization': AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
-            'authorized': AppointmentLogTypeEnum.AUTHORIZED,
-            'ready_for_collection': AppointmentLogTypeEnum.READY_FOR_COLLECTION
+            pending: AppointmentLogTypeEnum.PENDING,
+            confirmed: AppointmentLogTypeEnum.CONFIRMED,
+            sample_assigned: AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
+            sample_collected: AppointmentLogTypeEnum.SAMPLE_COLLECTED,
+            sample_received: AppointmentLogTypeEnum.SAMPLE_RECEIVED,
+            testing: AppointmentLogTypeEnum.TESTING,
+            completed: AppointmentLogTypeEnum.COMPLETED,
+            cancelled: AppointmentLogTypeEnum.CANCELLED,
+            awaiting_authorization: AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
+            authorized: AppointmentLogTypeEnum.AUTHORIZED,
+            ready_for_collection: AppointmentLogTypeEnum.READY_FOR_COLLECTION,
         };
 
         return statusMap[status] || AppointmentLogTypeEnum.PENDING;
@@ -64,7 +64,7 @@ export default class AdministrativeAppointmentService {
             laboratory_technician_id?: string;
             participants: string[]; // IDs of participants
         },
-        createdByUserId: string
+        createdByUserId: string,
     ): Promise<IAppointment> {
         try {
             // Verify administrative case exists and is approved
@@ -74,10 +74,7 @@ export default class AdministrativeAppointmentService {
             }
 
             if (adminCase.status !== 'approved') {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'Administrative case must be approved before scheduling appointment'
-                );
+                throw new HttpException(HttpStatus.BadRequest, 'Administrative case must be approved before scheduling appointment');
             }
 
             // Validate service
@@ -145,7 +142,7 @@ export default class AdministrativeAppointmentService {
                 laboratory_technician_id: appointmentData.laboratory_technician_id,
                 agency_contact_email: adminCase.agency_contact_email,
                 created_at: new Date(),
-                updated_at: new Date()
+                updated_at: new Date(),
             };
 
             const appointment = await this.appointmentRepository.create(newAppointment);
@@ -166,12 +163,7 @@ export default class AdministrativeAppointmentService {
 
             // Try to log appointment creation (non-critical)
             try {
-                await this.appointmentLogService.logAdministrativeAppointmentCreation(
-                    appointment,
-                    caseId,
-                    createdByUserId,
-                    UserRoleEnum.STAFF
-                );
+                await this.appointmentLogService.logAdministrativeAppointmentCreation(appointment, caseId, createdByUserId, UserRoleEnum.STAFF);
             } catch (logError) {
                 console.warn('Non-critical: Could not log appointment creation:', logError);
             }
@@ -179,12 +171,7 @@ export default class AdministrativeAppointmentService {
             // Try to send notification (non-critical)
             try {
                 await this.sendAdministrativeAppointmentNotification(appointment, adminCase);
-                await this.appointmentLogService.logAgencyNotification(
-                    appointment,
-                    adminCase.agency_contact_email,
-                    createdByUserId,
-                    UserRoleEnum.STAFF
-                );
+                await this.appointmentLogService.logAgencyNotification(appointment, adminCase.agency_contact_email, createdByUserId, UserRoleEnum.STAFF);
             } catch (emailError) {
                 console.warn('Non-critical: Could not send notification:', emailError);
             }
@@ -231,7 +218,7 @@ export default class AdministrativeAppointmentService {
                     
                     <p>Best regards,<br/>
                     Bloodline DNA Testing Service</p>
-                `
+                `,
             };
 
             await sendMail(emailDetails);
@@ -256,9 +243,9 @@ export default class AdministrativeAppointmentService {
                 appointmentId,
                 {
                     status: newStatus,
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 },
-                { new: true }
+                { new: true },
             );
 
             if (!updatedAppointment) {
@@ -273,7 +260,7 @@ export default class AdministrativeAppointmentService {
                     this.convertStatusToLogType(newStatus),
                     `Administrative case progress updated`,
                     'system', // Could be enhanced to track actual user
-                    'SYSTEM'
+                    'SYSTEM',
                 );
             } catch (logError) {
                 console.error('Failed to log administrative progress update:', logError);
@@ -294,10 +281,7 @@ export default class AdministrativeAppointmentService {
             }
 
             if (caseStatus) {
-                await this.administrativeCaseService.updateCaseStatus(
-                    appointment.administrative_case_id,
-                    caseStatus
-                );
+                await this.administrativeCaseService.updateCaseStatus(appointment.administrative_case_id, caseStatus);
             }
         } catch (error) {
             console.error('Error updating administrative case progress:', error);
@@ -336,14 +320,12 @@ export default class AdministrativeAppointmentService {
             // Check if there are already appointments
             const existingAppointments = await this.getAppointmentsByCase(caseId);
             if (existingAppointments.length > 0) {
-                const activeAppointments = existingAppointments.filter(
-                    apt => apt.status !== AppointmentStatusEnum.CANCELLED
-                );
+                const activeAppointments = existingAppointments.filter((apt) => apt.status !== AppointmentStatusEnum.CANCELLED);
 
                 if (activeAppointments.length > 0) {
                     return {
                         canCreate: false,
-                        reason: 'Case already has active appointments'
+                        reason: 'Case already has active appointments',
                     };
                 }
             }
@@ -353,4 +335,4 @@ export default class AdministrativeAppointmentService {
             return { canCreate: false, reason: 'Error validating appointment creation' };
         }
     }
-} 
+}

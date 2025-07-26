@@ -3,7 +3,7 @@ import { HttpStatus } from '../../core/enums';
 import { HttpException } from '../../core/exceptions';
 import { formatResponse } from '../../core/utils';
 import { IReview } from './review.interface';
-import ReviewService from './review.service'
+import ReviewService from './review.service';
 import { CreateReviewDto, UpdateReviewDto } from './dtos';
 import { UserRoleEnum } from '../user';
 import { SearchPaginationResponseModel } from '../../core/models';
@@ -22,12 +22,12 @@ export default class ReviewController {
             const reviewData: CreateReviewDto = req.body;
             // Set customer_id from the logged-in user
             const customer_id = req.user.id;
-            const review = await this.reviewService.createReview(req.user, { customer_id, ...reviewData, });
+            const review = await this.reviewService.createReview(req.user, { customer_id, ...reviewData });
             res.status(HttpStatus.Created).json(formatResponse<IReview>(review));
         } catch (error) {
             next(error);
         }
-    }
+    };
     /**
      * Get reviews by appointment ID
      */
@@ -39,7 +39,7 @@ export default class ReviewController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Get review by ID
@@ -52,7 +52,7 @@ export default class ReviewController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Update review
@@ -67,7 +67,7 @@ export default class ReviewController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Delete review
@@ -80,10 +80,5 @@ export default class ReviewController {
         } catch (error) {
             next(error);
         }
-    }
-
-
-
-
-
+    };
 }

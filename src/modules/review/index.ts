@@ -4,10 +4,4 @@ import ReviewController from './review.controller';
 import ReviewService from './review.service';
 import ReviewRoute from './review.route';
 
-export {
-    ReviewSchema,
-    IReview,
-    ReviewController,
-    ReviewService,
-    ReviewRoute
-}; 
+export { ReviewSchema, IReview, ReviewController, ReviewService, ReviewRoute };

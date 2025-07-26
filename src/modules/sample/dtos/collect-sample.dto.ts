@@ -54,4 +54,4 @@ export class CollectSampleDto {
     @ValidateNested({ each: true })
     @Type(() => PersonInfoDto)
     person_info?: PersonInfoDto[];
-} 
+}

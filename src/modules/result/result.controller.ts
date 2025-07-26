@@ -79,8 +79,7 @@ export default class ResultController {
             const result = await this.resultService.getResultById(resultId);
 
             // If user is customer, check if they have access to this result
-            if (req.user.role === UserRoleEnum.CUSTOMER &&
-                result.customer_id?.toString() !== req.user.id) {
+            if (req.user.role === UserRoleEnum.CUSTOMER && result.customer_id?.toString() !== req.user.id) {
                 throw new HttpException(HttpStatus.Forbidden, 'You do not have access to this result');
             }
 
@@ -99,8 +98,7 @@ export default class ResultController {
             const result = await this.resultService.getResultBySampleId(sampleId);
 
             // If user is customer, check if they have access to this result
-            if (req.user.role === UserRoleEnum.CUSTOMER &&
-                result.customer_id?.toString() !== req.user.id) {
+            if (req.user.role === UserRoleEnum.CUSTOMER && result.customer_id?.toString() !== req.user.id) {
                 throw new HttpException(HttpStatus.Forbidden, 'You do not have access to this result');
             }
 
@@ -180,35 +178,34 @@ export default class ResultController {
                             return {
                                 id,
                                 success: false,
-                                error: error instanceof HttpException ?
-                                    error.message :
-                                    'Failed to start testing for this sample'
+                                error: error instanceof HttpException ? error.message : 'Failed to start testing for this sample',
                             };
                         }
-                    })
+                    }),
                 );
 
                 // Count successes and failures
-                const successful = results.filter(r => r.success).length;
-                const failed = results.filter(r => !r.success).length;
+                const successful = results.filter((r) => r.success).length;
+                const failed = results.filter((r) => !r.success).length;
 
-                res.status(HttpStatus.Success).json(formatResponse({
-                    message: `Testing process started for ${successful} samples, ${failed} failed`,
-                    results
-                }));
+                res.status(HttpStatus.Success).json(
+                    formatResponse({
+                        message: `Testing process started for ${successful} samples, ${failed} failed`,
+                        results,
+                    }),
+                );
             } else if (sampleId) {
                 // Single sample processing using the sample ID from the URL parameter
                 await this.resultService.startTesting(sampleId, testingData, laboratoryTechnicianId);
-                res.status(HttpStatus.Success).json(formatResponse({
-                    message: 'Testing process started successfully',
-                    sample_id: sampleId
-                }));
+                res.status(HttpStatus.Success).json(
+                    formatResponse({
+                        message: 'Testing process started successfully',
+                        sample_id: sampleId,
+                    }),
+                );
             } else {
                 // Neither sample_ids in body nor sampleId in URL parameters
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'No sample ID provided. Please provide a sample ID in the URL or sample_ids in the request body.'
-                );
+                throw new HttpException(HttpStatus.BadRequest, 'No sample ID provided. Please provide a sample ID in the URL or sample_ids in the request body.');
             }
         } catch (error) {
             console.error('Error in startTesting controller:', error);
@@ -234,12 +231,7 @@ export default class ResultController {
                 throw new HttpException(HttpStatus.BadRequest, 'Reason is required');
             }
 
-            const certificateRequest = await this.resultService.requestCertificate(
-                resultId,
-                userId,
-                reason,
-                delivery_address
-            );
+            const certificateRequest = await this.resultService.requestCertificate(resultId, userId, reason, delivery_address);
 
             res.status(HttpStatus.Created).json(formatResponse(certificateRequest, true, 'Certificate request submitted successfully'));
         } catch (error) {
@@ -288,16 +280,11 @@ export default class ResultController {
             const { requestId } = req.params;
             const { status, agency_notes } = req.body;
 
-            const updatedRequest = await this.resultService.updateCertificateRequestStatus(
-                requestId,
-                status,
-                agency_notes,
-                staffId
-            );
+            const updatedRequest = await this.resultService.updateCertificateRequestStatus(requestId, status, agency_notes, staffId);
 
             res.status(HttpStatus.Success).json(formatResponse(updatedRequest, true, 'Certificate request status updated successfully'));
         } catch (error) {
             next(error);
         }
     };
-} 
+}

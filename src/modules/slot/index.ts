@@ -4,11 +4,4 @@ import { SlotStatusEnum } from './slot.enum';
 import { SlotStatuses } from './slot.constant';
 import SlotRoute from './slot.route';
 
-export {
-    SlotSchema,
-    ISlot,
-    SlotStatus,
-    SlotStatusEnum,
-    SlotStatuses,
-    SlotRoute
-}; 
+export { SlotSchema, ISlot, SlotStatus, SlotStatusEnum, SlotStatuses, SlotRoute };

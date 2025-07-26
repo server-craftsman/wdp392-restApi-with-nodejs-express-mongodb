@@ -11,7 +11,7 @@ const ServiceSchemaEntity: Schema<IService> = new Schema({
     type: {
         type: String,
         enum: ServiceTypes,
-        required: true
+        required: true,
     },
     // sample_method: {
     //     type: String,
@@ -28,4 +28,4 @@ const ServiceSchemaEntity: Schema<IService> = new Schema({
 });
 
 const ServiceSchema = mongoose.model<IService & mongoose.Document>(COLLECTION_NAME.SERVICE, ServiceSchemaEntity);
-export default ServiceSchema; 
+export default ServiceSchema;

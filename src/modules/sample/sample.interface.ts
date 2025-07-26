@@ -2,23 +2,11 @@ import { Document, Schema } from 'mongoose';
 import { SampleStatusEnum, SampleTypeEnum } from './sample.enum';
 import { CollectionMethodEnum } from './sample.enum';
 
-export type SampleType =
-    SampleTypeEnum.SALIVA |
-    SampleTypeEnum.BLOOD |
-    SampleTypeEnum.HAIR |
-    SampleTypeEnum.OTHER;
+export type SampleType = SampleTypeEnum.SALIVA | SampleTypeEnum.BLOOD | SampleTypeEnum.HAIR | SampleTypeEnum.OTHER;
 
-export type SampleStatus =
-    SampleStatusEnum.PENDING |
-    SampleStatusEnum.RECEIVED |
-    SampleStatusEnum.TESTING |
-    SampleStatusEnum.COMPLETED |
-    SampleStatusEnum.INVALID;
+export type SampleStatus = SampleStatusEnum.PENDING | SampleStatusEnum.RECEIVED | SampleStatusEnum.TESTING | SampleStatusEnum.COMPLETED | SampleStatusEnum.INVALID;
 
-export type CollectionMethod =
-    CollectionMethodEnum.SELF |
-    CollectionMethodEnum.FACILITY |
-    CollectionMethodEnum.HOME;
+export type CollectionMethod = CollectionMethodEnum.SELF | CollectionMethodEnum.FACILITY | CollectionMethodEnum.HOME;
 
 export interface IPersonInfo {
     name: string;
@@ -45,4 +33,4 @@ export interface ISample extends Document {
     updated_at: Date;
     created_by?: string;
     updated_by?: string;
-} 
+}

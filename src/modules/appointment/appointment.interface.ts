@@ -3,23 +3,17 @@ import { AppointmentStatusEnum, TypeEnum, PaymentStatusEnum, AppointmentPaymentS
 import { ISample } from '../sample/sample.interface';
 
 export type AppointmentStatus =
-    AppointmentStatusEnum.PENDING |
-    AppointmentStatusEnum.CONFIRMED |
-    AppointmentStatusEnum.SAMPLE_COLLECTED |
-    AppointmentStatusEnum.SAMPLE_RECEIVED |
-    AppointmentStatusEnum.TESTING |
-    AppointmentStatusEnum.COMPLETED |
-    AppointmentStatusEnum.CANCELLED;
+    | AppointmentStatusEnum.PENDING
+    | AppointmentStatusEnum.CONFIRMED
+    | AppointmentStatusEnum.SAMPLE_COLLECTED
+    | AppointmentStatusEnum.SAMPLE_RECEIVED
+    | AppointmentStatusEnum.TESTING
+    | AppointmentStatusEnum.COMPLETED
+    | AppointmentStatusEnum.CANCELLED;
 
-export type CollectionType =
-    TypeEnum.SELF |
-    TypeEnum.FACILITY |
-    TypeEnum.HOME;
+export type CollectionType = TypeEnum.SELF | TypeEnum.FACILITY | TypeEnum.HOME;
 
-export type AppointmentPaymentStage =
-    AppointmentPaymentStageEnum.UNPAID |
-    AppointmentPaymentStageEnum.DEPOSIT_PAID |
-    AppointmentPaymentStageEnum.PAID;
+export type AppointmentPaymentStage = AppointmentPaymentStageEnum.UNPAID | AppointmentPaymentStageEnum.DEPOSIT_PAID | AppointmentPaymentStageEnum.PAID;
 
 // Interface for sample information in appointment response
 export interface ISampleInfo {

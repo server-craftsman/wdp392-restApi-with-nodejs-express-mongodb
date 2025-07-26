@@ -6,7 +6,7 @@ import * as reviewRepository from './review.repository';
 import { IReview } from './review.interface';
 import { AppointmentSchema } from '../appointment';
 import { ResultSchema } from '../result';
-import { CreateReviewDto, UpdateReviewDto } from './dtos'
+import { CreateReviewDto, UpdateReviewDto } from './dtos';
 import UserSchema from '../user/user.model';
 import { UserRoleEnum } from '../user/user.enum';
 import ServiceSchema from '../service/service.model';
@@ -17,7 +17,6 @@ export default class ReviewService {
     private readonly appointmentSchema: typeof AppointmentSchema;
     private readonly userSchema: typeof UserSchema;
     private readonly resultSchema: typeof ResultSchema;
-
 
     constructor() {
         this.reviewRepository = reviewRepository;
@@ -34,7 +33,7 @@ export default class ReviewService {
             // Check if a result exists for the appointment and customer
             const result = await this.resultSchema.findOne({
                 appointment_id: reviewData.appointment_id,
-                customer_id: reviewData.customer_id
+                customer_id: reviewData.customer_id,
             });
             if (!result) {
                 throw new HttpException(HttpStatus.NotFound, 'Result not found');
@@ -126,5 +125,4 @@ export default class ReviewService {
             throw new HttpException(HttpStatus.InternalServerError, 'Error deleting review');
         }
     }
-
 }

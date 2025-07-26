@@ -26,17 +26,11 @@ const upload = multer({
     fileFilter: imageFilter,
     limits: {
         fileSize: 5 * 1024 * 1024, // 5MB max file size
-    }
+    },
 });
 
 // Helper function to upload buffer directly to S3
-const uploadBufferToS3 = async (
-    buffer: Buffer,
-    originalname: string,
-    mimetype: string,
-    sampleId?: string,
-    folder: string = s3Folders.personImages
-): Promise<string> => {
+const uploadBufferToS3 = async (buffer: Buffer, originalname: string, mimetype: string, sampleId?: string, folder: string = s3Folders.personImages): Promise<string> => {
     try {
         // Generate a unique file name
         const fileExtension = path.extname(originalname);
@@ -57,9 +51,7 @@ const uploadBufferToS3 = async (
         await s3Client.send(new PutObjectCommand(uploadParams));
 
         // Generate the URL for the uploaded file
-        const region = typeof s3Client.config.region === 'string'
-            ? s3Client.config.region
-            : 'ap-southeast-2'; // Default region based on error message
+        const region = typeof s3Client.config.region === 'string' ? s3Client.config.region : 'ap-southeast-2'; // Default region based on error message
 
         // Use the correct S3 URL format with dashed region
         const fileUrl = `https://${bucketName}.s3-${region}.amazonaws.com/${key}`;
@@ -105,12 +97,7 @@ export const uploadSingleFile = (fieldName: string, required: boolean = false) =
                 const sampleId = req.body?.sample_id;
 
                 // Upload buffer directly to S3
-                const fileUrl = await uploadBufferToS3(
-                    req.file.buffer,
-                    req.file.originalname,
-                    req.file.mimetype,
-                    sampleId
-                );
+                const fileUrl = await uploadBufferToS3(req.file.buffer, req.file.originalname, req.file.mimetype, sampleId);
 
                 // Add the S3 URL to the request for later use
                 req.file.path = fileUrl;
@@ -163,19 +150,14 @@ export const uploadMultipleFiles = (fieldName: string, maxCount: number = 5, req
                 // Upload all files directly to S3
                 const fileUrls = await Promise.all(
                     (req.files as Express.Multer.File[]).map(async (file) => {
-                        const fileUrl = await uploadBufferToS3(
-                            file.buffer,
-                            file.originalname,
-                            file.mimetype,
-                            sampleId
-                        );
+                        const fileUrl = await uploadBufferToS3(file.buffer, file.originalname, file.mimetype, sampleId);
 
                         // Add the S3 URL to each file
                         file.path = fileUrl;
                         (file as any).location = fileUrl; // AWS S3 compatible field
 
                         return fileUrl;
-                    })
+                    }),
                 );
 
                 // Add the S3 URLs to the request for later use
@@ -187,4 +169,4 @@ export const uploadMultipleFiles = (fieldName: string, maxCount: number = 5, req
             }
         });
     };
-}; 
+};

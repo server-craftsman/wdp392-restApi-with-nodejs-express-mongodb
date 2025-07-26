@@ -1,35 +1,35 @@
-import { NextFunction, Request, Response } from "express";
-import { HttpStatus } from "../enums";
-import { HttpException } from "../exceptions";
-import { logger } from "../utils";
-import mongoose from "mongoose";
+import { NextFunction, Request, Response } from 'express';
+import { HttpStatus } from '../enums';
+import { HttpException } from '../exceptions';
+import { logger } from '../utils';
+import mongoose from 'mongoose';
 
 const errorMiddleware = (error: Error | HttpException, req: Request, res: Response, next: NextFunction) => {
     let status: number = HttpStatus.InternalServerError;
-    let message: string = "Something went wrong!";
+    let message: string = 'Something went wrong!';
     let errors: any[] = [];
     let stack: string | undefined = process.env.NODE_ENV === 'production' ? undefined : error.stack;
 
     if (error instanceof HttpException) {
         status = error.status;
-        message = error.message || "Something went wrong!";
+        message = error.message || 'Something went wrong!';
         errors = error.errors || [];
     } else if (error instanceof mongoose.Error.ValidationError) {
         status = HttpStatus.BadRequest;
-        message = "Validation error";
-        errors = Object.values(error.errors).map(err => ({
+        message = 'Validation error';
+        errors = Object.values(error.errors).map((err) => ({
             field: err.path,
-            message: err.message
+            message: err.message,
         }));
     } else if (error instanceof mongoose.Error.CastError) {
         status = HttpStatus.BadRequest;
         message = `Invalid ${error.path}: ${error.value}`;
     } else if (error.name === 'SyntaxError') {
         status = HttpStatus.BadRequest;
-        message = "Invalid JSON syntax";
+        message = 'Invalid JSON syntax';
     } else {
         logger.error(`Unhandled error: ${error.message}`, error);
-        message = error.message || "Internal server error";
+        message = error.message || 'Internal server error';
     }
 
     // Log the error with more context
@@ -45,7 +45,7 @@ const errorMiddleware = (error: Error | HttpException, req: Request, res: Respon
         success: false,
         message,
         errors: errors.length ? errors : undefined,
-        stack: stack
+        stack: stack,
     });
 };
 

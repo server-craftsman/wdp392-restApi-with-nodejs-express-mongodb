@@ -1,5 +1,5 @@
-import { ILog } from "./log.interface";
-import LogSchema from "./log.model";
+import { ILog } from './log.interface';
+import LogSchema from './log.model';
 
 export default class LogRepository {
     public async createLog(model: ILog): Promise<ILog> {
@@ -47,7 +47,7 @@ export default class LogRepository {
                 ...(model.old_published_at !== undefined && { old_published_at: model.old_published_at }),
                 ...(model.new_published_at !== undefined && { new_published_at: model.new_published_at }),
                 ...(model.old_images !== undefined && { old_images: model.old_images }),
-                ...(model.new_images !== undefined && { new_images: model.new_images })
+                ...(model.new_images !== undefined && { new_images: model.new_images }),
             };
 
             console.log('LogRepository: Final log data to save:', JSON.stringify(logData, null, 2));
@@ -79,9 +79,6 @@ export default class LogRepository {
     }
 
     public async getLogsWithPagination(query: any, skip: number, limit: number): Promise<ILog[]> {
-        return LogSchema.find(query)
-            .skip(skip)
-            .limit(limit)
-            .sort({ created_at: -1 });
+        return LogSchema.find(query).skip(skip).limit(limit).sort({ created_at: -1 });
     }
 }

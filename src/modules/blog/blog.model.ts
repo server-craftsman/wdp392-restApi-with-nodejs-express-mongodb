@@ -5,7 +5,7 @@ import { IBlog } from './blog.interface';
 const BlogImageSchema = new Schema({
     name: { type: String, required: true },
     image_url: { type: String, required: true },
-    created_at: { type: Date, default: Date.now }
+    created_at: { type: Date, default: Date.now },
 });
 
 const BlogSchemaEntity: Schema<IBlog> = new Schema({
@@ -20,12 +20,9 @@ const BlogSchemaEntity: Schema<IBlog> = new Schema({
     images: [BlogImageSchema],
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now },
-    is_deleted: { type: Boolean, default: false }
+    is_deleted: { type: Boolean, default: false },
 });
 
-const BlogSchema = mongoose.model<IBlog & mongoose.Document>(
-    COLLECTION_NAME.BLOG,
-    BlogSchemaEntity
-);
+const BlogSchema = mongoose.model<IBlog & mongoose.Document>(COLLECTION_NAME.BLOG, BlogSchemaEntity);
 
-export default BlogSchema; 
+export default BlogSchema;

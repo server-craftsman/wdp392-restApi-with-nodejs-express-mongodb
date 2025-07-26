@@ -25,10 +25,7 @@ export default class AuthRoute implements IRoute {
         this.router.post(API_PATH.AUTH_GOOGLE, validationMiddleware(LoginGoogleDto), this.authController.login);
 
         // POST domain:/api/auth/verify-token -> Verify token
-        this.router.post(
-            API_PATH.AUTH_VERIFY_TOKEN,
-            this.authController.verifiedToken,
-        );
+        this.router.post(API_PATH.AUTH_VERIFY_TOKEN, this.authController.verifiedToken);
 
         // POST domain:/api/auth/resend-token -> Resend token via email
         this.router.post(API_PATH.AUTH_RESEND_TOKEN, validationMiddleware(EmailDto), this.authController.resendToken);
@@ -37,11 +34,7 @@ export default class AuthRoute implements IRoute {
         this.router.get(this.path, authMiddleWare(), this.authController.getCurrentLoginUser);
 
         // PUT domain:/api/auth/forgot-password -> Forgot password
-        this.router.put(
-            API_PATH.AUTH_FORGOT_PASSWORD,
-            validationMiddleware(EmailDto),
-            this.authController.forgotPassword,
-        );
+        this.router.put(API_PATH.AUTH_FORGOT_PASSWORD, validationMiddleware(EmailDto), this.authController.forgotPassword);
 
         // GET domain:/api/auth/logout -> Logout user
         this.router.get(API_PATH.AUTH_LOGOUT, authMiddleWare(), this.authController.logout);

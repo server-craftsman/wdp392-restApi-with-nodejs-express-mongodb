@@ -1,17 +1,17 @@
-import mongoose, { Schema } from "mongoose";
-import { HttpStatus } from "../../core/enums";
-import { HttpException } from "../../core/exceptions";
-import { SearchPaginationResponseModel } from "../../core/models";
-import { IStaffProfile, StaffStatus } from "./staff_profile.interface";
-import { StaffStatusEnum } from "./staff_profile.enum";
-import { SlotStatusEnum } from "../slot/slot.enum";
-import SlotSchema from "../slot/slot.model";
-import DepartmentSchema from "../department/department.model";
-import UserSchema from "../user/user.model";
-import CreateStaffProfileDto from "./dtos/createStaffProfile.dto";
-import UpdateStaffProfileDto from "./dtos/updateStaffProfile.dto";
-import { isEmptyObject } from "../../core/utils";
-import { UserRoleEnum } from "../user/user.enum";
+import mongoose, { Schema } from 'mongoose';
+import { HttpStatus } from '../../core/enums';
+import { HttpException } from '../../core/exceptions';
+import { SearchPaginationResponseModel } from '../../core/models';
+import { IStaffProfile, StaffStatus } from './staff_profile.interface';
+import { StaffStatusEnum } from './staff_profile.enum';
+import { SlotStatusEnum } from '../slot/slot.enum';
+import SlotSchema from '../slot/slot.model';
+import DepartmentSchema from '../department/department.model';
+import UserSchema from '../user/user.model';
+import CreateStaffProfileDto from './dtos/createStaffProfile.dto';
+import UpdateStaffProfileDto from './dtos/updateStaffProfile.dto';
+import { isEmptyObject } from '../../core/utils';
+import { UserRoleEnum } from '../user/user.enum';
 import StaffProfileRepository from './staff_profile.repository';
 
 export default class StaffProfileService {
@@ -28,9 +28,9 @@ export default class StaffProfileService {
             throw new HttpException(HttpStatus.BadRequest, 'Data is required');
         }
 
-        // Kiểm tra user_id có tồn tại và có role STAFF hoặc LABORATORY TECHNICIAN  
+        // Kiểm tra user_id có tồn tại và có role STAFF hoặc LABORATORY TECHNICIAN
         const user = await this.userSchema.findById(model.user_id);
-        if (!user || user.role !== UserRoleEnum.STAFF && user.role !== UserRoleEnum.LABORATORY_TECHNICIAN) {
+        if (!user || (user.role !== UserRoleEnum.STAFF && user.role !== UserRoleEnum.LABORATORY_TECHNICIAN)) {
             throw new HttpException(HttpStatus.BadRequest, 'User does not exist or does not have Staff or Laboratory Technician role');
         }
 
@@ -62,7 +62,7 @@ export default class StaffProfileService {
                 ward: user.address.ward,
                 district: user.address.district,
                 city: user.address.city,
-                country: user.address.country
+                country: user.address.country,
             };
         }
 
@@ -77,14 +77,14 @@ export default class StaffProfileService {
             qualifications: model.qualifications || [],
             address: address,
             created_at: new Date(),
-            updated_at: new Date()
+            updated_at: new Date(),
         });
 
         return newProfile;
     }
 
     /**
-     * Tạo employee_id duy nhất 
+     * Tạo employee_id duy nhất
      */
     private async generateEmployeeId(): Promise<string> {
         const prefix = 'EMP';
@@ -92,7 +92,7 @@ export default class StaffProfileService {
 
         // Đếm số nhân viên đã tạo trong năm hiện tại
         const count = await this.staffProfileRepository.countDocuments({
-            employee_id: { $regex: `^${prefix}${currentYear}` }
+            employee_id: { $regex: `^${prefix}${currentYear}` },
         });
 
         // Format: EMP23001, EMP23002, ...
@@ -117,18 +117,7 @@ export default class StaffProfileService {
     public async getStaffProfiles(queryParams: any = {}): Promise<SearchPaginationResponseModel<IStaffProfile>> {
         try {
             // Xử lý tham số truy vấn
-            const {
-                pageNum,
-                pageSize,
-                sort_by,
-                sort_order,
-                department_id,
-                status,
-                keyword,
-                address,
-                hire_date_from,
-                hire_date_to
-            } = this.processQueryParams(queryParams);
+            const { pageNum, pageSize, sort_by, sort_order, department_id, status, keyword, address, hire_date_from, hire_date_to } = this.processQueryParams(queryParams);
 
             const skip = (pageNum - 1) * pageSize;
 
@@ -146,7 +135,8 @@ export default class StaffProfileService {
             }
 
             // Lọc theo ngày tuyển dụng
-            if (hire_date_from || hire_date_to) { // Nếu có ngày tuyển dụng từ hoặc đến
+            if (hire_date_from || hire_date_to) {
+                // Nếu có ngày tuyển dụng từ hoặc đến
                 query.hire_date = {}; // Khởi tạo đối tượng ngày tuyển dụng
                 if (hire_date_from) {
                     query.hire_date.$gte = new Date(hire_date_from); // hire_date >= hire_date_from
@@ -160,10 +150,7 @@ export default class StaffProfileService {
 
             // Tìm kiếm theo từ khóa
             if (keyword) {
-                query.$or = [
-                    { employee_id: { $regex: keyword, $options: 'i' } },
-                    { job_title: { $regex: keyword, $options: 'i' } },
-                ];
+                query.$or = [{ employee_id: { $regex: keyword, $options: 'i' } }, { job_title: { $regex: keyword, $options: 'i' } }];
             }
 
             // Lọc theo address
@@ -175,7 +162,7 @@ export default class StaffProfileService {
                         { 'address.ward': { $regex: address, $options: 'i' } },
                         { 'address.district': { $regex: address, $options: 'i' } },
                         { 'address.city': { $regex: address, $options: 'i' } },
-                        { 'address.country': { $regex: address, $options: 'i' } }
+                        { 'address.country': { $regex: address, $options: 'i' } },
                     ];
                 } else if (typeof address === 'object') {
                     // Nếu là object, tìm theo từng trường nếu có
@@ -205,8 +192,8 @@ export default class StaffProfileService {
                     totalItems,
                     totalPages,
                     pageNum,
-                    pageSize
-                }
+                    pageSize,
+                },
             };
         } catch (error) {
             console.error('Error in getStaffProfiles:', error);
@@ -278,7 +265,7 @@ export default class StaffProfileService {
                     ward: user.address.ward,
                     district: user.address.district,
                     city: user.address.city,
-                    country: user.address.country
+                    country: user.address.country,
                 };
             }
         }
@@ -291,9 +278,9 @@ export default class StaffProfileService {
                 // user_id: model.user_id,
                 department_id: model.department_id,
                 address: model.address,
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
 
         if (!updatedProfile) {
@@ -325,18 +312,14 @@ export default class StaffProfileService {
                 {
                     staff_profile_id: id,
                     start_time: { $gt: currentDate }, // start_time > currentDate
-                    status: SlotStatusEnum.AVAILABLE // status = AVAILABLE
+                    status: SlotStatusEnum.AVAILABLE, // status = AVAILABLE
                 },
-                { status: SlotStatusEnum.UNAVAILABLE } // status = UNAVAILABLE
+                { status: SlotStatusEnum.UNAVAILABLE }, // status = UNAVAILABLE
             );
         }
 
         // Cập nhật trạng thái
-        const updatedProfile = await this.staffProfileRepository.findByIdAndUpdate(
-            id,
-            { status, updated_at: new Date() },
-            { new: true }
-        );
+        const updatedProfile = await this.staffProfileRepository.findByIdAndUpdate(id, { status, updated_at: new Date() }, { new: true });
 
         if (!updatedProfile) {
             throw new HttpException(HttpStatus.NotFound, 'Staff profile not found');
@@ -370,8 +353,7 @@ export default class StaffProfileService {
             keyword: params.keyword,
             address: params.address,
             hire_date_from: params.hire_date_from,
-            hire_date_to: params.hire_date_to
+            hire_date_to: params.hire_date_to,
         };
     }
-
 }

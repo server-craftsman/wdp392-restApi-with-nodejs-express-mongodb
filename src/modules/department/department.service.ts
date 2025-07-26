@@ -1,12 +1,12 @@
-import { HttpStatus } from "../../core/enums";
-import { HttpException } from "../../core/exceptions";
-import { SearchPaginationResponseModel } from "../../core/models";
-import { IDepartment } from "./department.interface";
-import CreateDepartmentDto from "./dtos/createDepartment.dto";
-import UpdateDepartmentDto from "./dtos/updateDepartment.dto";
-import { isEmptyObject } from "../../core/utils";
-import { UserRoleEnum, UserSchema } from "../user";
-import mongoose, { Schema } from "mongoose";
+import { HttpStatus } from '../../core/enums';
+import { HttpException } from '../../core/exceptions';
+import { SearchPaginationResponseModel } from '../../core/models';
+import { IDepartment } from './department.interface';
+import CreateDepartmentDto from './dtos/createDepartment.dto';
+import UpdateDepartmentDto from './dtos/updateDepartment.dto';
+import { isEmptyObject } from '../../core/utils';
+import { UserRoleEnum, UserSchema } from '../user';
+import mongoose, { Schema } from 'mongoose';
 import DepartmentRepository from './department.repository';
 
 export default class DepartmentService {
@@ -42,12 +42,12 @@ export default class DepartmentService {
         }
 
         // Tạo phòng ban mới
-        const department = await this.departmentRepository.createDepartment({
+        const department = (await this.departmentRepository.createDepartment({
             ...model,
             manager_id: model.manager_id as any,
             created_at: new Date(),
-            updated_at: new Date()
-        }) as IDepartment;
+            updated_at: new Date(),
+        })) as IDepartment;
 
         return department;
     }
@@ -57,14 +57,7 @@ export default class DepartmentService {
      */
     public async getDepartments(queryParams: any = {}): Promise<SearchPaginationResponseModel<IDepartment>> {
         try {
-            const {
-                pageNum,
-                pageSize,
-                sort_by,
-                sort_order,
-                keyword,
-                is_deleted
-            } = this.processQueryParams(queryParams);
+            const { pageNum, pageSize, sort_by, sort_order, keyword, is_deleted } = this.processQueryParams(queryParams);
 
             const skip = (pageNum - 1) * pageSize;
 
@@ -82,10 +75,7 @@ export default class DepartmentService {
 
             // 2. Tìm kiếm theo từ khóa nếu có
             if (keyword) {
-                query.$or = [
-                    { name: { $regex: keyword, $options: 'i' } },
-                    { description: { $regex: keyword, $options: 'i' } }
-                ];
+                query.$or = [{ name: { $regex: keyword, $options: 'i' } }, { description: { $regex: keyword, $options: 'i' } }];
             }
 
             // Đếm tổng số phòng ban
@@ -107,8 +97,8 @@ export default class DepartmentService {
                     totalItems,
                     totalPages,
                     pageNum: pageNum,
-                    pageSize: pageSize
-                }
+                    pageSize: pageSize,
+                },
             };
         } catch (error) {
             console.error('Error in getDepartments:', error);
@@ -176,9 +166,9 @@ export default class DepartmentService {
             {
                 ...model,
                 manager_id: model.manager_id ? (model.manager_id as any) : department.manager_id,
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
 
         if (!updatedDepartment) {
@@ -203,11 +193,7 @@ export default class DepartmentService {
         }
 
         // Cập nhật cột is_deleted thành true
-        const deletedDepartment = await this.departmentRepository.findByIdAndUpdate(
-            id,
-            { is_deleted: true, updated_at: new Date() },
-            { new: true }
-        );
+        const deletedDepartment = await this.departmentRepository.findByIdAndUpdate(id, { is_deleted: true, updated_at: new Date() }, { new: true });
 
         if (!deletedDepartment) {
             throw new HttpException(HttpStatus.InternalServerError, 'Cannot delete the department');
@@ -230,7 +216,7 @@ export default class DepartmentService {
         const processedParams: Record<string, any> = {}; // Khởi tạo một đối tượng để lưu trữ các tham số đã xử lý
 
         // Xử lý tham số
-        Object.keys(params).forEach(key => {
+        Object.keys(params).forEach((key) => {
             const trimmedKey = key.trim(); // Loại bỏ khoảng trắng ở đầu và cuối
             const normalizedKey = trimmedKey.replace(/-/g, '_'); // Thay thế dấu '-' bằng dấu '_'
             processedParams[normalizedKey] = params[key]; // Lưu trữ giá trị vào processedParams
@@ -255,14 +241,17 @@ export default class DepartmentService {
             sort_by: allowedSortFields.includes(sortBy) ? sortBy : 'created_at',
             sort_order: processedParams.sort_order === 'asc' ? 'asc' : 'desc',
             keyword: processedParams.keyword,
-            is_deleted: processBoolean(processedParams.is_deleted)
+            is_deleted: processBoolean(processedParams.is_deleted),
         };
     }
 
     /**
      * Lấy danh sách phòng ban của một manager
      */
-    public async getManagerDepartments(managerId: string, queryParams: any = {}): Promise<{
+    public async getManagerDepartments(
+        managerId: string,
+        queryParams: any = {},
+    ): Promise<{
         departments: IDepartment[];
         count: number;
     }> {
@@ -297,12 +286,12 @@ export default class DepartmentService {
 
         return {
             departments,
-            count: departments.length
+            count: departments.length,
         };
     }
 
     /**
-     * Đếm tổng số phòng ban trong hệ thống 
+     * Đếm tổng số phòng ban trong hệ thống
      */
     public async countDepartments(queryParams: any = {}): Promise<number> {
         // Xử lý các tham số truy vấn

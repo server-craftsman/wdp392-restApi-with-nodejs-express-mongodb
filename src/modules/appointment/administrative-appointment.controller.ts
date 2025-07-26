@@ -53,21 +53,19 @@ export default class AdministrativeAppointmentController {
                     collection_address: dto.collection_address,
                     staff_id: dto.staff_id,
                     laboratory_technician_id: dto.laboratory_technician_id,
-                    participants: dto.participants || []
+                    participants: dto.participants || [],
                 },
-                userId
+                userId,
             );
 
-            res.status(HttpStatus.Created).json(
-                formatResponse(appointment, true, 'Administrative appointment created successfully')
-            );
+            res.status(HttpStatus.Created).json(formatResponse(appointment, true, 'Administrative appointment created successfully'));
         } catch (error: any) {
             console.error('Error creating administrative appointment:', {
                 message: error.message,
                 stack: error.stack,
                 caseId: req.params?.caseId,
                 userId: req.user?.id,
-                body: req.body
+                body: req.body,
             });
 
             // If it's already an HttpException, throw it as is
@@ -76,10 +74,7 @@ export default class AdministrativeAppointmentController {
             }
 
             // Otherwise, create a new HttpException with the original error message
-            throw new HttpException(
-                HttpStatus.InternalServerError,
-                `Error creating administrative appointment: ${error.message}`
-            );
+            throw new HttpException(HttpStatus.InternalServerError, `Error creating administrative appointment: ${error.message}`);
         }
     };
 
@@ -92,9 +87,7 @@ export default class AdministrativeAppointmentController {
 
             const appointments = await this.administrativeAppointmentService.getAppointmentsByCase(caseId);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(appointments, true, 'Case appointments retrieved successfully')
-            );
+            res.status(HttpStatus.Success).json(formatResponse(appointments, true, 'Case appointments retrieved successfully'));
         } catch (error: any) {
             console.error('Error fetching case appointments:', error);
             throw new HttpException(HttpStatus.InternalServerError, error.message || 'Error fetching case appointments');
@@ -114,9 +107,7 @@ export default class AdministrativeAppointmentController {
 
             await this.administrativeAppointmentService.updateAdministrativeCaseProgress(appointmentId, dto.status as AppointmentStatusEnum);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(null, true, 'Appointment progress updated successfully')
-            );
+            res.status(HttpStatus.Success).json(formatResponse(null, true, 'Appointment progress updated successfully'));
         } catch (error: any) {
             console.error('Error updating appointment progress:', error);
             throw new HttpException(HttpStatus.InternalServerError, error.message || 'Error updating appointment progress');
@@ -132,12 +123,10 @@ export default class AdministrativeAppointmentController {
 
             const validation = await this.administrativeAppointmentService.validateAppointmentCreation(caseId);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(validation, true, 'Validation completed')
-            );
+            res.status(HttpStatus.Success).json(formatResponse(validation, true, 'Validation completed'));
         } catch (error: any) {
             console.error('Error validating appointment creation:', error);
             throw new HttpException(HttpStatus.InternalServerError, error.message || 'Error validating appointment creation');
         }
     };
-} 
+}

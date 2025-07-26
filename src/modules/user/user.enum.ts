@@ -15,6 +15,5 @@ export enum UserReviewStatusEnum {
 export enum UserGenderEnum {
     MALE = 'male',
     FEMALE = 'female',
-    OTHER = 'other'
+    OTHER = 'other',
 }
-

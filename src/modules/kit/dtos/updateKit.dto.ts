@@ -4,4 +4,4 @@ export class UpdateKitDto {
     @IsString()
     @IsOptional()
     notes?: string;
-} 
+}

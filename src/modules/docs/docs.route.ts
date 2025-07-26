@@ -23,12 +23,10 @@ export default class DocsRoute implements IRoute {
 
         try {
             // Get all module directories
-            const modules = fs.readdirSync(moduleDir).filter(file =>
-                fs.statSync(path.join(moduleDir, file)).isDirectory()
-            );
+            const modules = fs.readdirSync(moduleDir).filter((file) => fs.statSync(path.join(moduleDir, file)).isDirectory());
 
             // For each module, check if it has a route file
-            modules.forEach(moduleName => {
+            modules.forEach((moduleName) => {
                 const routeFilePath = path.join(moduleDir, moduleName, `${moduleName}.route.ts`);
 
                 if (fs.existsSync(routeFilePath)) {
@@ -67,40 +65,36 @@ export default class DocsRoute implements IRoute {
                     title: 'Bloodline DNA Testing Service API',
                     description: `API endpoints for a Bloodline DNA Testing Service documented on swagger. This API has ${endpointCount} endpoints in total.`,
                     contact: {
-                        name: "Nguyễn Đan Huy",
-                        email: "huyit2003@gmail.com",
-                        url: "https://github.com/server-craftsman/wdp392-restApi-with-nodejs-express-mongodb"
+                        name: 'Nguyễn Đan Huy',
+                        email: 'huyit2003@gmail.com',
+                        url: 'https://github.com/server-craftsman/wdp392-restApi-with-nodejs-express-mongodb',
                     },
                     version: '1.0.0',
                 },
                 servers: [
                     {
-                        url: "http://localhost:6969/",
-                        description: "Local server"
+                        url: 'http://localhost:6969/',
+                        description: 'Local server',
                     },
                     {
-                        url: "https://restapi-dnatesting.up.railway.app/",
-                        description: "Live server"
+                        url: 'https://restapi-dnatesting.up.railway.app/',
+                        description: 'Live server',
                     },
-
                 ],
                 components: {
                     securitySchemes: {
                         Bearer: {
-                            type: "apiKey",
-                            name: "Authorization",
-                            in: "header",
-                            description: "Bearer token for authorization",
-                            scheme: "bearer",
-                            bearerFormat: "JWT"
-                        }
-                    }
-                }
+                            type: 'apiKey',
+                            name: 'Authorization',
+                            in: 'header',
+                            description: 'Bearer token for authorization',
+                            scheme: 'bearer',
+                            bearerFormat: 'JWT',
+                        },
+                    },
+                },
             },
-            apis: [
-                './src/modules/*/swagger/*.js',
-                './src/modules/*/dtos/*.ts'
-            ],
+            apis: ['./src/modules/*/swagger/*.js', './src/modules/*/dtos/*.ts'],
         };
 
         const swaggerSpec = swaggerJsdoc(options);
@@ -139,48 +133,48 @@ export default class DocsRoute implements IRoute {
             let servers = [
                 {
                     url: currentServerUrl,
-                    description: `Current server (${nodeEnv} - auto-detected)`
-                }
+                    description: `Current server (${nodeEnv} - auto-detected)`,
+                },
             ];
 
             // Add environment-specific servers
             if (nodeEnv === 'development') {
                 servers.push(
                     {
-                        url: "http://localhost:6969/",
-                        description: "Local development server (port 6969)"
+                        url: 'http://localhost:6969/',
+                        description: 'Local development server (port 6969)',
                     },
                     {
-                        url: "http://localhost:8080/",
-                        description: "Local development server (port 8080)"
+                        url: 'http://localhost:8080/',
+                        description: 'Local development server (port 8080)',
                     },
                     {
-                        url: "http://localhost:3000/",
-                        description: "Local development server (port 3000)"
-                    }
+                        url: 'http://localhost:3000/',
+                        description: 'Local development server (port 3000)',
+                    },
                 );
             } else if (nodeEnv === 'production') {
                 servers.push(
                     {
-                        url: "https://restapi-dnatesting.up.railway.app/",
-                        description: "Production server (Railway)"
+                        url: 'https://restapi-dnatesting.up.railway.app/',
+                        description: 'Production server (Railway)',
                     },
                     {
-                        url: "https://restapi-dna-testing.onrender.com/",
-                        description: "Production server (Render)"
-                    }
+                        url: 'https://restapi-dna-testing.onrender.com/',
+                        description: 'Production server (Render)',
+                    },
                 );
             } else {
                 // For staging, testing, or other environments
                 servers.push(
                     {
-                        url: "http://localhost:6969/",
-                        description: "Local development server"
+                        url: 'http://localhost:6969/',
+                        description: 'Local development server',
                     },
                     {
-                        url: "https://restapi-dna-testing.onrender.com/",
-                        description: "Production server"
-                    }
+                        url: 'https://restapi-dna-testing.onrender.com/',
+                        description: 'Production server',
+                    },
                 );
             }
 
@@ -189,8 +183,8 @@ export default class DocsRoute implements IRoute {
                 ...options,
                 definition: {
                     ...options.definition,
-                    servers: servers
-                }
+                    servers: servers,
+                },
             });
 
             // Store the dynamic spec for this request
@@ -214,7 +208,7 @@ export default class DocsRoute implements IRoute {
                     tryItOutEnabled: true,
                     tagsSorter: 'alpha',
                     defaultModelsExpandDepth: 1,
-                    operationsSorter: 'alpha'
+                    operationsSorter: 'alpha',
                 },
                 customCss: `
                     .swagger-ui .topbar { background-color: rgb(0, 0, 0); }
@@ -232,7 +226,7 @@ export default class DocsRoute implements IRoute {
                     }
                 `,
                 customSiteTitle: `API Documentation (${endpointCount} endpoints)`,
-                customfavIcon: "/favicon.ico"
+                customfavIcon: '/favicon.ico',
             })(req, res, next);
         });
 
@@ -267,48 +261,48 @@ export default class DocsRoute implements IRoute {
             let servers = [
                 {
                     url: currentServerUrl,
-                    description: `Current server (${nodeEnv} - auto-detected)`
-                }
+                    description: `Current server (${nodeEnv} - auto-detected)`,
+                },
             ];
 
             // Add environment-specific servers
             if (nodeEnv === 'development') {
                 servers.push(
                     {
-                        url: "http://localhost:6969/",
-                        description: "Local development server (port 6969)"
+                        url: 'http://localhost:6969/',
+                        description: 'Local development server (port 6969)',
                     },
                     {
-                        url: "http://localhost:8080/",
-                        description: "Local development server (port 8080)"
+                        url: 'http://localhost:8080/',
+                        description: 'Local development server (port 8080)',
                     },
                     {
-                        url: "http://localhost:3000/",
-                        description: "Local development server (port 3000)"
-                    }
+                        url: 'http://localhost:3000/',
+                        description: 'Local development server (port 3000)',
+                    },
                 );
             } else if (nodeEnv === 'production') {
                 servers.push(
                     {
-                        url: "https://restapi-dnatesting.up.railway.app/",
-                        description: "Production server (Railway)"
+                        url: 'https://restapi-dnatesting.up.railway.app/',
+                        description: 'Production server (Railway)',
                     },
                     {
-                        url: "https://restapi-dna-testing.onrender.com/",
-                        description: "Production server (Render)"
-                    }
+                        url: 'https://restapi-dna-testing.onrender.com/',
+                        description: 'Production server (Render)',
+                    },
                 );
             } else {
                 // For staging, testing, or other environments
                 servers.push(
                     {
-                        url: "http://localhost:6969/",
-                        description: "Local development server"
+                        url: 'http://localhost:6969/',
+                        description: 'Local development server',
                     },
                     {
-                        url: "https://restapi-dna-testing.onrender.com/",
-                        description: "Production server"
-                    }
+                        url: 'https://restapi-dna-testing.onrender.com/',
+                        description: 'Production server',
+                    },
                 );
             }
 
@@ -317,11 +311,11 @@ export default class DocsRoute implements IRoute {
                 ...options,
                 definition: {
                     ...options.definition,
-                    servers: servers
-                }
+                    servers: servers,
+                },
             });
 
             res.json(dynamicSwaggerSpec);
         });
     }
-} 
+}

@@ -6,20 +6,14 @@ import { HttpStatus } from '../enums';
 import { logger } from '../utils';
 
 // List of paths that should bypass authentication
-const PUBLIC_PATHS = [
-    '/docs',
-    '/docs/',
-    '/docs.json',
-    '/swagger',
-    '/swagger/'
-];
+const PUBLIC_PATHS = ['/docs', '/docs/', '/docs.json', '/swagger', '/swagger/'];
 
 const authMiddleWare = (roles?: UserRole[], isClient = false): RequestHandler => {
     return (req: Request, res: Response, next: NextFunction) => {
         // kiểm tra xem đường dẫn có nằm trong danh sách các đường dẫn public không
         const path = req.path;
         // nếu có thì cho phép truy cập
-        if (PUBLIC_PATHS.some(publicPath => path.startsWith(publicPath))) {
+        if (PUBLIC_PATHS.some((publicPath) => path.startsWith(publicPath))) {
             next(); // chuyển tiếp đến middleware tiếp theo
             return;
         }
@@ -43,18 +37,10 @@ const authMiddleWare = (roles?: UserRole[], isClient = false): RequestHandler =>
     };
 };
 
-const handleCheckToken = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-    authHeader: string | undefined,
-    roles?: UserRole[],
-) => {
+const handleCheckToken = async (req: Request, res: Response, next: NextFunction, authHeader: string | undefined, roles?: UserRole[]) => {
     const userSchema = UserSchema;
     if (authHeader) {
-        const token = authHeader.startsWith('Bearer ')
-            ? authHeader.split(' ')[1]
-            : authHeader;
+        const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
 
         if (!token) {
             res.status(HttpStatus.NotFound).json({ message: 'No token, authorization denied.' });

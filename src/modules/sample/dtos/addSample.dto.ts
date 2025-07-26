@@ -61,4 +61,4 @@ export class AddSampleDto {
     @IsOptional()
     @IsString()
     collection_method?: string;
-} 
+}

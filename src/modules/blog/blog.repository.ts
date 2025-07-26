@@ -1,7 +1,7 @@
-import { IBlog } from "./blog.interface";
-import BlogSchemaEntity from "./blog.model";
-import mongoose from "mongoose";
-import { BlogSearchDto } from "./dtos/blog.dto";
+import { IBlog } from './blog.interface';
+import BlogSchemaEntity from './blog.model';
+import mongoose from 'mongoose';
+import { BlogSearchDto } from './dtos/blog.dto';
 
 export default class BlogRepository {
     public async createBlog(model: IBlog): Promise<IBlog> {
@@ -16,11 +16,7 @@ export default class BlogRepository {
     public async updateBlog(id: string, model: Partial<IBlog>): Promise<IBlog | null> {
         try {
             console.log(`Repository: Updating blog ${id} with data:`, JSON.stringify(model));
-            const blog = await BlogSchemaEntity.findByIdAndUpdate(
-                id,
-                { ...model, updated_at: new Date() },
-                { new: true }
-            );
+            const blog = await BlogSchemaEntity.findByIdAndUpdate(id, { ...model, updated_at: new Date() }, { new: true });
             console.log(`Repository: Blog ${id} update result:`, blog ? 'Success' : 'Not found');
             return blog;
         } catch (error) {
@@ -30,11 +26,7 @@ export default class BlogRepository {
     }
 
     public async deleteBlog(id: string): Promise<IBlog | null> {
-        return BlogSchemaEntity.findByIdAndUpdate(
-            id,
-            { is_deleted: true, updated_at: new Date() },
-            { new: true }
-        );
+        return BlogSchemaEntity.findByIdAndUpdate(id, { is_deleted: true, updated_at: new Date() }, { new: true });
     }
 
     public async getBlogById(id: string): Promise<IBlog | null> {
@@ -61,11 +53,7 @@ export default class BlogRepository {
     public async getBlogs(): Promise<IBlog[]> {
         try {
             console.log('Repository: Fetching all non-deleted blogs');
-            const blogs = await BlogSchemaEntity.find({ is_deleted: false })
-                .populate('user_id', 'name email')
-                .populate('service_id', 'name')
-                .populate('blog_category_id', 'name')
-                .sort({ created_at: -1 });
+            const blogs = await BlogSchemaEntity.find({ is_deleted: false }).populate('user_id', 'name email').populate('service_id', 'name').populate('blog_category_id', 'name').sort({ created_at: -1 });
             console.log(`Repository: Found ${blogs.length} blogs`);
             return blogs;
         } catch (error) {
@@ -112,10 +100,7 @@ export default class BlogRepository {
             query.is_published = searchParams.is_published;
         }
 
-        return BlogSchemaEntity.find(query)
-            .populate('user_id', 'name email')
-            .populate('service_id', 'name')
-            .populate('blog_category_id', 'name');
+        return BlogSchemaEntity.find(query).populate('user_id', 'name email').populate('service_id', 'name').populate('blog_category_id', 'name');
     }
 
     public async countBlogs(searchParams: BlogSearchDto): Promise<number> {
@@ -131,24 +116,15 @@ export default class BlogRepository {
             const orConditions = [];
 
             if (searchParams.blog_category_id) {
-                orConditions.push(
-                    { blog_category_id: searchParams.blog_category_id },
-                    { blog_category_id: searchParams.blog_category_id.toString() }
-                );
+                orConditions.push({ blog_category_id: searchParams.blog_category_id }, { blog_category_id: searchParams.blog_category_id.toString() });
             }
 
             if (searchParams.user_id) {
-                orConditions.push(
-                    { user_id: searchParams.user_id },
-                    { user_id: searchParams.user_id.toString() }
-                );
+                orConditions.push({ user_id: searchParams.user_id }, { user_id: searchParams.user_id.toString() });
             }
 
             if (searchParams.service_id) {
-                orConditions.push(
-                    { service_id: searchParams.service_id },
-                    { service_id: searchParams.service_id.toString() }
-                );
+                orConditions.push({ service_id: searchParams.service_id }, { service_id: searchParams.service_id.toString() });
             }
 
             // Add $or conditions to query if any exist
@@ -227,11 +203,14 @@ export default class BlogRepository {
                     // Get a sample blog to check schema
                     const sampleBlog = await BlogSchemaEntity.findOne({ is_deleted: false }).lean();
                     if (sampleBlog) {
-                        console.log('Repository: Sample blog from database:', JSON.stringify({
-                            id: sampleBlog._id,
-                            title: sampleBlog.title,
-                            fields: Object.keys(sampleBlog)
-                        }));
+                        console.log(
+                            'Repository: Sample blog from database:',
+                            JSON.stringify({
+                                id: sampleBlog._id,
+                                title: sampleBlog.title,
+                                fields: Object.keys(sampleBlog),
+                            }),
+                        );
                     }
                 }
             }

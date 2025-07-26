@@ -135,15 +135,11 @@ export default class KitController {
             const kitId = req.params.id;
             const { appointment_id, laboratory_technician_id } = req.body;
 
-            const kit = await this.kitService.assignKit(
-                kitId,
-                appointment_id,
-                laboratory_technician_id
-            );
+            const kit = await this.kitService.assignKit(kitId, appointment_id, laboratory_technician_id);
 
             res.status(HttpStatus.Success).json(formatResponse<IKit>(kit));
         } catch (error) {
             next(error);
         }
     };
-} 
+}

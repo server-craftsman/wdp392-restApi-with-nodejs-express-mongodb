@@ -1,6 +1,6 @@
-import mongoose, { Schema } from "mongoose";
-import { IBlogCategory } from "./blog_category.interface";
-import { COLLECTION_NAME } from "../../core/constants/collection.constant";
+import mongoose, { Schema } from 'mongoose';
+import { IBlogCategory } from './blog_category.interface';
+import { COLLECTION_NAME } from '../../core/constants/collection.constant';
 
 const BlogCategorySchema: Schema<IBlogCategory> = new Schema({
     name: {
@@ -20,9 +20,6 @@ const BlogCategorySchema: Schema<IBlogCategory> = new Schema({
         type: Boolean,
         default: false,
     },
-})
+});
 
-export const BlogCategoryModel = mongoose.model<IBlogCategory>(
-    COLLECTION_NAME.BLOG_CATEGORY,
-    BlogCategorySchema
-);
+export const BlogCategoryModel = mongoose.model<IBlogCategory>(COLLECTION_NAME.BLOG_CATEGORY, BlogCategorySchema);

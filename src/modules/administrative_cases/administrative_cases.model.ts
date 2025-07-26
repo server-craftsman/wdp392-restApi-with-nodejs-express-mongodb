@@ -13,7 +13,7 @@ const ParticipantSchema = new Schema<ICaseParticipant>({
     address: { type: String },
     is_required: { type: Boolean, default: true },
     consent_provided: { type: Boolean, default: false },
-    sample_collected: { type: Boolean, default: false }
+    sample_collected: { type: Boolean, default: false },
 });
 
 // Schema cho tài liệu
@@ -22,7 +22,7 @@ const DocumentSchema = new Schema<ICaseDocument>({
     type: { type: String, required: true },
     file_url: { type: String, required: true },
     uploaded_at: { type: Date, default: Date.now },
-    verified: { type: Boolean, default: false }
+    verified: { type: Boolean, default: false },
 });
 
 const AdministrativeCaseSchemaEntity = new Schema<IAdministrativeCase>({
@@ -30,12 +30,12 @@ const AdministrativeCaseSchemaEntity = new Schema<IAdministrativeCase>({
     case_type: {
         type: String,
         enum: Object.values(AdministrativeCaseType),
-        required: true
+        required: true,
     },
     urgency: {
         type: String,
         enum: Object.values(CaseUrgency),
-        default: CaseUrgency.NORMAL
+        default: CaseUrgency.NORMAL,
     },
 
     // Thông tin cơ quan
@@ -63,7 +63,7 @@ const AdministrativeCaseSchemaEntity = new Schema<IAdministrativeCase>({
     status: {
         type: String,
         enum: Object.values(AdministrativeCaseStatus),
-        default: AdministrativeCaseStatus.DRAFT
+        default: AdministrativeCaseStatus.DRAFT,
     },
 
     // Thời gian
@@ -88,20 +88,16 @@ const AdministrativeCaseSchemaEntity = new Schema<IAdministrativeCase>({
     // Kết quả
     result_delivery_method: {
         type: String,
-        enum: ['pickup', 'mail', 'email']
+        enum: ['pickup', 'mail', 'email'],
     },
     result_recipient: { type: String },
     result_delivered_at: { type: Date },
 
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now },
-    is_deleted: { type: Boolean, default: false }
+    is_deleted: { type: Boolean, default: false },
 });
 
-const AdministrativeCaseSchema = mongoose.model<IAdministrativeCase>(
-    COLLECTION_NAME.ADMINISTRATIVE_CASE,
-    AdministrativeCaseSchemaEntity
-);
+const AdministrativeCaseSchema = mongoose.model<IAdministrativeCase>(COLLECTION_NAME.ADMINISTRATIVE_CASE, AdministrativeCaseSchemaEntity);
 
 export default AdministrativeCaseSchema;
-

@@ -1,11 +1,11 @@
-import mongoose, { Schema } from "mongoose";
-import { ILog } from "./log.interface";
-import { COLLECTION_NAME } from "../../../core/constants";
+import mongoose, { Schema } from 'mongoose';
+import { ILog } from './log.interface';
+import { COLLECTION_NAME } from '../../../core/constants';
 
 const BlogImageSchema = new Schema({
     name: { type: String },
     image_url: { type: String },
-    created_at: { type: Date, default: Date.now }
+    created_at: { type: Date, default: Date.now },
 });
 
 const LogSchemaEntity = new Schema({
@@ -31,12 +31,9 @@ const LogSchemaEntity = new Schema({
     new_images: [BlogImageSchema],
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now },
-    is_deleted: { type: Boolean, default: false }
+    is_deleted: { type: Boolean, default: false },
 });
 
-const LogSchema = mongoose.model<ILog & mongoose.Document>(
-    COLLECTION_NAME.BLOG_LOG,
-    LogSchemaEntity
-);
+const LogSchema = mongoose.model<ILog & mongoose.Document>(COLLECTION_NAME.BLOG_LOG, LogSchemaEntity);
 
 export default LogSchema;

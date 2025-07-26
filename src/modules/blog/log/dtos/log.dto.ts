@@ -142,4 +142,4 @@ export class LogSearchDto {
     @IsDate()
     @IsOptional()
     created_at_to?: Date;
-} 
+}

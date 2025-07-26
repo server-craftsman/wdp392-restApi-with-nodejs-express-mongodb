@@ -1,10 +1,7 @@
 import { Document, Schema } from 'mongoose';
 import { SlotStatusEnum } from './slot.enum';
 
-export type SlotStatus =
-    SlotStatusEnum.AVAILABLE |
-    SlotStatusEnum.BOOKED |
-    SlotStatusEnum.UNAVAILABLE;
+export type SlotStatus = SlotStatusEnum.AVAILABLE | SlotStatusEnum.BOOKED | SlotStatusEnum.UNAVAILABLE;
 
 export interface TimePoint {
     hour: number;
@@ -30,4 +27,4 @@ export interface ISlot extends Document {
     status: SlotStatus | string;
     created_at: Date;
     updated_at: Date;
-} 
+}

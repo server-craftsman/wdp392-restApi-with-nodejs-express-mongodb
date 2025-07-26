@@ -21,4 +21,4 @@ declare global {
             files?: Multer.File[] | { [fieldname: string]: Multer.File[] };
         }
     }
-} 
+}

@@ -46,4 +46,4 @@ export class CreateConsultationDto {
     @MinLength(5, { message: 'Subject must be at least 5 characters long' })
     @MaxLength(200, { message: 'Subject must not exceed 200 characters' })
     subject!: string;
-} 
+}

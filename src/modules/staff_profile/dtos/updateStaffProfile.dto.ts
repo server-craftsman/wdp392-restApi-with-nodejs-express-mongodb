@@ -1,18 +1,10 @@
-import { IsArray, IsDate, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
-import { IQualification } from "../staff_profile.interface";
-import { Type } from "class-transformer";
-import { IAddress } from "../../user/user.interface";
+import { IsArray, IsDate, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString } from 'class-validator';
+import { IQualification } from '../staff_profile.interface';
+import { Type } from 'class-transformer';
+import { IAddress } from '../../user/user.interface';
 
 export default class UpdateStaffProfileDto {
-    constructor(
-        user_id: string,
-        department_id: string,
-        job_title: string,
-        hire_date: Date,
-        address: IAddress,
-        salary: number,
-        qualifications: IQualification[]
-    ) {
+    constructor(user_id: string, department_id: string, job_title: string, hire_date: Date, address: IAddress, salary: number, qualifications: IQualification[]) {
         this.user_id = user_id;
         this.department_id = department_id;
         this.job_title = job_title;

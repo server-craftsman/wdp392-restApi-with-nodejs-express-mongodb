@@ -1,6 +1,6 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
-import { IService, SampleMethod, ServiceType } from "../service.interface";
-import { Type, Transform } from "class-transformer";
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IService, SampleMethod, ServiceType } from '../service.interface';
+import { Type, Transform } from 'class-transformer';
 
 export default class CreateServiceDto {
     constructor(

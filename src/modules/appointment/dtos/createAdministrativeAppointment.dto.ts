@@ -35,4 +35,4 @@ export class UpdateAppointmentProgressDto {
     @IsString()
     @IsNotEmpty()
     status!: string;
-} 
+}

@@ -13,7 +13,6 @@ import { CreateConsultationDto } from './dtos/createConsultation.dto';
 import AdministrativeAppointmentController from './administrative-appointment.controller';
 import AdministrativeAppointmentService from './administrative-appointment.service';
 
-
 export {
     AppointmentSchema,
     IAppointment,
@@ -32,5 +31,5 @@ export {
     CreateAppointmentDto,
     CreateConsultationDto,
     AdministrativeAppointmentController,
-    AdministrativeAppointmentService
-}; 
+    AdministrativeAppointmentService,
+};

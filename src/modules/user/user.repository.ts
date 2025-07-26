@@ -42,26 +42,17 @@ export default class UserRepository {
     }
 
     public async updatePassword(userId: string, newPassword: string): Promise<boolean> {
-        const result = await UserSchema.updateOne(
-            { _id: userId },
-            { password: newPassword, updated_at: new Date() }
-        );
+        const result = await UserSchema.updateOne({ _id: userId }, { password: newPassword, updated_at: new Date() });
         return result.acknowledged;
     }
 
     public async updateStatus(userId: string, status: boolean): Promise<boolean> {
-        const result = await UserSchema.updateOne(
-            { _id: userId },
-            { status: status, updated_at: new Date() }
-        );
+        const result = await UserSchema.updateOne({ _id: userId }, { status: status, updated_at: new Date() });
         return result.acknowledged;
     }
 
     public async updateRole(userId: string, role: string): Promise<boolean> {
-        const result = await UserSchema.updateOne(
-            { _id: userId },
-            { role, updated_at: new Date() }
-        );
+        const result = await UserSchema.updateOne({ _id: userId }, { role, updated_at: new Date() });
         return result.acknowledged;
     }
 
@@ -72,8 +63,8 @@ export default class UserRepository {
                 select: '-__v',
                 populate: {
                     path: 'department_id',
-                    select: 'name'
-                }
+                    select: 'name',
+                },
             })
             .lean();
     }
@@ -87,8 +78,8 @@ export default class UserRepository {
                 select: '-__v',
                 populate: {
                     path: 'department_id',
-                    select: 'name'
-                }
+                    select: 'name',
+                },
             })
             .skip((pageNum - 1) * pageSize)
             .limit(pageSize)

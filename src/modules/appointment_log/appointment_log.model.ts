@@ -18,24 +18,24 @@ const AppointmentLogSchemaEntity = new Schema<IAppointmentLog>({
     // Status changes
     old_status: {
         type: String,
-        enum: Object.values(AppointmentLogTypeEnum)
+        enum: Object.values(AppointmentLogTypeEnum),
     },
     new_status: {
         type: String,
         enum: Object.values(AppointmentLogTypeEnum),
-        required: true
+        required: true,
     },
 
     // Action and type
     action: {
         type: String,
         enum: Object.values(AppointmentLogActionEnum),
-        required: true
+        required: true,
     },
     type: {
         type: String,
         enum: Object.values(TypeEnum),
-        required: true
+        required: true,
     },
 
     // Additional details
@@ -60,7 +60,7 @@ const AppointmentLogSchemaEntity = new Schema<IAppointmentLog>({
         // General metadata
         user_agent: { type: String },
         ip_address: { type: String },
-        additional_data: { type: Schema.Types.Mixed }
+        additional_data: { type: Schema.Types.Mixed },
     },
 
     // Timestamps
@@ -70,12 +70,9 @@ const AppointmentLogSchemaEntity = new Schema<IAppointmentLog>({
 
     // User who performed the action
     performed_by_user_id: { type: String, required: true },
-    performed_by_role: { type: String }
+    performed_by_role: { type: String },
 });
 
-const AppointmentLogSchema = mongoose.model<IAppointmentLog>(
-    COLLECTION_NAME.APPOINTMENT_LOG,
-    AppointmentLogSchemaEntity
-);
+const AppointmentLogSchema = mongoose.model<IAppointmentLog>(COLLECTION_NAME.APPOINTMENT_LOG, AppointmentLogSchemaEntity);
 
-export default AppointmentLogSchema;  
+export default AppointmentLogSchema;

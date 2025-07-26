@@ -8,4 +8,4 @@ export class BatchReceiveSamplesDto {
     @IsNotEmpty()
     @IsDateString()
     received_date: string = '';
-} 
+}

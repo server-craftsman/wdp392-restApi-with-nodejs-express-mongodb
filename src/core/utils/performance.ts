@@ -37,12 +37,7 @@ export class DatabaseOptimizer {
      * @param sort Tiêu chí sắp xếp (mặc định theo created_at giảm dần)
      * @returns Query đã được tối ưu với pagination
      */
-    static paginate(
-        query: any,
-        page: number = 1,
-        limit: number = 10,
-        sort: any = { created_at: -1 }
-    ): any {
+    static paginate(query: any, page: number = 1, limit: number = 10, sort: any = { created_at: -1 }): any {
         // Tính số documents cần skip, đảm bảo không âm
         const skip = Math.max(0, (page - 1) * limit);
 
@@ -50,10 +45,10 @@ export class DatabaseOptimizer {
         const validLimit = Math.min(Math.max(1, limit), 100);
 
         return query
-            .sort(sort)           // Sắp xếp trước
-            .skip(skip)           // Bỏ qua documents của các trang trước
-            .limit(validLimit)    // Giới hạn số documents trả về
-            .lean();              // Trả về plain objects để tăng tốc
+            .sort(sort) // Sắp xếp trước
+            .skip(skip) // Bỏ qua documents của các trang trước
+            .limit(validLimit) // Giới hạn số documents trả về
+            .lean(); // Trả về plain objects để tăng tốc
     }
 
     /**
@@ -75,14 +70,9 @@ export class DatabaseOptimizer {
      * @param processor Hàm xử lý mỗi batch
      * @param batchSize Kích thước mỗi batch (mặc định 100)
      */
-    static async batchProcess(
-        model: mongoose.Model<any>,
-        filter: any,
-        processor: (batch: any[]) => Promise<void>,
-        batchSize: number = 100
-    ): Promise<void> {
-        let skip = 0;           // Số documents đã xử lý
-        let hasMore = true;     // Flag kiểm tra còn data không
+    static async batchProcess(model: mongoose.Model<any>, filter: any, processor: (batch: any[]) => Promise<void>, batchSize: number = 100): Promise<void> {
+        let skip = 0; // Số documents đã xử lý
+        let hasMore = true; // Flag kiểm tra còn data không
 
         while (hasMore) {
             // Lấy một batch documents
@@ -90,7 +80,7 @@ export class DatabaseOptimizer {
                 .find(filter)
                 .skip(skip)
                 .limit(batchSize)
-                .lean()               // Sử dụng lean() để tăng tốc
+                .lean() // Sử dụng lean() để tăng tốc
                 .exec();
 
             // Nếu không có data thì dừng
@@ -178,11 +168,11 @@ export class PerformanceMonitor {
         this.start(label); // Bắt đầu đo thời gian
         try {
             const result = await fn(); // Thực thi function
-            this.end(label);           // Kết thúc thành công
+            this.end(label); // Kết thúc thành công
             return result;
         } catch (error) {
-            this.end(label, 'error');  // Kết thúc với lỗi
-            throw error;               // Re-throw error để caller xử lý
+            this.end(label, 'error'); // Kết thúc với lỗi
+            throw error; // Re-throw error để caller xử lý
         }
     }
 
@@ -241,16 +231,16 @@ export class MemoryManager {
         const usage = process.memoryUsage();
         return {
             // RSS: Resident Set Size - tổng memory được process sử dụng
-            rss: Math.round(usage.rss / 1024 / 1024 * 100) / 100,
+            rss: Math.round((usage.rss / 1024 / 1024) * 100) / 100,
 
             // Heap Total: Tổng heap memory được allocate
-            heapTotal: Math.round(usage.heapTotal / 1024 / 1024 * 100) / 100,
+            heapTotal: Math.round((usage.heapTotal / 1024 / 1024) * 100) / 100,
 
             // Heap Used: Heap memory đang được sử dụng
-            heapUsed: Math.round(usage.heapUsed / 1024 / 1024 * 100) / 100,
+            heapUsed: Math.round((usage.heapUsed / 1024 / 1024) * 100) / 100,
 
             // External: Memory được sử dụng bởi C++ objects liên kết với JS objects
-            external: Math.round(usage.external / 1024 / 1024 * 100) / 100,
+            external: Math.round((usage.external / 1024 / 1024) * 100) / 100,
         };
     }
 
@@ -299,7 +289,7 @@ export class ConnectionPoolOptimizer {
             host: mongoose.connection.host,
 
             // Tên database
-            name: mongoose.connection.name
+            name: mongoose.connection.name,
         };
     }
 
@@ -334,15 +324,13 @@ export class ServerlessOptimizer {
             isServerless: this.isServerless(),
 
             // Detect platform dựa trên environment variables
-            platform: process.env.VERCEL ? 'Vercel' :
-                process.env.AWS_LAMBDA_FUNCTION_NAME ? 'AWS Lambda' :
-                    process.env.NETLIFY ? 'Netlify' : 'Unknown',
+            platform: process.env.VERCEL ? 'Vercel' : process.env.AWS_LAMBDA_FUNCTION_NAME ? 'AWS Lambda' : process.env.NETLIFY ? 'Netlify' : 'Unknown',
 
             // Region đang chạy
             region: process.env.VERCEL_REGION || process.env.AWS_REGION || 'unknown',
 
             // Có phải cold start không (function mới được khởi tạo)
-            coldStart: !global.__serverless_cache_initialized
+            coldStart: !global.__serverless_cache_initialized,
         };
     }
 
@@ -373,4 +361,4 @@ export class ServerlessOptimizer {
 // Biến global để track trạng thái cache initialization
 declare global {
     var __serverless_cache_initialized: boolean;
-} 
+}

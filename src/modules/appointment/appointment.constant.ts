@@ -8,12 +8,7 @@ export const AppointmentStatuses = [
     AppointmentStatusEnum.SAMPLE_RECEIVED,
     AppointmentStatusEnum.TESTING,
     AppointmentStatusEnum.COMPLETED,
-    AppointmentStatusEnum.CANCELLED
+    AppointmentStatusEnum.CANCELLED,
 ];
 
-export const CollectionTypes = [
-    '',
-    TypeEnum.SELF,
-    TypeEnum.FACILITY,
-    TypeEnum.HOME
-]; 
+export const CollectionTypes = ['', TypeEnum.SELF, TypeEnum.FACILITY, TypeEnum.HOME];

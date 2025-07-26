@@ -48,4 +48,4 @@ export default class AppointmentLogRepository {
             .populate('laboratory_technician_id', '_id first_name last_name')
             .populate('appointment_id');
     }
-} 
+}

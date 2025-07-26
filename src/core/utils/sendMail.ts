@@ -214,18 +214,13 @@ export const createPasswordResetEmailTemplate = (userName: string, resetLink: st
  * @param actionText Nội dung nút hành động (tùy chọn)
  * @returns HTML string
  */
-export const createNotificationEmailTemplate = (
-    userName: string,
-    title: string,
-    message: string,
-    actionLink?: string,
-    actionText?: string
-): string => {
-    const actionButton = actionLink && actionText
-        ? `<div style="text-align: center;">
+export const createNotificationEmailTemplate = (userName: string, title: string, message: string, actionLink?: string, actionText?: string): string => {
+    const actionButton =
+        actionLink && actionText
+            ? `<div style="text-align: center;">
             <a href="${actionLink}" style="display: inline-block; background-color: #3498db; color: white; text-decoration: none; padding: 12px 24px; border-radius: 4px; margin: 20px 0; font-weight: bold;">${actionText}</a>
            </div>`
-        : '';
+            : '';
 
     return `
     <!DOCTYPE html>

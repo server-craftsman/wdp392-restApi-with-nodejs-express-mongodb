@@ -2,33 +2,29 @@ import { Document } from 'mongoose';
 import { AdministrativeCaseStatus, AdministrativeCaseType, CaseUrgency } from './administrative_cases.enum';
 
 export type AdministrativeCaseStatusType =
-    AdministrativeCaseStatus.DRAFT |
-    AdministrativeCaseStatus.SUBMITTED |
-    AdministrativeCaseStatus.UNDER_REVIEW |
-    AdministrativeCaseStatus.APPROVED |
-    AdministrativeCaseStatus.DENIED |
-    AdministrativeCaseStatus.SCHEDULED |
-    AdministrativeCaseStatus.IN_PROGRESS |
-    AdministrativeCaseStatus.COMPLETED |
-    AdministrativeCaseStatus.RESULT_ISSUED |
-    AdministrativeCaseStatus.ARCHIVED;
+    | AdministrativeCaseStatus.DRAFT
+    | AdministrativeCaseStatus.SUBMITTED
+    | AdministrativeCaseStatus.UNDER_REVIEW
+    | AdministrativeCaseStatus.APPROVED
+    | AdministrativeCaseStatus.DENIED
+    | AdministrativeCaseStatus.SCHEDULED
+    | AdministrativeCaseStatus.IN_PROGRESS
+    | AdministrativeCaseStatus.COMPLETED
+    | AdministrativeCaseStatus.RESULT_ISSUED
+    | AdministrativeCaseStatus.ARCHIVED;
 
 export type AdministrativeCaseTypeType =
-    AdministrativeCaseType.PATERNITY |
-    AdministrativeCaseType.MATERNITY |
-    AdministrativeCaseType.SIBLING |
-    AdministrativeCaseType.KINSHIP |
-    AdministrativeCaseType.IMMIGRATION |
-    AdministrativeCaseType.INHERITANCE |
-    AdministrativeCaseType.CRIMINAL_CASE |
-    AdministrativeCaseType.CIVIL_CASE |
-    AdministrativeCaseType.MISSING_PERSON;
+    | AdministrativeCaseType.PATERNITY
+    | AdministrativeCaseType.MATERNITY
+    | AdministrativeCaseType.SIBLING
+    | AdministrativeCaseType.KINSHIP
+    | AdministrativeCaseType.IMMIGRATION
+    | AdministrativeCaseType.INHERITANCE
+    | AdministrativeCaseType.CRIMINAL_CASE
+    | AdministrativeCaseType.CIVIL_CASE
+    | AdministrativeCaseType.MISSING_PERSON;
 
-export type CaseUrgencyType =
-    CaseUrgency.LOW |
-    CaseUrgency.NORMAL |
-    CaseUrgency.HIGH |
-    CaseUrgency.URGENT;
+export type CaseUrgencyType = CaseUrgency.LOW | CaseUrgency.NORMAL | CaseUrgency.HIGH | CaseUrgency.URGENT;
 
 // Thông tin người tham gia xét nghiệm
 export interface ICaseParticipant {

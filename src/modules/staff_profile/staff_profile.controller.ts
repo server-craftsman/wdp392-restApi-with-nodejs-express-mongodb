@@ -8,7 +8,6 @@ import { IStaffProfile } from './staff_profile.interface';
 import { SearchPaginationResponseModel } from '../../core/models/searchPagination.model';
 import { HttpException } from '../../core/exceptions';
 
-
 export default class StaffProfileController {
     private staffProfileService = new StaffProfileService();
 
@@ -20,7 +19,7 @@ export default class StaffProfileController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     public getStaffProfiles = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -30,7 +29,7 @@ export default class StaffProfileController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     public getStaffProfilesByDepartment = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -41,7 +40,7 @@ export default class StaffProfileController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     public getStaffProfileById = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -51,7 +50,7 @@ export default class StaffProfileController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     public updateStaffProfile = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -62,7 +61,7 @@ export default class StaffProfileController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     public changeStaffStatus = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -73,7 +72,5 @@ export default class StaffProfileController {
         } catch (error) {
             next(error);
         }
-    }
-
+    };
 }
-

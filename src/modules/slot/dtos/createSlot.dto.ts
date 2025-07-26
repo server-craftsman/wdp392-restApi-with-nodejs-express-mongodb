@@ -1,6 +1,6 @@
-import { Type } from "class-transformer";
-import { IsNotEmpty, IsNumber, IsString, IsOptional, IsArray, ValidateNested } from "class-validator";
-import { ITimeSlot, TimePoint } from "../slot.interface";
+import { Type } from 'class-transformer';
+import { IsNotEmpty, IsNumber, IsString, IsOptional, IsArray, ValidateNested } from 'class-validator';
+import { ITimeSlot, TimePoint } from '../slot.interface';
 
 export class TimePointDto implements TimePoint {
     constructor(hour: number, minute: number) {
@@ -18,13 +18,7 @@ export class TimePointDto implements TimePoint {
 }
 
 export class TimeSlotDto implements ITimeSlot {
-    constructor(
-        year: number,
-        month: number,
-        day: number,
-        start_time: TimePointDto,
-        end_time: TimePointDto
-    ) {
+    constructor(year: number, month: number, day: number, start_time: TimePointDto, end_time: TimePointDto) {
         this.year = year;
         this.month = month;
         this.day = day;
@@ -56,11 +50,7 @@ export class TimeSlotDto implements ITimeSlot {
 }
 
 export class CreateSlotDto {
-    constructor(
-        staff_profile_ids: string[],
-        time_slots: TimeSlotDto[],
-        appointment_limit: number
-    ) {
+    constructor(staff_profile_ids: string[], time_slots: TimeSlotDto[], appointment_limit: number) {
         this.staff_profile_ids = staff_profile_ids;
         this.time_slots = time_slots;
         this.appointment_limit = appointment_limit;
@@ -80,4 +70,4 @@ export class CreateSlotDto {
     @IsNotEmpty()
     @IsNumber()
     appointment_limit: number;
-} 
+}

@@ -31,18 +31,11 @@ export default class KitRepository {
     }
 
     public async findWithPopulate(query: any, sort: any = {}, skip = 0, limit = 10): Promise<IKit[]> {
-        return KitSchema.find(query)
-            .sort(sort)
-            .skip(skip)
-            .limit(limit)
-            .populate('appointment_id')
-            .populate('assigned_to_user_id', '_id first_name last_name');
+        return KitSchema.find(query).sort(sort).skip(skip).limit(limit).populate('appointment_id').populate('assigned_to_user_id', '_id first_name last_name');
     }
 
     public async findByIdWithPopulate(id: string): Promise<IKit | null> {
-        return KitSchema.findById(id)
-            .populate('appointment_id')
-            .populate('assigned_to_user_id', '_id first_name last_name');
+        return KitSchema.findById(id).populate('appointment_id').populate('assigned_to_user_id', '_id first_name last_name');
     }
 
     public async findWithDetailedPopulate(query: any): Promise<IKit[]> {
@@ -51,12 +44,12 @@ export default class KitRepository {
                 path: 'appointment_id',
                 populate: {
                     path: 'service_id',
-                    select: '_id name description price'
-                }
+                    select: '_id name description price',
+                },
             })
             .populate({
                 path: 'assigned_to_user_id',
-                select: '_id first_name last_name email role'
+                select: '_id first_name last_name email role',
             });
     }
-} 
+}

@@ -4,4 +4,4 @@ export class UploadPersonImageDto {
     @IsNotEmpty()
     @IsMongoId()
     sample_id: string = '';
-} 
+}

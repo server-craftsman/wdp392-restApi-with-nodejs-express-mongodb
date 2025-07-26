@@ -42,4 +42,4 @@ export class SearchSamplesDto {
     @IsNumber({}, { message: 'Limit must be a number' })
     @Min(1, { message: 'Limit must be at least 1' })
     limit?: number = 10;
-} 
+}

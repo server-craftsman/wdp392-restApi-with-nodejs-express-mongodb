@@ -16,8 +16,6 @@ export default class ReportGeneratorService {
     private resultRepository = new ResultRepository();
     private administrativeCasesService = new AdministrativeCasesService();
 
-
-
     /**
      * Lazy load SampleService to avoid circular dependency
      */
@@ -62,7 +60,7 @@ export default class ReportGeneratorService {
 
         // Get all samples with their data
         const samples = [];
-        const sampleIds = result.sample_ids.map(id => id.toString());
+        const sampleIds = result.sample_ids.map((id) => id.toString());
 
         for (const sampleId of sampleIds) {
             const sample = await this.getSampleService().getSampleById(sampleId);
@@ -130,8 +128,8 @@ export default class ReportGeneratorService {
 
         // Compile person information from samples
         const personsInfo = samples
-            .filter(sample => sample.person_info)
-            .map(sample => ({
+            .filter((sample) => sample.person_info)
+            .map((sample) => ({
                 name: sample.person_info?.name || 'Unknown',
                 relationship: sample.person_info?.relationship || 'Unknown',
                 dob: sample.person_info?.dob || null,
@@ -139,7 +137,7 @@ export default class ReportGeneratorService {
                 nationality: sample.person_info?.nationality || 'Unknown',
                 identityDocument: sample.person_info?.identity_document || 'Unknown',
                 sampleId: sample._id.toString(),
-                imageUrl: sample.person_info?.image_url
+                imageUrl: sample.person_info?.image_url,
             }));
 
         // Get administrative case information if applicable
@@ -152,7 +150,7 @@ export default class ReportGeneratorService {
                     adminCaseData = {
                         caseNumber: adminCase.case_number,
                         agencyName: adminCase.requesting_agency,
-                        agencyContact: adminCase.agency_contact_name
+                        agencyContact: adminCase.agency_contact_name,
                     };
                 }
             } catch (error) {
@@ -191,11 +189,7 @@ export default class ReportGeneratorService {
             customerContactInfo: {
                 email: customer.email || 'Not provided',
                 phone: customer.phone_number || 'Not provided',
-                address: typeof customer.address === 'string'
-                    ? customer.address
-                    : customer.address
-                        ? JSON.stringify(customer.address)
-                        : 'Not provided'
+                address: typeof customer.address === 'string' ? customer.address : customer.address ? JSON.stringify(customer.address) : 'Not provided',
             },
 
             // Laboratory technician data
@@ -203,7 +197,7 @@ export default class ReportGeneratorService {
             labTechnicianName: `${labTechnician.first_name} ${labTechnician.last_name}`,
 
             // Administrative case data
-            ...adminCaseData
+            ...adminCaseData,
         };
 
         return reportData;
@@ -227,19 +221,12 @@ export default class ReportGeneratorService {
             const pdfUrl = await generateTestResultPDF(reportData, reportTemplate);
 
             // Update the result with the report URL
-            await this.resultRepository.findByIdAndUpdate(
-                resultId,
-                { report_url: pdfUrl, updated_at: new Date() },
-                { new: true }
-            );
+            await this.resultRepository.findByIdAndUpdate(resultId, { report_url: pdfUrl, updated_at: new Date() }, { new: true });
 
             return pdfUrl;
         } catch (error) {
             console.error('Failed to generate report:', error);
-            throw new HttpException(
-                HttpStatus.InternalServerError,
-                'Failed to generate PDF report'
-            );
+            throw new HttpException(HttpStatus.InternalServerError, 'Failed to generate PDF report');
         }
     }
-} 
+}

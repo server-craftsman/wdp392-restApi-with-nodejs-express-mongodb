@@ -13,7 +13,7 @@ const TransactionSchemaEntity: Schema<ITransaction> = new Schema({
     payos_payment_status: {
         type: String,
         enum: Object.values(TransactionStatusEnum),
-        default: TransactionStatusEnum.PENDING
+        default: TransactionStatusEnum.PENDING,
     },
     payos_webhook_received_at: { type: Date },
     payos_payment_status_message: { type: String },
@@ -22,12 +22,9 @@ const TransactionSchemaEntity: Schema<ITransaction> = new Schema({
     payos_payment_status_time: { type: Date },
     transaction_date: { type: Date, required: true },
     created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
+    updated_at: { type: Date, default: Date.now },
 });
 
-const TransactionSchema = mongoose.model<ITransaction & mongoose.Document>(
-    COLLECTION_NAME.TRANSACTION,
-    TransactionSchemaEntity
-);
+const TransactionSchema = mongoose.model<ITransaction & mongoose.Document>(COLLECTION_NAME.TRANSACTION, TransactionSchemaEntity);
 
-export default TransactionSchema; 
+export default TransactionSchema;

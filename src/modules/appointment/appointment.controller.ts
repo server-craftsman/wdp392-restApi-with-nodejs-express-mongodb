@@ -75,14 +75,10 @@ export default class AppointmentController {
                 staff_id: req.query.staff_id as string,
                 start_date: req.query.start_date as string,
                 end_date: req.query.end_date as string,
-                search_term: req.query.search_term as string
+                search_term: req.query.search_term as string,
             };
 
-            const result = await this.appointmentService.searchAppointments(
-                searchParams,
-                userRole,
-                userId
-            );
+            const result = await this.appointmentService.searchAppointments(searchParams, userRole, userId);
 
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IAppointment>>(result));
         } catch (error) {
@@ -109,15 +105,12 @@ export default class AppointmentController {
                 res.status(HttpStatus.Success).json(formatResponse<IAppointment>(appointment));
             } catch (error) {
                 // Kiểm tra nếu lỗi liên quan đến giới hạn số lượng cuộc hẹn
-                if (error instanceof HttpException &&
-                    error.status === HttpStatus.BadRequest &&
-                    error.message.includes('appointment limit')) {
-
+                if (error instanceof HttpException && error.status === HttpStatus.BadRequest && error.message.includes('appointment limit')) {
                     // Trả về lỗi với gợi ý về nhân viên thay thế
                     res.status(error.status).json({
                         success: false,
                         message: error.message,
-                        suggestion: 'Consider using another staff member who has not reached their appointment limit'
+                        suggestion: 'Consider using another staff member who has not reached their appointment limit',
                     });
                 } else {
                     // Trả về lỗi thông thường
@@ -143,12 +136,7 @@ export default class AppointmentController {
             const confirmData: ConfirmAppointmentDto = req.body;
             const userRole = req.user.role;
 
-            const updatedAppointment = await this.appointmentService.confirmAppointment(
-                appointmentId,
-                confirmData,
-                staffId,
-                userRole
-            );
+            const updatedAppointment = await this.appointmentService.confirmAppointment(appointmentId, confirmData, staffId, userRole);
 
             res.status(HttpStatus.Success).json(formatResponse<IAppointment>(updatedAppointment as IAppointment));
         } catch (error) {
@@ -204,9 +192,7 @@ export default class AppointmentController {
             const { appointmentId } = req.params;
             const price = await this.appointmentService.getAppointmentPrice(appointmentId);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse({ price }, true, 'Appointment price  retrieved successfully')
-            );
+            res.status(HttpStatus.Success).json(formatResponse({ price }, true, 'Appointment price  retrieved successfully'));
         } catch (error) {
             next(error);
         }
@@ -277,7 +263,7 @@ export default class AppointmentController {
                 staff_id: req.query.staff_id as string,
                 start_date: req.query.start_date as string,
                 end_date: req.query.end_date as string,
-                search_term: req.query.search_term as string
+                search_term: req.query.search_term as string,
             };
 
             const appointments = await this.appointmentService.getStaffAssignedAppointments(staffId, searchParams);
@@ -285,7 +271,7 @@ export default class AppointmentController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Get appointments assigned to laboratory technician
@@ -308,7 +294,7 @@ export default class AppointmentController {
                 staff_id: req.query.staff_id as string,
                 start_date: req.query.start_date as string,
                 end_date: req.query.end_date as string,
-                search_term: req.query.search_term as string
+                search_term: req.query.search_term as string,
             };
 
             const appointments = await this.appointmentService.getLabTechAssignedAppointments(labTechId, searchParams);
@@ -316,7 +302,7 @@ export default class AppointmentController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Assign laboratory technician to appointment
@@ -330,7 +316,7 @@ export default class AppointmentController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Get available laboratory technicians
@@ -347,7 +333,7 @@ export default class AppointmentController {
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     /**
      * Unassign staff from appointment
@@ -392,11 +378,7 @@ export default class AppointmentController {
             const userRole = req.user?.role;
             const userId = req.user?.id;
 
-            const consultations = await this.appointmentService.getConsultationRequests(
-                searchParams,
-                userRole,
-                userId
-            );
+            const consultations = await this.appointmentService.getConsultationRequests(searchParams, userRole, userId);
 
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IConsultation>>(consultations));
         } catch (error) {
@@ -440,33 +422,21 @@ export default class AppointmentController {
     public updateConsultationStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const { id } = req.params;
-            const {
-                status,
-                meeting_link,
-                meeting_notes,
-                follow_up_required,
-                follow_up_date,
-                appointment_date
-            } = req.body;
+            const { status, meeting_link, meeting_notes, follow_up_required, follow_up_date, appointment_date } = req.body;
 
             const updateData = {
                 meeting_link,
                 meeting_notes,
                 follow_up_required,
                 follow_up_date: follow_up_date ? new Date(follow_up_date) : undefined,
-                appointment_date: appointment_date ? new Date(appointment_date) : undefined
+                appointment_date: appointment_date ? new Date(appointment_date) : undefined,
             };
 
-            const consultation = await this.appointmentService.updateConsultationStatus(
-                id,
-                status as ConsultationStatusEnum,
-                updateData
-            );
+            const consultation = await this.appointmentService.updateConsultationStatus(id, status as ConsultationStatusEnum, updateData);
 
             res.status(HttpStatus.Success).json(formatResponse<IConsultation>(consultation));
         } catch (error) {
             next(error);
         }
     };
-
 }

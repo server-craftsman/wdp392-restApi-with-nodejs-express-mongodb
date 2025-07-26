@@ -2,7 +2,7 @@ export enum SampleTypeEnum {
     SALIVA = 'saliva',
     BLOOD = 'blood',
     HAIR = 'hair',
-    OTHER = 'other'
+    OTHER = 'other',
 }
 
 export enum SampleStatusEnum {
@@ -10,11 +10,11 @@ export enum SampleStatusEnum {
     RECEIVED = 'received',
     TESTING = 'testing',
     COMPLETED = 'completed',
-    INVALID = 'invalid'
+    INVALID = 'invalid',
 }
 
 export enum CollectionMethodEnum {
     SELF = 'self',
     FACILITY = 'facility',
-    HOME = 'home'
-} 
+    HOME = 'home',
+}

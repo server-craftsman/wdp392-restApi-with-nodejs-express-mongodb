@@ -11,7 +11,7 @@ export enum AppointmentLogTypeEnum {
     // Administrative appointment statuses
     AWAITING_AUTHORIZATION = 'awaiting_authorization',
     AUTHORIZED = 'authorized',
-    READY_FOR_COLLECTION = 'ready_for_collection'
+    READY_FOR_COLLECTION = 'ready_for_collection',
 }
 
 export enum AppointmentLogActionEnum {
@@ -26,6 +26,5 @@ export enum AppointmentLogActionEnum {
     // Administrative actions
     AUTHORIZE = 'authorize',
     PROGRESS_UPDATE = 'progress_update',
-    AGENCY_NOTIFICATION = 'agency_notification'
+    AGENCY_NOTIFICATION = 'agency_notification',
 }
-

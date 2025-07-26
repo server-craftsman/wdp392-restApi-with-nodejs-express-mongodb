@@ -1,12 +1,7 @@
-import { IsNotEmpty, IsNumber } from "class-validator";
+import { IsNotEmpty, IsNumber } from 'class-validator';
 
 export default class TimeSlotDto {
-    constructor(
-        start_hour: number,
-        start_minute: number,
-        end_hour: number,
-        end_minute: number
-    ) {
+    constructor(start_hour: number, start_minute: number, end_hour: number, end_minute: number) {
         this.start_hour = start_hour;
         this.start_minute = start_minute;
         this.end_hour = end_hour;

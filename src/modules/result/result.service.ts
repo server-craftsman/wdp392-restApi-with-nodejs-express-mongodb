@@ -83,17 +83,17 @@ export default class ResultService {
     private convertStatusToLogType(status: any): AppointmentLogTypeEnum {
         // Map appointment status to log type
         const statusMap: Record<string, AppointmentLogTypeEnum> = {
-            'pending': AppointmentLogTypeEnum.PENDING,
-            'confirmed': AppointmentLogTypeEnum.CONFIRMED,
-            'sample_assigned': AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
-            'sample_collected': AppointmentLogTypeEnum.SAMPLE_COLLECTED,
-            'sample_received': AppointmentLogTypeEnum.SAMPLE_RECEIVED,
-            'testing': AppointmentLogTypeEnum.TESTING,
-            'completed': AppointmentLogTypeEnum.COMPLETED,
-            'cancelled': AppointmentLogTypeEnum.CANCELLED,
-            'awaiting_authorization': AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
-            'authorized': AppointmentLogTypeEnum.AUTHORIZED,
-            'ready_for_collection': AppointmentLogTypeEnum.READY_FOR_COLLECTION
+            pending: AppointmentLogTypeEnum.PENDING,
+            confirmed: AppointmentLogTypeEnum.CONFIRMED,
+            sample_assigned: AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
+            sample_collected: AppointmentLogTypeEnum.SAMPLE_COLLECTED,
+            sample_received: AppointmentLogTypeEnum.SAMPLE_RECEIVED,
+            testing: AppointmentLogTypeEnum.TESTING,
+            completed: AppointmentLogTypeEnum.COMPLETED,
+            cancelled: AppointmentLogTypeEnum.CANCELLED,
+            awaiting_authorization: AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
+            authorized: AppointmentLogTypeEnum.AUTHORIZED,
+            ready_for_collection: AppointmentLogTypeEnum.READY_FOR_COLLECTION,
         };
 
         return statusMap[status] || AppointmentLogTypeEnum.PENDING;
@@ -129,22 +129,16 @@ export default class ResultService {
 
                 // Check if sample is in TESTING status
                 if (sample.status !== SampleStatusEnum.TESTING) {
-                    throw new HttpException(
-                        HttpStatus.BadRequest,
-                        `Cannot create result for sample ${sampleId} that is not in testing status`
-                    );
+                    throw new HttpException(HttpStatus.BadRequest, `Cannot create result for sample ${sampleId} that is not in testing status`);
                 }
 
                 // Check if result already exists for this sample
                 const existingResult = await this.resultRepository.findOne({
-                    sample_ids: { $in: [sampleId] }
+                    sample_ids: { $in: [sampleId] },
                 });
 
                 if (existingResult) {
-                    throw new HttpException(
-                        HttpStatus.Conflict,
-                        `A result already exists for sample ${sampleId}`
-                    );
+                    throw new HttpException(HttpStatus.Conflict, `A result already exists for sample ${sampleId}`);
                 }
             }
 
@@ -204,50 +198,32 @@ export default class ResultService {
                     } catch (err) {
                         console.error('Error extracting user_id:', err);
                         console.error('appointment.user_id:', appointment.user_id);
-                        throw new HttpException(
-                            HttpStatus.BadRequest,
-                            'Invalid user ID format in appointment'
-                        );
+                        throw new HttpException(HttpStatus.BadRequest, 'Invalid user ID format in appointment');
                     }
                 } else {
                     console.error('Invalid user_id format in appointment:', appointment.user_id);
-                    throw new HttpException(
-                        HttpStatus.BadRequest,
-                        'Invalid user ID format in appointment'
-                    );
+                    throw new HttpException(HttpStatus.BadRequest, 'Invalid user ID format in appointment');
                 }
 
                 // Validate that we have a valid MongoDB ID
                 if (!mongoose.Types.ObjectId.isValid(customerId)) {
                     console.error(`Invalid user_id extracted from appointment: ${customerId}`);
-                    throw new HttpException(
-                        HttpStatus.BadRequest,
-                        'Invalid user ID format extracted from appointment'
-                    );
+                    throw new HttpException(HttpStatus.BadRequest, 'Invalid user ID format extracted from appointment');
                 }
 
                 console.log(`Using user_id from appointment: ${customerId}`);
             } else {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    'Customer ID not found in appointment'
-                );
+                throw new HttpException(HttpStatus.BadRequest, 'Customer ID not found in appointment');
             }
 
             // Check if appointment has been paid for
             if (appointment.payment_status !== PaymentStatusEnum.PAID && appointment.payment_status !== PaymentStatusEnum.GOVERNMENT_FUNDED) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    `Cannot create result for appointment that hasn't been paid for (payment status: ${appointment.payment_status})`
-                );
+                throw new HttpException(HttpStatus.BadRequest, `Cannot create result for appointment that hasn't been paid for (payment status: ${appointment.payment_status})`);
             }
 
             // Check if appointment is in TESTING status
             if (appointment.status !== AppointmentStatusEnum.TESTING) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    `Cannot create result for appointment that is not in testing status`
-                );
+                throw new HttpException(HttpStatus.BadRequest, `Cannot create result for appointment that is not in testing status`);
             }
 
             try {
@@ -279,7 +255,7 @@ export default class ResultService {
 
                 // Create the initial result
                 const result = await this.resultRepository.create({
-                    sample_ids: resultData.sample_ids.map(id => new mongoose.Types.ObjectId(id)) as any,
+                    sample_ids: resultData.sample_ids.map((id) => new mongoose.Types.ObjectId(id)) as any,
                     appointment_id: new mongoose.Types.ObjectId(appointmentId) as any,
                     customer_id: new mongoose.Types.ObjectId(customerId) as any,
                     laboratory_technician_id: new mongoose.Types.ObjectId(laboratoryTechnicianId) as any,
@@ -288,24 +264,16 @@ export default class ResultService {
                     report_url: '',
                     completed_at: new Date(),
                     created_at: new Date(),
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 });
 
                 // Generate PDF report synchronously to ensure report_url is available
                 try {
                     console.log('Generating PDF report...');
-                    const reportUrl = await this.reportGeneratorService.generateReport(
-                        result._id.toString(),
-                        laboratoryTechnicianId,
-                        reportTemplate
-                    );
+                    const reportUrl = await this.reportGeneratorService.generateReport(result._id.toString(), laboratoryTechnicianId, reportTemplate);
 
                     // Update the result with the report URL
-                    await this.resultRepository.findByIdAndUpdate(
-                        result._id.toString(),
-                        { report_url: reportUrl },
-                        { new: true }
-                    );
+                    await this.resultRepository.findByIdAndUpdate(result._id.toString(), { report_url: reportUrl }, { new: true });
 
                     // Update the result object to return to the client
                     result.report_url = reportUrl;
@@ -314,21 +282,12 @@ export default class ResultService {
                     console.error('Failed to generate PDF report:', error);
 
                     // If the error is related to AWS configuration, provide a clear message
-                    if (error.message && (
-                        error.message.includes('AWS credentials not configured') ||
-                        error.message.includes('AWS S3 bucket not configured')
-                    )) {
-                        throw new HttpException(
-                            HttpStatus.InternalServerError,
-                            'AWS S3 is not properly configured. Please check your AWS credentials and bucket settings.'
-                        );
+                    if (error.message && (error.message.includes('AWS credentials not configured') || error.message.includes('AWS S3 bucket not configured'))) {
+                        throw new HttpException(HttpStatus.InternalServerError, 'AWS S3 is not properly configured. Please check your AWS credentials and bucket settings.');
                     }
 
                     // For other errors, continue with the process but report the error
-                    throw new HttpException(
-                        HttpStatus.InternalServerError,
-                        `Failed to generate PDF report: ${error.message}`
-                    );
+                    throw new HttpException(HttpStatus.InternalServerError, `Failed to generate PDF report: ${error.message}`);
                 }
 
                 // Update all samples status to COMPLETED
@@ -337,19 +296,11 @@ export default class ResultService {
                 }
 
                 // Update appointment status to COMPLETED
-                await this.getAppointmentService().updateAppointmentStatus(
-                    appointmentId,
-                    AppointmentStatusEnum.COMPLETED
-                );
+                await this.getAppointmentService().updateAppointmentStatus(appointmentId, AppointmentStatusEnum.COMPLETED);
 
                 // Log the status change
                 try {
-                    await this.appointmentLogService.logStatusChange(
-                        appointment,
-                        this.convertStatusToLogType(appointment.status),
-                        AppointmentLogTypeEnum.COMPLETED,
-                        laboratoryTechnicianId
-                    );
+                    await this.appointmentLogService.logStatusChange(appointment, this.convertStatusToLogType(appointment.status), AppointmentLogTypeEnum.COMPLETED, laboratoryTechnicianId);
                 } catch (logError) {
                     console.error('Failed to create appointment log for result creation:', logError);
                 }
@@ -364,20 +315,14 @@ export default class ResultService {
                 return result;
             } catch (createError: any) {
                 console.error('Error creating result document:', createError);
-                throw new HttpException(
-                    HttpStatus.InternalServerError,
-                    `Failed to create result: ${createError.message}`
-                );
+                throw new HttpException(HttpStatus.InternalServerError, `Failed to create result: ${createError.message}`);
             }
         } catch (error: any) {
             console.error('Error in createResult:', error);
             if (error instanceof HttpException) {
                 throw error;
             }
-            throw new HttpException(
-                HttpStatus.InternalServerError,
-                `Error creating result: ${error.message}`
-            );
+            throw new HttpException(HttpStatus.InternalServerError, `Error creating result: ${error.message}`);
         }
     }
 
@@ -391,11 +336,7 @@ export default class ResultService {
             const reportUrl = await this.reportGeneratorService.generateReport(resultId, laboratoryTechnicianId);
 
             // Update the result with the report URL
-            await this.resultRepository.findByIdAndUpdate(
-                resultId,
-                { report_url: reportUrl },
-                { new: true }
-            );
+            await this.resultRepository.findByIdAndUpdate(resultId, { report_url: reportUrl }, { new: true });
 
             console.log(`PDF report generated successfully for result ${resultId}: ${reportUrl}`);
         } catch (error) {
@@ -425,9 +366,9 @@ export default class ResultService {
                 resultId,
                 {
                     ...updateData,
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 },
-                { new: true }
+                { new: true },
             );
 
             if (!updatedResult) {
@@ -437,10 +378,9 @@ export default class ResultService {
             // If critical data changed (is_match or result_data), regenerate the PDF report
             if (updateData.is_match !== undefined || updateData.result_data) {
                 // Generate PDF report asynchronously
-                this.generateResultReport(resultId, laboratoryTechnicianId)
-                    .catch(error => {
-                        console.error('Failed to regenerate PDF report:', error);
-                    });
+                this.generateResultReport(resultId, laboratoryTechnicianId).catch((error) => {
+                    console.error('Failed to regenerate PDF report:', error);
+                });
 
                 // Send result updated email
                 try {
@@ -547,10 +487,7 @@ export default class ResultService {
             }
 
             if (appointment.payment_status !== PaymentStatusEnum.PAID && appointment.payment_status !== PaymentStatusEnum.GOVERNMENT_FUNDED) {
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    `Cannot start testing for appointment that hasn't been paid for (payment status: ${appointment.payment_status})`
-                );
+                throw new HttpException(HttpStatus.BadRequest, `Cannot start testing for appointment that hasn't been paid for (payment status: ${appointment.payment_status})`);
             }
 
             // Allow starting testing when the sample is either PENDING or RECEIVED.
@@ -561,10 +498,7 @@ export default class ResultService {
                 console.log(`Sample ${sampleId} status changed from PENDING -> RECEIVED automatically before testing.`);
             } else if (sample.status !== SampleStatusEnum.RECEIVED) {
                 // For any other status that is not RECEIVED, throw an error
-                throw new HttpException(
-                    HttpStatus.BadRequest,
-                    `Cannot start testing for sample with status ${sample.status}`
-                );
+                throw new HttpException(HttpStatus.BadRequest, `Cannot start testing for sample with status ${sample.status}`);
             }
 
             // Update sample status to TESTING
@@ -575,19 +509,11 @@ export default class ResultService {
 
             // Update appointment status to TESTING
             if (appointment.status !== AppointmentStatusEnum.TESTING) {
-                await this.getAppointmentService().updateAppointmentStatus(
-                    appointmentObjectId,
-                    AppointmentStatusEnum.TESTING
-                );
+                await this.getAppointmentService().updateAppointmentStatus(appointmentObjectId, AppointmentStatusEnum.TESTING);
 
                 // Log the status change
                 try {
-                    await this.appointmentLogService.logStatusChange(
-                        appointment,
-                        this.convertStatusToLogType(appointment.status),
-                        AppointmentLogTypeEnum.TESTING,
-                        laboratoryTechnicianId
-                    );
+                    await this.appointmentLogService.logStatusChange(appointment, this.convertStatusToLogType(appointment.status), AppointmentLogTypeEnum.TESTING, laboratoryTechnicianId);
                 } catch (logError) {
                     console.error('Failed to create appointment log for testing start:', logError);
                 }
@@ -697,16 +623,10 @@ export default class ResultService {
                 Ngày hoàn thành: ${result.completed_at ? new Date(result.completed_at).toLocaleString('vi-VN') : new Date().toLocaleString('vi-VN')}
                 <br><br>
                 ${result.is_match !== undefined ? `<strong>Kết quả khớp:</strong> ${result.is_match ? '✅ Dương tính' : '❌ Âm tính'}<br><br>` : ''}
-                ${isAdministrative ?
-                    'Cơ quan có thể xem kết quả chi tiết bằng cách truy cập hệ thống hoặc tải báo cáo bên dưới.' :
-                    'Bạn có thể xem kết quả chi tiết bằng cách đăng nhập vào tài khoản và truy cập phần Kết quả.'
-                }
+                ${isAdministrative ? 'Cơ quan có thể xem kết quả chi tiết bằng cách truy cập hệ thống hoặc tải báo cáo bên dưới.' : 'Bạn có thể xem kết quả chi tiết bằng cách đăng nhập vào tài khoản và truy cập phần Kết quả.'}
                 ${reportSection}
                 <br><br>
-                ${isAdministrative ?
-                    'Nếu có thắc mắc về kết quả, vui lòng liên hệ với đội ngũ y tế của chúng tôi để được hỗ trợ.' :
-                    'Nếu bạn có thắc mắc về kết quả, vui lòng liên hệ với đội ngũ y tế của chúng tôi để được hỗ trợ.'
-                }
+                ${isAdministrative ? 'Nếu có thắc mắc về kết quả, vui lòng liên hệ với đội ngũ y tế của chúng tôi để được hỗ trợ.' : 'Nếu bạn có thắc mắc về kết quả, vui lòng liên hệ với đội ngũ y tế của chúng tôi để được hỗ trợ.'}
                 <br><br>
                 <hr style="border: 1px solid #eee; margin: 20px 0;">
                 <small style="color: #666;">
@@ -719,10 +639,8 @@ export default class ResultService {
 
             const emailDetails: ISendMailDetail = {
                 toMail: recipientEmail || user.email,
-                subject: isAdministrative ?
-                    '🔬 Kết quả xét nghiệm hành chính - Hệ thống ADN Bloodline' :
-                    '🔬 Kết quả xét nghiệm đã sẵn sàng - Hệ thống ADN Bloodline',
-                html: createNotificationEmailTemplate(userName, title, message)
+                subject: isAdministrative ? '🔬 Kết quả xét nghiệm hành chính - Hệ thống ADN Bloodline' : '🔬 Kết quả xét nghiệm đã sẵn sàng - Hệ thống ADN Bloodline',
+                html: createNotificationEmailTemplate(userName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -789,7 +707,7 @@ export default class ResultService {
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
                 subject: 'Test Results Updated - Bloodline DNA Testing Service',
-                html: createNotificationEmailTemplate(userName, title, message)
+                html: createNotificationEmailTemplate(userName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -846,7 +764,7 @@ export default class ResultService {
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
                 subject: 'Testing Started - Bloodline DNA Testing Service',
-                html: createNotificationEmailTemplate(userName, title, message)
+                html: createNotificationEmailTemplate(userName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -859,12 +777,7 @@ export default class ResultService {
     /**
      * Request physical certificate for legal DNA test result
      */
-    public async requestCertificate(
-        resultId: string,
-        customerId: string,
-        reason: string,
-        deliveryAddress?: string
-    ): Promise<ICertificateRequest> {
+    public async requestCertificate(resultId: string, customerId: string, reason: string, deliveryAddress?: string): Promise<ICertificateRequest> {
         try {
             // Validate result exists and belongs to customer
             const result = await this.resultRepository.findById(resultId);
@@ -894,7 +807,7 @@ export default class ResultService {
             const existingRequests = await CertificateRequestSchema.find({
                 result_id: resultId,
                 customer_id: customerId,
-                status: { $ne: 'rejected' }
+                status: { $ne: 'rejected' },
             }).countDocuments();
 
             // Determine if this is free (first time) or paid (subsequent times)
@@ -911,7 +824,7 @@ export default class ResultService {
                 status: isFree ? 'processing' : 'pending', // Free requests go directly to processing
                 delivery_address: deliveryAddress,
                 created_at: new Date(),
-                updated_at: new Date()
+                updated_at: new Date(),
             });
 
             // If not free, create payment
@@ -923,15 +836,11 @@ export default class ResultService {
                     const payment = await paymentService.createCertificatePayment(
                         customerId,
                         certificateRequest._id.toString(),
-                        50000 // 50,000 VND for additional certificate copies
+                        50000, // 50,000 VND for additional certificate copies
                     );
 
                     // Update certificate request with payment ID
-                    await CertificateRequestSchema.findByIdAndUpdate(
-                        certificateRequest._id,
-                        { payment_id: payment._id },
-                        { new: true }
-                    );
+                    await CertificateRequestSchema.findByIdAndUpdate(certificateRequest._id, { payment_id: payment._id }, { new: true });
 
                     console.log(`Payment created for certificate request: ${payment._id}`);
                 } catch (paymentError) {
@@ -959,11 +868,7 @@ export default class ResultService {
     /**
      * Get certificate requests for a result
      */
-    public async getCertificateRequests(
-        resultId: string,
-        userId: string,
-        userRole: string
-    ): Promise<ICertificateRequest[]> {
+    public async getCertificateRequests(resultId: string, userId: string, userRole: string): Promise<ICertificateRequest[]> {
         try {
             // Validate result exists
             const result = await this.resultRepository.findById(resultId);
@@ -978,7 +883,7 @@ export default class ResultService {
 
             // Get certificate requests
             const requests = await CertificateRequestSchema.find({
-                result_id: resultId
+                result_id: resultId,
             })
                 // .populate('customer_id', 'first_name last_name email phone_number')
                 .populate('payment_id', 'amount status payment_method created_at')
@@ -996,12 +901,7 @@ export default class ResultService {
     /**
      * Update certificate request status
      */
-    public async updateCertificateRequestStatus(
-        requestId: string,
-        status: string,
-        agencyNotes?: string,
-        staffId?: string
-    ): Promise<ICertificateRequest> {
+    public async updateCertificateRequestStatus(requestId: string, status: string, agencyNotes?: string, staffId?: string): Promise<ICertificateRequest> {
         try {
             const validStatuses = ['pending', 'processing', 'issued', 'rejected'];
             if (!validStatuses.includes(status)) {
@@ -1010,7 +910,7 @@ export default class ResultService {
 
             const updateData: any = {
                 status,
-                updated_at: new Date()
+                updated_at: new Date(),
             };
 
             if (agencyNotes) {
@@ -1021,13 +921,7 @@ export default class ResultService {
                 updateData.certificate_issued_at = new Date();
             }
 
-            const updatedRequest = await CertificateRequestSchema.findByIdAndUpdate(
-                requestId,
-                updateData,
-                { new: true }
-            )
-                .populate('customer_id', 'first_name last_name email')
-                .populate('result_id', '_id report_url');
+            const updatedRequest = await CertificateRequestSchema.findByIdAndUpdate(requestId, updateData, { new: true }).populate('customer_id', 'first_name last_name email').populate('result_id', '_id report_url');
 
             if (!updatedRequest) {
                 throw new HttpException(HttpStatus.NotFound, 'Certificate request not found');
@@ -1052,11 +946,7 @@ export default class ResultService {
     /**
      * Send email notification for certificate request
      */
-    private async sendCertificateRequestEmail(
-        certificateRequest: ICertificateRequest,
-        customerId: string,
-        isFree: boolean
-    ): Promise<void> {
+    private async sendCertificateRequestEmail(certificateRequest: ICertificateRequest, customerId: string, isFree: boolean): Promise<void> {
         try {
             const user = await UserSchema.findById(customerId);
             if (!user || !user.email) {
@@ -1080,10 +970,7 @@ export default class ResultService {
                 <br>
                 Trạng thái: ${certificateRequest.status === 'processing' ? '⏳ Đang xử lý' : '⏸️ Chờ thanh toán'}
                 <br><br>
-                ${isFree ?
-                    'Giấy chứng nhận đầu tiên được cấp miễn phí. Chúng tôi sẽ xử lý yêu cầu trong vòng 3-5 ngày làm việc.' :
-                    'Vui lòng hoàn tất thanh toán để chúng tôi tiến hành xử lý yêu cầu. Phí cấp bản sao: 50.000 VNĐ.'
-                }
+                ${isFree ? 'Giấy chứng nhận đầu tiên được cấp miễn phí. Chúng tôi sẽ xử lý yêu cầu trong vòng 3-5 ngày làm việc.' : 'Vui lòng hoàn tất thanh toán để chúng tôi tiến hành xử lý yêu cầu. Phí cấp bản sao: 50.000 VNĐ.'}
                 <br><br>
                 Chúng tôi sẽ thông báo khi giấy chứng nhận sẵn sàng để giao.
                 <br><br>
@@ -1098,7 +985,7 @@ export default class ResultService {
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
                 subject: '📋 Yêu cầu cấp giấy chứng nhận - Hệ thống ADN Bloodline',
-                html: createNotificationEmailTemplate(userName, title, message)
+                html: createNotificationEmailTemplate(userName, title, message),
             };
 
             await sendMail(emailDetails);
@@ -1111,10 +998,7 @@ export default class ResultService {
     /**
      * Send email notification for certificate status update
      */
-    private async sendCertificateStatusUpdateEmail(
-        certificateRequest: any,
-        newStatus: string
-    ): Promise<void> {
+    private async sendCertificateStatusUpdateEmail(certificateRequest: any, newStatus: string): Promise<void> {
         try {
             const user = certificateRequest.customer_id;
             if (!user || !user.email) {
@@ -1167,10 +1051,7 @@ export default class ResultService {
                 Ngày cập nhật: ${new Date().toLocaleString('vi-VN')}
                 <br><br>
                 ${certificateRequest.agency_notes ? `<strong>Ghi chú:</strong><br>${certificateRequest.agency_notes}<br><br>` : ''}
-                ${newStatus === 'issued' ?
-                    'Vui lòng mang theo CMND/CCCD và liên hệ với chúng tôi để nhận giấy chứng nhận trong giờ hành chính.' :
-                    'Nếu có thắc mắc, vui lòng liên hệ với chúng tôi qua thông tin bên dưới.'
-                }
+                ${newStatus === 'issued' ? 'Vui lòng mang theo CMND/CCCD và liên hệ với chúng tôi để nhận giấy chứng nhận trong giờ hành chính.' : 'Nếu có thắc mắc, vui lòng liên hệ với chúng tôi qua thông tin bên dưới.'}
                 <br><br>
                 <hr style="border: 1px solid #eee; margin: 20px 0;">
                 <small style="color: #666;">
@@ -1183,7 +1064,7 @@ export default class ResultService {
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
                 subject: `📋 ${title} - Hệ thống ADN Bloodline`,
-                html: createNotificationEmailTemplate(userName, title, fullMessage)
+                html: createNotificationEmailTemplate(userName, title, fullMessage),
             };
 
             await sendMail(emailDetails);
@@ -1192,4 +1073,4 @@ export default class ResultService {
             console.error('Error sending certificate status update email:', error);
         }
     }
-} 
+}

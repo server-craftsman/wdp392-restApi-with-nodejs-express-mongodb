@@ -4,4 +4,4 @@ export class SubmitSampleDto {
     @IsOptional()
     @IsDateString({}, { message: 'Collection date must be a valid date' })
     collection_date?: string;
-} 
+}

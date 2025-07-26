@@ -29,10 +29,8 @@ class BlogController {
                 await validateOrReject(blogData);
             } catch (errors) {
                 console.error('Validation errors:', errors);
-                const validationErrors = errors as Array<{ property: string, constraints: Record<string, string> }>;
-                const formattedErrors = validationErrors.map(error =>
-                    Object.values(error.constraints || {}).join(', ')
-                ).join('; ');
+                const validationErrors = errors as Array<{ property: string; constraints: Record<string, string> }>;
+                const formattedErrors = validationErrors.map((error) => Object.values(error.constraints || {}).join(', ')).join('; ');
                 throw new HttpException(HttpStatus.BadRequest, `Validation error: ${formattedErrors}`);
             }
 
@@ -95,7 +93,7 @@ class BlogController {
                             hasBuffer: !!file.buffer,
                             hasOriginalName: !!file.originalname,
                             hasMimetype: !!file.mimetype,
-                            size: file.size
+                            size: file.size,
                         });
 
                         if (!file.buffer || !file.originalname || !file.mimetype) {
@@ -151,10 +149,8 @@ class BlogController {
                 console.log('Controller: DTO validation passed');
             } catch (errors) {
                 console.error('Validation errors:', errors);
-                const validationErrors = errors as Array<{ property: string, constraints: Record<string, string> }>;
-                const formattedErrors = validationErrors.map(error =>
-                    Object.values(error.constraints || {}).join(', ')
-                ).join('; ');
+                const validationErrors = errors as Array<{ property: string; constraints: Record<string, string> }>;
+                const formattedErrors = validationErrors.map((error) => Object.values(error.constraints || {}).join(', ')).join('; ');
                 throw new HttpException(HttpStatus.BadRequest, `Validation error: ${formattedErrors}`);
             }
 
@@ -203,7 +199,7 @@ class BlogController {
                             hasBuffer: !!file.buffer,
                             hasOriginalName: !!file.originalname,
                             hasMimetype: !!file.mimetype,
-                            size: file.size
+                            size: file.size,
                         });
 
                         if (!file.buffer || !file.originalname || !file.mimetype) {
@@ -257,7 +253,7 @@ class BlogController {
 
                 if (multerFiles['images'] && Array.isArray(multerFiles['images'])) {
                     // Validate each file to ensure it has the necessary properties
-                    multerFiles['images'].forEach(file => {
+                    multerFiles['images'].forEach((file) => {
                         if (!file.buffer || !file.originalname || !file.mimetype) {
                             console.error('Invalid file object:', file);
                         } else {
@@ -270,7 +266,7 @@ class BlogController {
             if (files.length === 0) {
                 return res.status(HttpStatus.BadRequest).json({
                     status: HttpStatus.BadRequest,
-                    message: 'No files uploaded'
+                    message: 'No files uploaded',
                 });
             }
 
@@ -390,9 +386,7 @@ class BlogController {
             } catch (validationErrors) {
                 console.error('Controller: Search data validation failed:', validationErrors);
                 // Extract specific validation error messages for better debugging
-                const errorDetails = Array.isArray(validationErrors)
-                    ? validationErrors.map(err => Object.values(err.constraints || {}).join(', ')).join('; ')
-                    : 'Validation failed';
+                const errorDetails = Array.isArray(validationErrors) ? validationErrors.map((err) => Object.values(err.constraints || {}).join(', ')).join('; ') : 'Validation failed';
 
                 throw new HttpException(HttpStatus.BadRequest, `Invalid search parameters: ${errorDetails}`);
             }
@@ -409,12 +403,15 @@ class BlogController {
 
             console.log(`Controller: Search completed, found ${searchResult.pageData.length} blogs`);
             console.log(`Controller: Total items: ${searchResult.pageInfo.totalItems}, Total pages: ${searchResult.pageInfo.totalPages}`);
-            console.log('Controller: Search result structure:', JSON.stringify({
-                hasPageData: !!searchResult.pageData,
-                pageDataLength: searchResult.pageData?.length || 0,
-                hasPageInfo: !!searchResult.pageInfo,
-                pageInfoProps: searchResult.pageInfo ? Object.keys(searchResult.pageInfo) : []
-            }));
+            console.log(
+                'Controller: Search result structure:',
+                JSON.stringify({
+                    hasPageData: !!searchResult.pageData,
+                    pageDataLength: searchResult.pageData?.length || 0,
+                    hasPageInfo: !!searchResult.pageInfo,
+                    pageInfoProps: searchResult.pageInfo ? Object.keys(searchResult.pageInfo) : [],
+                }),
+            );
 
             // Format the response exactly as the frontend expects it
             res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IBlog>>(searchResult));

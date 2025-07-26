@@ -1,12 +1,8 @@
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
-import { IDepartment } from "../department.interface";
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IDepartment } from '../department.interface';
 
 export default class CreateDepartmentDto {
-    constructor(
-        name: string,
-        description: string,
-        manager_id: string
-    ) {
+    constructor(name: string, description: string, manager_id: string) {
         this.name = name;
         this.description = description;
         this.manager_id = manager_id;
@@ -24,5 +20,3 @@ export default class CreateDepartmentDto {
     @IsNotEmpty()
     public manager_id: string;
 }
-
-

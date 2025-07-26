@@ -1,9 +1,7 @@
 import { IsOptional, IsString, Matches } from 'class-validator';
 
 export class CreateKitDto {
-    constructor(
-        code?: string
-    ) {
+    constructor(code?: string) {
         this.code = code;
     }
 

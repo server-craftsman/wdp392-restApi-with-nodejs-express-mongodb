@@ -1,15 +1,15 @@
-import { UserRoleEnum, UserSchema } from "../user";
-import mongoose, { Schema } from "mongoose";
-import { HttpStatus } from "../../core/enums";
-import { HttpException } from "../../core/exceptions";
-import { SearchPaginationResponseModel } from "../../core/models";
-import { isEmptyObject } from "../../core/utils";
-import { IBlog, IBlogImage } from "./blog.interface";
-import BlogRepository from "./blog.repository";
-import { BlogSearchDto, CreateBlogDto, UpdateBlogDto } from "./dtos/blog.dto";
-import { ILog } from "./log/log.interface";
-import LogService from "./log/log.service";
-import { uploadMultipleFilesToS3, s3Folders } from "../../core/utils/s3Upload";
+import { UserRoleEnum, UserSchema } from '../user';
+import mongoose, { Schema } from 'mongoose';
+import { HttpStatus } from '../../core/enums';
+import { HttpException } from '../../core/exceptions';
+import { SearchPaginationResponseModel } from '../../core/models';
+import { isEmptyObject } from '../../core/utils';
+import { IBlog, IBlogImage } from './blog.interface';
+import BlogRepository from './blog.repository';
+import { BlogSearchDto, CreateBlogDto, UpdateBlogDto } from './dtos/blog.dto';
+import { ILog } from './log/log.interface';
+import LogService from './log/log.service';
+import { uploadMultipleFilesToS3, s3Folders } from '../../core/utils/s3Upload';
 
 export default class BlogService {
     private blogRepository = new BlogRepository();
@@ -75,7 +75,7 @@ export default class BlogService {
                         const blogImages: IBlogImage[] = imageUrls.map((url, index) => ({
                             name: createBlogDto.files![index].originalname,
                             image_url: url,
-                            created_at: new Date()
+                            created_at: new Date(),
                         }));
                         console.log('Blog service: Created image metadata objects:', blogImages);
 
@@ -83,7 +83,7 @@ export default class BlogService {
                         console.log(`Blog service: Updating blog ${blog._id} with ${blogImages.length} images`);
                         const updatedBlog = await this.blogRepository.updateBlog(blog._id, {
                             images: blogImages,
-                            updated_at: new Date()
+                            updated_at: new Date(),
                         });
                         console.log('Blog service: Blog updated with images successfully');
 
@@ -107,7 +107,9 @@ export default class BlogService {
         } catch (error) {
             console.error('Blog creation error:', error);
             if (error instanceof mongoose.Error.ValidationError) {
-                const errorMessages = Object.values(error.errors).map(err => err.message).join(', ');
+                const errorMessages = Object.values(error.errors)
+                    .map((err) => err.message)
+                    .join(', ');
                 throw new HttpException(HttpStatus.BadRequest, `Validation error: ${errorMessages}`);
             } else if (error instanceof mongoose.Error.CastError) {
                 throw new HttpException(HttpStatus.BadRequest, `Invalid ID format: ${error.path}`);
@@ -182,7 +184,7 @@ export default class BlogService {
                     const blogImages: IBlogImage[] = imageUrls.map((url, index) => ({
                         name: updateBlogDto.files![index].originalname,
                         image_url: url,
-                        created_at: new Date()
+                        created_at: new Date(),
                     }));
 
                     // Replace existing images with new ones instead of adding to them
@@ -224,7 +226,9 @@ export default class BlogService {
         } catch (error) {
             console.error(`Blog update error for ID ${id}:`, error);
             if (error instanceof mongoose.Error.ValidationError) {
-                const errorMessages = Object.values(error.errors).map(err => err.message).join(', ');
+                const errorMessages = Object.values(error.errors)
+                    .map((err) => err.message)
+                    .join(', ');
                 throw new HttpException(HttpStatus.BadRequest, `Validation error: ${errorMessages}`);
             } else if (error instanceof mongoose.Error.CastError) {
                 throw new HttpException(HttpStatus.BadRequest, `Invalid ID format: ${error.path}`);
@@ -240,7 +244,7 @@ export default class BlogService {
      * Note: This method is primarily used internally by the createBlog and updateBlog methods
      * It's not exposed as a separate API endpoint as image uploads are integrated directly into
      * the blog creation and update processes
-     * 
+     *
      * @param blogId The ID of the blog to upload images to
      * @param files The files to upload
      * @returns The updated blog with the new images
@@ -266,7 +270,7 @@ export default class BlogService {
                         mimetype: file.mimetype,
                         size: file.size,
                         hasBuffer: !!file.buffer,
-                        hasPath: !!file.path
+                        hasPath: !!file.path,
                     });
                 });
 
@@ -279,7 +283,7 @@ export default class BlogService {
                 const blogImages: IBlogImage[] = imageUrls.map((url, index) => ({
                     name: files[index].originalname,
                     image_url: url,
-                    created_at: new Date()
+                    created_at: new Date(),
                 }));
                 console.log('Created image metadata objects:', blogImages);
 
@@ -289,7 +293,7 @@ export default class BlogService {
                 // Update blog with new images
                 const updatedBlog = await this.blogRepository.updateBlog(blogId, {
                     images: blogImages, // Replace existing images
-                    updated_at: new Date()
+                    updated_at: new Date(),
                 });
 
                 if (!updatedBlog) {
@@ -325,7 +329,7 @@ export default class BlogService {
             }
 
             // Filter out the image to delete
-            const updatedImages = blog.images.filter(image => image.image_url !== imageUrl);
+            const updatedImages = blog.images.filter((image) => image.image_url !== imageUrl);
 
             // Check if image was found
             if (updatedImages.length === blog.images.length) {
@@ -335,7 +339,7 @@ export default class BlogService {
             // Update blog with filtered images
             const updatedBlog = await this.blogRepository.updateBlog(blogId, {
                 images: updatedImages,
-                updated_at: new Date()
+                updated_at: new Date(),
             });
 
             if (!updatedBlog) {
@@ -405,7 +409,9 @@ export default class BlogService {
         } catch (error) {
             console.error('Error fetching blogs:', error);
             if (error instanceof mongoose.Error.ValidationError) {
-                const errorMessages = Object.values(error.errors).map(err => err.message).join(', ');
+                const errorMessages = Object.values(error.errors)
+                    .map((err) => err.message)
+                    .join(', ');
                 throw new HttpException(HttpStatus.BadRequest, `Validation error: ${errorMessages}`);
             } else if (error instanceof mongoose.Error.CastError) {
                 throw new HttpException(HttpStatus.BadRequest, `Invalid ID format: ${error.path}`);
@@ -443,26 +449,17 @@ export default class BlogService {
             // Simply use the ID strings directly without ObjectId conversion
             if (searchParams.blog_category_id) {
                 // Try both formats (string and ObjectId) to handle potential schema inconsistencies
-                query.$or = [
-                    { blog_category_id: searchParams.blog_category_id },
-                    { blog_category_id: searchParams.blog_category_id.toString() }
-                ];
+                query.$or = [{ blog_category_id: searchParams.blog_category_id }, { blog_category_id: searchParams.blog_category_id.toString() }];
             }
 
             if (searchParams.user_id) {
                 if (!query.$or) query.$or = [];
-                query.$or.push(
-                    { user_id: searchParams.user_id },
-                    { user_id: searchParams.user_id.toString() }
-                );
+                query.$or.push({ user_id: searchParams.user_id }, { user_id: searchParams.user_id.toString() });
             }
 
             if (searchParams.service_id) {
                 if (!query.$or) query.$or = [];
-                query.$or.push(
-                    { service_id: searchParams.service_id },
-                    { service_id: searchParams.service_id.toString() }
-                );
+                query.$or.push({ service_id: searchParams.service_id }, { service_id: searchParams.service_id.toString() });
             }
 
             if (searchParams.is_published !== undefined) {
@@ -485,21 +482,16 @@ export default class BlogService {
             if (blogs.length === 0 && Object.keys(query).length > 1) {
                 console.log('Blog service: No blogs found with specific query, trying fallback query');
                 const fallbackQuery = { is_deleted: false };
-                const fallbackBlogs = await this.blogRepository.getBlogsWithPagination(
-                    fallbackQuery, 0, validPageSize
-                );
+                const fallbackBlogs = await this.blogRepository.getBlogsWithPagination(fallbackQuery, 0, validPageSize);
 
                 if (fallbackBlogs.length > 0) {
                     // Use the fallback blogs but keep original pagination info
-                    return new SearchPaginationResponseModel<IBlog>(
-                        fallbackBlogs,
-                        {
-                            pageNum: validPageNum,
-                            pageSize: validPageSize,
-                            totalItems,
-                            totalPages
-                        }
-                    );
+                    return new SearchPaginationResponseModel<IBlog>(fallbackBlogs, {
+                        pageNum: validPageNum,
+                        pageSize: validPageSize,
+                        totalItems,
+                        totalPages,
+                    });
                 }
             }
 
@@ -507,22 +499,21 @@ export default class BlogService {
             const safeBlogs = Array.isArray(blogs) ? blogs : [];
 
             // Create and return the search pagination response with proper structure
-            const response = new SearchPaginationResponseModel<IBlog>(
-                safeBlogs,
-                {
-                    pageNum: validPageNum,
-                    pageSize: validPageSize,
-                    totalItems,
-                    totalPages
-                }
-            );
+            const response = new SearchPaginationResponseModel<IBlog>(safeBlogs, {
+                pageNum: validPageNum,
+                pageSize: validPageSize,
+                totalItems,
+                totalPages,
+            });
             return response;
         } catch (error) {
             console.error('Error searching blogs:', error);
             if (error instanceof HttpException) {
                 throw error;
             } else if (error instanceof mongoose.Error.ValidationError) {
-                const errorMessages = Object.values(error.errors).map(err => err.message).join(', ');
+                const errorMessages = Object.values(error.errors)
+                    .map((err) => err.message)
+                    .join(', ');
                 throw new HttpException(HttpStatus.BadRequest, `Validation error: ${errorMessages}`);
             } else if (error instanceof mongoose.Error.CastError) {
                 throw new HttpException(HttpStatus.BadRequest, `Invalid ID format: ${error.path}`);
@@ -557,7 +548,6 @@ export default class BlogService {
             .replace(/-+/g, '-') // Xóa các dấu gạch nối liên tiếp
             .replace(/^-+|-+$/g, ''); // Xóa các dấu gạch nối ở đầu và cuối chuỗi
 
-
         // Check if the slug already exists
         let isSlugExists = await this.blogRepository.checkSlugExists(slug, excludeId);
         let counter = 1;
@@ -581,7 +571,7 @@ export default class BlogService {
                 author_id: authorId,
                 created_at: new Date(),
                 updated_at: new Date(),
-                is_deleted: false
+                is_deleted: false,
             };
 
             // Track if any fields are actually being updated
@@ -638,15 +628,15 @@ export default class BlogService {
 
             if (updateData.images !== undefined) {
                 // Ensure images have proper structure for validation
-                logData.old_images = (oldBlog.images || []).map(img => ({
+                logData.old_images = (oldBlog.images || []).map((img) => ({
                     name: img.name || '',
                     image_url: img.image_url || '',
-                    created_at: img.created_at || new Date()
+                    created_at: img.created_at || new Date(),
                 }));
-                logData.new_images = (updateData.images || []).map(img => ({
+                logData.new_images = (updateData.images || []).map((img) => ({
                     name: img.name || '',
                     image_url: img.image_url || '',
-                    created_at: img.created_at || new Date()
+                    created_at: img.created_at || new Date(),
                 }));
                 hasUpdates = true;
             }

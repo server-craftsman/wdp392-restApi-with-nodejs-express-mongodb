@@ -31,4 +31,4 @@ export class CreateResultDto {
     @IsOptional()
     @IsString({ message: 'Report URL must be a string' })
     report_url?: string;
-} 
+}

@@ -28,4 +28,4 @@ export interface ICertificateRequest extends Document {
     agency_notes?: string; // Ghi chú từ cơ quan thẩm quyền
     created_at: Date;
     updated_at: Date;
-} 
+}

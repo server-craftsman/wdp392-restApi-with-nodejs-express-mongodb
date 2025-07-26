@@ -18,15 +18,9 @@ export default class AppointmentLogController {
             const { appointmentId } = req.params;
             const { pageNum = 1, pageSize = 10 } = req.query;
 
-            const logs = await this.appointmentLogService.getAppointmentLogs(
-                appointmentId,
-                parseInt(pageNum as string),
-                parseInt(pageSize as string)
-            );
+            const logs = await this.appointmentLogService.getAppointmentLogs(appointmentId, parseInt(pageNum as string), parseInt(pageSize as string));
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(logs, true, 'Appointment logs retrieved successfully')
-            );
+            res.status(HttpStatus.Success).json(formatResponse(logs, true, 'Appointment logs retrieved successfully'));
         } catch (error: any) {
             console.error('Error fetching appointment logs:', error);
             throw new HttpException(HttpStatus.InternalServerError, error.message || 'Error fetching appointment logs');
@@ -41,15 +35,9 @@ export default class AppointmentLogController {
             const { caseId } = req.params;
             const { pageNum = 1, pageSize = 10 } = req.query;
 
-            const logs = await this.appointmentLogService.getAdministrativeCaseLogs(
-                caseId,
-                parseInt(pageNum as string),
-                parseInt(pageSize as string)
-            );
+            const logs = await this.appointmentLogService.getAdministrativeCaseLogs(caseId, parseInt(pageNum as string), parseInt(pageSize as string));
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(logs, true, 'Administrative case logs retrieved successfully')
-            );
+            res.status(HttpStatus.Success).json(formatResponse(logs, true, 'Administrative case logs retrieved successfully'));
         } catch (error: any) {
             console.error('Error fetching administrative case logs:', error);
             throw new HttpException(HttpStatus.InternalServerError, error.message || 'Error fetching administrative case logs');
@@ -69,15 +57,9 @@ export default class AppointmentLogController {
                 throw new HttpException(HttpStatus.BadRequest, 'Invalid action type');
             }
 
-            const logs = await this.appointmentLogService.getLogsByAction(
-                action as AppointmentLogActionEnum,
-                parseInt(pageNum as string),
-                parseInt(pageSize as string)
-            );
+            const logs = await this.appointmentLogService.getLogsByAction(action as AppointmentLogActionEnum, parseInt(pageNum as string), parseInt(pageSize as string));
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(logs, true, `Logs for action '${action}' retrieved successfully`)
-            );
+            res.status(HttpStatus.Success).json(formatResponse(logs, true, `Logs for action '${action}' retrieved successfully`));
         } catch (error: any) {
             console.error('Error fetching logs by action:', error);
             throw new HttpException(HttpStatus.InternalServerError, error.message || 'Error fetching logs by action');
@@ -93,9 +75,7 @@ export default class AppointmentLogController {
 
             const timeline = await this.appointmentLogService.getAppointmentTimeline(appointmentId);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(timeline, true, 'Appointment timeline retrieved successfully')
-            );
+            res.status(HttpStatus.Success).json(formatResponse(timeline, true, 'Appointment timeline retrieved successfully'));
         } catch (error: any) {
             console.error('Error fetching appointment timeline:', error);
             throw new HttpException(HttpStatus.InternalServerError, error.message || 'Error fetching appointment timeline');
@@ -115,15 +95,13 @@ export default class AppointmentLogController {
                 logsByAction: {},
                 logsByStatus: {},
                 adminAppointments: 0,
-                message: 'Statistics feature coming soon'
+                message: 'Statistics feature coming soon',
             };
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(stats, true, 'Log statistics retrieved successfully')
-            );
+            res.status(HttpStatus.Success).json(formatResponse(stats, true, 'Log statistics retrieved successfully'));
         } catch (error: any) {
             console.error('Error fetching log statistics:', error);
             throw new HttpException(HttpStatus.InternalServerError, error.message || 'Error fetching log statistics');
         }
     };
-} 
+}

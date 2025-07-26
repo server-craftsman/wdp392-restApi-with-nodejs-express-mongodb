@@ -17,4 +17,4 @@ export interface ITransaction extends Document {
     transaction_date: Date;
     created_at: Date;
     updated_at: Date;
-} 
+}

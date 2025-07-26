@@ -11,7 +11,6 @@ export const API_PATH = {
     // administrative case
     ADMINISTRATIVE_CASES: '/api/administrative-cases',
 
-
     // auth
     AUTH: '/api/auth',
     AUTH_GOOGLE: '/api/auth/google',
@@ -39,7 +38,6 @@ export const API_PATH = {
     GET_SERVICE_BY_ID: '/api/service/:id',
     UPDATE_SERVICE: '/api/service/:id',
     DELETE_SERVICE: '/api/service/:id',
-
 
     // Appointment
     APPOINTMENT: '/api/appointment',
@@ -89,14 +87,12 @@ export const API_PATH = {
     TRANSACTION: '/api/transaction',
     SEARCH_TRANSACTION: '/api/transaction/search',
 
-
     // Department
     DEPARTMENT: '/api/department',
     SEARCH_DEPARTMENT: '/api/department/search',
     DEPARTMENT_STATISTICS: '/api/department/:departmentId/statistics',
     DEPARTMENT_CAPACITY: '/api/department/:departmentId/capacity',
     DEPARTMENT_PERFORMANCE: '/api/department/:departmentId/performance',
-
 
     // Staff Profile
     STAFF_PROFILE: '/api/staff-profile',
@@ -121,7 +117,6 @@ export const API_PATH = {
     GET_SLOT_BY_DEPARTMENT: '/api/slot/department/:departmentId',
     GET_SLOT_BY_ID: '/api/slot/:id',
     AVAILABLE_SLOT: '/api/slot/available',
-
 
     // Attendance
     ATTENDANCE: '/api/attendance',
@@ -158,5 +153,4 @@ export const API_PATH = {
     DASHBOARD_REVENUE: '/api/dashboard/revenue',
     DASHBOARD_SUMMARY: '/api/dashboard/summary',
     DASHBOARD_PAYMENT_STATUS: '/api/dashboard/payments/status',
-
 };

@@ -1,4 +1,4 @@
-import { IsNotEmpty, MinLength } from "class-validator";
+import { IsNotEmpty, MinLength } from 'class-validator';
 
 export default class ChangePasswordDto {
     constructor(user_id: string, old_password: string, new_password: string) {

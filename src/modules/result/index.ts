@@ -7,16 +7,4 @@ import ResultRepository from './result.repository';
 import ResultRoute from './result.route';
 import { CreateResultDto, UpdateResultDto, StartTestingDto } from './dtos';
 
-export {
-    ResultSchema,
-    IResult,
-    ICertificateRequest,
-    ResultMatchEnum,
-    ResultController,
-    ResultService,
-    ResultRepository,
-    ResultRoute,
-    CreateResultDto,
-    UpdateResultDto,
-    StartTestingDto
-}; 
+export { ResultSchema, IResult, ICertificateRequest, ResultMatchEnum, ResultController, ResultService, ResultRepository, ResultRoute, CreateResultDto, UpdateResultDto, StartTestingDto };

@@ -7,9 +7,9 @@ import logger from '../utils/logger';
  * Mỗi cache entry chứa data và thời gian expire
  */
 interface CacheEntry {
-    data: any;        // Dữ liệu được cache
+    data: any; // Dữ liệu được cache
     timestamp: number; // Thời gian lưu cache (milliseconds)
-    ttl: number;      // Time to live (thời gian sống) tính bằng milliseconds
+    ttl: number; // Time to live (thời gian sống) tính bằng milliseconds
 }
 
 /**
@@ -66,9 +66,9 @@ class InMemoryCache {
         }
 
         const entry: CacheEntry = {
-            data,                          // Lưu data gốc
-            timestamp: Date.now(),         // Thời gian hiện tại
-            ttl                           // Thời gian sống
+            data, // Lưu data gốc
+            timestamp: Date.now(), // Thời gian hiện tại
+            ttl, // Thời gian sống
         };
 
         this.cache.set(key, entry);
@@ -172,14 +172,14 @@ class InMemoryCache {
     getStats() {
         const memoryUsage = process.memoryUsage();
         const stats = {
-            size: this.cache.size,                    // Số lượng entries hiện tại
-            maxEntries: this.maxEntries,              // Giới hạn entries từ env
-            memoryUsage: Math.round(memoryUsage.heapUsed / 1024 / 1024 * 100) / 100, // Memory usage in MB
-            hitRatio: this.calculateHitRatio(),       // Tỷ lệ cache hit
+            size: this.cache.size, // Số lượng entries hiện tại
+            maxEntries: this.maxEntries, // Giới hạn entries từ env
+            memoryUsage: Math.round((memoryUsage.heapUsed / 1024 / 1024) * 100) / 100, // Memory usage in MB
+            hitRatio: this.calculateHitRatio(), // Tỷ lệ cache hit
             configuredTTL: parseInt(process.env.CACHE_DEFAULT_TTL || '300000'), // TTL mặc định từ env
             cleanupInterval: parseInt(process.env.CACHE_CLEANUP_INTERVAL || '300000'), // Cleanup interval từ env
-            debugEnabled: this.debugEnabled,          // Trạng thái debug từ env
-            statsEnabled: this.statsEnabled           // Trạng thái stats từ env
+            debugEnabled: this.debugEnabled, // Trạng thái debug từ env
+            statsEnabled: this.statsEnabled, // Trạng thái stats từ env
         };
 
         if (this.statsEnabled) {
@@ -282,10 +282,7 @@ export const cacheMiddleware = (ttl?: number) => {
  * @param ttl Time to live cho cache (mặc định từ env)
  * @returns Express middleware function
  */
-export const conditionalCache = (
-    condition: (req: Request, res: Response) => boolean,
-    ttl?: number
-) => {
+export const conditionalCache = (condition: (req: Request, res: Response) => boolean, ttl?: number) => {
     const cacheTTL = ttl || parseInt(process.env.CACHE_DEFAULT_TTL || '300000');
 
     return (req: Request, res: Response, next: NextFunction) => {
@@ -372,11 +369,7 @@ function generateCacheKey(req: Request): string {
     const queryString = JSON.stringify(req.query, Object.keys(req.query).sort());
 
     // Tạo hash từ query string để rút ngắn key
-    const queryHash = crypto
-        .createHash('md5')
-        .update(queryString)
-        .digest('hex')
-        .substring(0, 8); // Chỉ lấy 8 ký tự đầu để ngắn gọn
+    const queryHash = crypto.createHash('md5').update(queryString).digest('hex').substring(0, 8); // Chỉ lấy 8 ký tự đầu để ngắn gọn
 
     // Format: GET:/api/users:a1b2c3d4
     return `${req.method}:${basePath}:${queryHash}`;
@@ -398,8 +391,8 @@ export const cacheHeaders = (maxAge?: number, sMaxAge?: number) => {
         // Chỉ thêm headers cho GET requests
         if (req.method === 'GET') {
             const cacheControl = [
-                `public`,                                    // Có thể cache bởi browser và proxy
-                `max-age=${browserMaxAge}`                   // Cache time ở browser từ env
+                `public`, // Có thể cache bởi browser và proxy
+                `max-age=${browserMaxAge}`, // Cache time ở browser từ env
             ];
 
             // Thêm s-maxage cho CDN/proxy từ env
@@ -446,4 +439,4 @@ export const destroyCache = () => {
 };
 
 // Export default cache middleware với TTL từ env
-export default cacheMiddleware; 
+export default cacheMiddleware;

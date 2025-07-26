@@ -20,14 +20,7 @@ const payosClient = new PayOS(clientId, apiKey, checksumKey);
 /**
  * Create a payment link using PayOS
  */
-export async function createPayosPayment(
-    amount: number,
-    orderCode?: string,
-    description?: string,
-    buyerName?: string,
-    buyerEmail?: string,
-    buyerPhone?: string
-): Promise<{ checkoutUrl: string, orderCode: number }> {
+export async function createPayosPayment(amount: number, orderCode?: string, description?: string, buyerName?: string, buyerEmail?: string, buyerPhone?: string): Promise<{ checkoutUrl: string; orderCode: number }> {
     try {
         // Validate input
         if (!amount || amount < 1000) {
@@ -133,10 +126,7 @@ export function verifyPayosWebhook(data: any, receivedSignature: string): boolea
         // Compare signatures using secure comparison
         let isValid = false;
         try {
-            isValid = crypto.timingSafeEqual(
-                Buffer.from(calculatedSignature, 'hex'),
-                Buffer.from(receivedSignature, 'hex')
-            );
+            isValid = crypto.timingSafeEqual(Buffer.from(calculatedSignature, 'hex'), Buffer.from(receivedSignature, 'hex'));
         } catch (cmpErr: any) {
             console.error('PayOS webhook verification error during comparison:', cmpErr.message);
             return false;
@@ -150,7 +140,6 @@ export function verifyPayosWebhook(data: any, receivedSignature: string): boolea
         }
 
         return isValid;
-
     } catch (error: any) {
         console.error('PayOS webhook verification error:', error.message);
         return false;
@@ -188,7 +177,6 @@ export function generatePayosSignature(data: any): string {
 
         console.log('Generated PayOS signature for data:', jsonString);
         return generatedSignature;
-
     } catch (error: any) {
         console.error('Error generating PayOS signature:', error.message);
         return '';

@@ -1,3 +1,3 @@
-import HttpException from "./http.exception";
+import HttpException from './http.exception';
 
 export { HttpException };

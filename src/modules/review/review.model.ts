@@ -8,12 +8,9 @@ const ReviewSchemaEntity: Schema<IReview> = new Schema({
     appointment_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.APPOINTMENT, required: true },
     customer_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true },
     created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
+    updated_at: { type: Date, default: Date.now },
 });
 
-const ReviewSchema = mongoose.model<IReview & mongoose.Document>(
-    COLLECTION_NAME.REVIEW,
-    ReviewSchemaEntity
-);
+const ReviewSchema = mongoose.model<IReview & mongoose.Document>(COLLECTION_NAME.REVIEW, ReviewSchemaEntity);
 
-export default ReviewSchema; 
+export default ReviewSchema;

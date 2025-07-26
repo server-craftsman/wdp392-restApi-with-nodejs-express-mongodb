@@ -11,12 +11,12 @@ const PaymentSchemaEntity: Schema<IPayment> = new Schema({
     payment_method: {
         type: String,
         enum: Object.values(PaymentMethodEnum),
-        required: true
+        required: true,
     },
     status: {
         type: String,
         enum: Object.values(PaymentStatusEnum),
-        default: PaymentStatusEnum.PENDING
+        default: PaymentStatusEnum.PENDING,
     },
     balance_origin: { type: Number, default: 0 },
     payos_payment_id: { type: String },
@@ -35,17 +35,14 @@ const PaymentSchemaEntity: Schema<IPayment> = new Schema({
         type: String,
         enum: Object.values(PaymentStageEnum),
         default: PaymentStageEnum.DEPOSIT,
-        required: true
+        required: true,
     },
     parent_payment_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.PAYMENT },
 
     created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
+    updated_at: { type: Date, default: Date.now },
 });
 
-const PaymentSchema = mongoose.model<IPayment & mongoose.Document>(
-    COLLECTION_NAME.PAYMENT,
-    PaymentSchemaEntity
-);
+const PaymentSchema = mongoose.model<IPayment & mongoose.Document>(COLLECTION_NAME.PAYMENT, PaymentSchemaEntity);
 
-export default PaymentSchema; 
+export default PaymentSchema;

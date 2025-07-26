@@ -15,4 +15,4 @@ export class StartTestingDto {
     @IsMongoId({ each: true, message: 'Each sample ID must be a valid MongoDB ID' })
     @Type(() => String)
     sample_ids?: string[];
-} 
+}

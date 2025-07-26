@@ -4,4 +4,4 @@ export class AssignStaffDto {
     @IsArray()
     @IsMongoId({ each: true })
     staff_ids: string[] = [];
-} 
+}

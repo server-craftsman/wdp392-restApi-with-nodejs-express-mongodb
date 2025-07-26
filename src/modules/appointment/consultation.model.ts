@@ -42,24 +42,24 @@ const ConsultationSchema = new Schema<IConsultationDocument>(
             type: String,
             required: true,
             trim: true,
-            maxlength: 50
+            maxlength: 50,
         },
         last_name: {
             type: String,
             required: true,
             trim: true,
-            maxlength: 50
+            maxlength: 50,
         },
         email: {
             type: String,
             required: true,
             trim: true,
-            lowercase: true
+            lowercase: true,
         },
         phone_number: {
             type: String,
             required: true,
-            trim: true
+            trim: true,
         },
 
         // Thông tin tư vấn
@@ -67,81 +67,81 @@ const ConsultationSchema = new Schema<IConsultationDocument>(
             type: String,
             required: true,
             trim: true,
-            maxlength: 200
+            maxlength: 200,
         },
         consultation_notes: {
             type: String,
             trim: true,
-            maxlength: 1000
+            maxlength: 1000,
         },
         preferred_date: {
-            type: Date
+            type: Date,
         },
         preferred_time: {
             type: String,
             trim: true,
-            maxlength: 200
+            maxlength: 200,
         },
 
         // Loại tư vấn (HOME/FACILITY)
         type: {
             type: String,
             enum: Object.values(TypeEnum),
-            required: true
+            required: true,
         },
         collection_address: {
             type: String,
             trim: true,
-            maxlength: 500
+            maxlength: 500,
         },
 
         // Trạng thái và assignment
         consultation_status: {
             type: String,
             enum: Object.values(ConsultationStatusEnum),
-            default: ConsultationStatusEnum.REQUESTED
+            default: ConsultationStatusEnum.REQUESTED,
         },
         assigned_consultant_id: {
             type: Schema.Types.ObjectId,
-            ref: 'User'
+            ref: 'User',
         },
 
         // Thông tin meeting
         meeting_link: {
             type: String,
-            trim: true
+            trim: true,
         },
         meeting_notes: {
             type: String,
             trim: true,
-            maxlength: 2000
+            maxlength: 2000,
         },
         follow_up_required: {
             type: Boolean,
-            default: false
+            default: false,
         },
         follow_up_date: {
-            type: Date
+            type: Date,
         },
 
         // Thông tin thời gian
         appointment_date: {
             type: Date,
-            default: Date.now
+            default: Date.now,
         },
         created_at: {
             type: Date,
-            default: Date.now
+            default: Date.now,
         },
         updated_at: {
             type: Date,
-            default: Date.now
-        }
+            default: Date.now,
+        },
     },
     {
         timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
-        collection: 'consultations'
-    }
+        collection: 'consultations',
+    },
 );
 
 // Indexes
@@ -150,4 +150,4 @@ ConsultationSchema.index({ consultation_status: 1 });
 ConsultationSchema.index({ assigned_consultant_id: 1 });
 ConsultationSchema.index({ created_at: -1 });
 
-export default mongoose.model<IConsultationDocument>('Consultation', ConsultationSchema); 
+export default mongoose.model<IConsultationDocument>('Consultation', ConsultationSchema);

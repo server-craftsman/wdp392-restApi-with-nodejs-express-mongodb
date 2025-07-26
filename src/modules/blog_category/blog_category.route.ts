@@ -16,39 +16,16 @@ export default class BlogCategoryRoute implements IRoute {
     }
 
     private initializeRoutes() {
-        this.router.post(
-            `${this.path}`,
-            authMiddleWare([UserRoleEnum.ADMIN]),
-            validationMiddleware(CreateBlogCategoryDto),
-            this.blogCategoryController.createBlogCategory
-        );
+        this.router.post(`${this.path}`, authMiddleWare([UserRoleEnum.ADMIN]), validationMiddleware(CreateBlogCategoryDto), this.blogCategoryController.createBlogCategory);
 
-        this.router.put(
-            `${this.path}/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN]),
-            validationMiddleware(UpdateBlogCategoryDto),
-            this.blogCategoryController.updateBlogCategory
-        );
+        this.router.put(`${this.path}/:id`, authMiddleWare([UserRoleEnum.ADMIN]), validationMiddleware(UpdateBlogCategoryDto), this.blogCategoryController.updateBlogCategory);
 
-        this.router.delete(
-            `${this.path}/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN]),
-            this.blogCategoryController.deleteBlogCategory
-        );
+        this.router.delete(`${this.path}/:id`, authMiddleWare([UserRoleEnum.ADMIN]), this.blogCategoryController.deleteBlogCategory);
 
-        this.router.get(
-            `${this.path}/:id`,
-            this.blogCategoryController.getBlogCategoryById
-        );
+        this.router.get(`${this.path}/:id`, this.blogCategoryController.getBlogCategoryById);
 
-        this.router.get(
-            `${this.path}`,
-            this.blogCategoryController.getBlogCategories
-        );
+        this.router.get(`${this.path}`, this.blogCategoryController.getBlogCategories);
 
-        this.router.post(
-            `${this.path}/search`,
-            this.blogCategoryController.searchBlogCategories
-        );
+        this.router.post(`${this.path}/search`, this.blogCategoryController.searchBlogCategories);
     }
 }

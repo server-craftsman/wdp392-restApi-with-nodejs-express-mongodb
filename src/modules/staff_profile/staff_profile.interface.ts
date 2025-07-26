@@ -1,10 +1,7 @@
 import { Document, Schema } from 'mongoose';
 import { StaffStatusEnum } from './staff_profile.enum';
 import { IAddress } from '../user/user.interface';
-export type StaffStatus =
-    StaffStatusEnum.ACTIVE |
-    StaffStatusEnum.ON_LEAVE |
-    StaffStatusEnum.TERMINATED;
+export type StaffStatus = StaffStatusEnum.ACTIVE | StaffStatusEnum.ON_LEAVE | StaffStatusEnum.TERMINATED;
 
 export interface IQualification {
     name: string;
@@ -27,4 +24,4 @@ export interface IStaffProfile extends Document {
     qualifications: IQualification[];
     created_at: Date;
     updated_at: Date;
-} 
+}

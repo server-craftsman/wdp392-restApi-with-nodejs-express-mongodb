@@ -18,12 +18,7 @@ export default class SlotRoute implements IRoute {
 
     private initializeRoutes() {
         // POST: domain:/api/slot/create -> Create a single slot
-        this.router.post(
-            `${API_PATH.CREATE_SLOT}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            validationMiddleware(CreateSlotDto),
-            this.slotController.createSlot
-        );
+        this.router.post(`${API_PATH.CREATE_SLOT}`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), validationMiddleware(CreateSlotDto), this.slotController.createSlot);
 
         // POST: domain:/api/slot/create-multiple -> Create multiple slots
         // this.router.post(
@@ -34,39 +29,19 @@ export default class SlotRoute implements IRoute {
         // );
 
         // GET: domain:/api/slot/search -> Search slots with filters
-        this.router.get(
-            `${API_PATH.SEARCH_SLOT}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
-            this.slotController.getSlots
-        );
+        this.router.get(`${API_PATH.SEARCH_SLOT}`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]), this.slotController.getSlots);
 
         // GET: domain:/api/slot/available -> Get available slots for booking
-        this.router.get(
-            `${API_PATH.AVAILABLE_SLOT}`,
-            authMiddleWare([], true),
-            this.slotController.getAvailableSlots
-        );
+        this.router.get(`${API_PATH.AVAILABLE_SLOT}`, authMiddleWare([], true), this.slotController.getAvailableSlots);
 
         // GET: domain:/api/slot/staff/:staffProfileId -> Get slots by staff
-        this.router.get(
-            `${API_PATH.GET_SLOT_BY_STAFF}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
-            this.slotController.getSlotsByUser
-        );
+        this.router.get(`${API_PATH.GET_SLOT_BY_STAFF}`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]), this.slotController.getSlotsByUser);
 
         // GET: domain:/api/slot/department/:departmentId -> Get slots by department
-        this.router.get(
-            `${API_PATH.GET_SLOT_BY_DEPARTMENT}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.slotController.getSlotsByDepartment
-        );
+        this.router.get(`${API_PATH.GET_SLOT_BY_DEPARTMENT}`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.slotController.getSlotsByDepartment);
 
         // GET: domain:/api/slot/:id -> Get slot by id
-        this.router.get(
-            `${API_PATH.GET_SLOT_BY_ID}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]),
-            this.slotController.getSlotById
-        );
+        this.router.get(`${API_PATH.GET_SLOT_BY_ID}`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.LABORATORY_TECHNICIAN, UserRoleEnum.STAFF]), this.slotController.getSlotById);
 
         // GET: domain:/api/slot/service/:serviceId -> Get slots by service
         // this.router.get(
@@ -76,25 +51,12 @@ export default class SlotRoute implements IRoute {
         // );
 
         // PUT: domain:/api/slot/:id -> Update slot
-        this.router.put(
-            `${API_PATH.UPDATE_SLOT}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            validationMiddleware(UpdateSlotDto),
-            this.slotController.updateSlot
-        );
+        this.router.put(`${API_PATH.UPDATE_SLOT}`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), validationMiddleware(UpdateSlotDto), this.slotController.updateSlot);
 
         // PATCH: domain:/api/slot/:id/status -> Change slot status
-        this.router.patch(
-            `${API_PATH.CHANGE_SLOT_STATUS}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.slotController.changeSlotStatus
-        );
+        this.router.patch(`${API_PATH.CHANGE_SLOT_STATUS}`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.slotController.changeSlotStatus);
 
         // GET: domain:/api/department/:departmentId/statistics -> Get department performance statistics
-        this.router.get(
-            `${API_PATH.DEPARTMENT_STATISTICS}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.slotController.getDepartmentPerformance
-        );
+        this.router.get(`${API_PATH.DEPARTMENT_STATISTICS}`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.slotController.getDepartmentPerformance);
     }
 }

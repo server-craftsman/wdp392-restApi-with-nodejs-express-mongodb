@@ -27,7 +27,7 @@ export default class ConsultationRoute implements IRoute {
                 next();
             },
             validationMiddleware(CreateConsultationDto),
-            this.appointmentController.createConsultation
+            this.appointmentController.createConsultation,
         );
 
         // GET: domain:/api/consultation -> Get consultation requests
@@ -38,28 +38,16 @@ export default class ConsultationRoute implements IRoute {
                 next();
             },
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
-            this.appointmentController.getConsultationRequests
+            this.appointmentController.getConsultationRequests,
         );
 
         // GET: domain:/api/consultation/:id -> Get consultation by ID
-        this.router.get(
-            `${this.path}/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
-            this.appointmentController.getConsultationById
-        );
+        this.router.get(`${this.path}/:id`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]), this.appointmentController.getConsultationById);
 
         // PATCH: domain:/api/consultation/:id/assign -> Assign consultant
-        this.router.patch(
-            `${this.path}/:id/assign`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
-            this.appointmentController.assignConsultant
-        );
+        this.router.patch(`${this.path}/:id/assign`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.appointmentController.assignConsultant);
 
         // PATCH: domain:/api/consultation/:id/status -> Update consultation status
-        this.router.patch(
-            `${this.path}/:id/status`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
-            this.appointmentController.updateConsultationStatus
-        );
+        this.router.patch(`${this.path}/:id/status`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]), this.appointmentController.updateConsultationStatus);
     }
-} 
+}

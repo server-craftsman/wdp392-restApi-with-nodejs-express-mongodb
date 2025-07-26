@@ -70,20 +70,13 @@ export default class ResultRepository {
     }
 
     public async findAll(query: any): Promise<IResult[]> {
-        return ResultSchema.find(query)
-            .populate('sample_ids')
-            .populate('customer_id')
-            .populate('appointment_id');
+        return ResultSchema.find(query).populate('sample_ids').populate('customer_id').populate('appointment_id');
     }
 
     /**
      * Find result by appointment ID with populated fields
      */
     public async findByAppointmentId(appointmentId: string): Promise<IResult | null> {
-        return ResultSchema.findOne({ appointment_id: appointmentId })
-            .populate('sample_ids')
-            .populate('customer_id')
-            .populate('appointment_id')
-            .populate('laboratory_technician_id');
+        return ResultSchema.findOne({ appointment_id: appointmentId }).populate('sample_ids').populate('customer_id').populate('appointment_id').populate('laboratory_technician_id');
     }
-} 
+}

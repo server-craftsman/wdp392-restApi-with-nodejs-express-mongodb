@@ -63,7 +63,7 @@ export class CreateAdministrativeCaseDto {
     @IsOptional()
     // Format: PL-YYYY-XXX (PL = Pháp Lý, năm, 3 số)
     @Matches(/^PL-\d{4}-\d{3}$/, {
-        message: 'case_number must be in format PL-YYYY-XXX (e.g., PL-2024-001)'
+        message: 'case_number must be in format PL-YYYY-XXX (e.g., PL-2024-001)',
     })
     case_number!: string;
 
@@ -88,7 +88,7 @@ export class CreateAdministrativeCaseDto {
     @IsString()
     // Định dạng số điện thoại Việt Nam: 0xxxxxxxxx (10 số)
     @Matches(/^0\d{9}$/, {
-        message: 'agency_contact_phone must be Vietnamese phone format: 0xxxxxxxxx (10 digits)'
+        message: 'agency_contact_phone must be Vietnamese phone format: 0xxxxxxxxx (10 digits)',
     })
     agency_contact_phone!: string;
 
@@ -96,7 +96,7 @@ export class CreateAdministrativeCaseDto {
     @IsString()
     // Format: QD-YYYY-XXX (Quyết Định - năm - số)
     @Matches(/^QD-\d{4}-\d{3}$/, {
-        message: 'authorization_code must be in format QD-YYYY-XXX (e.g., QD-2024-001)'
+        message: 'authorization_code must be in format QD-YYYY-XXX (e.g., QD-2024-001)',
     })
     authorization_code?: string;
 
@@ -104,7 +104,7 @@ export class CreateAdministrativeCaseDto {
     @IsString()
     // Format: SO-XXX/YYYY (Số - số thứ tự / năm)
     @Matches(/^SO-\d{3}\/\d{4}$/, {
-        message: 'court_order_number must be in format SO-XXX/YYYY (e.g., SO-001/2024)'
+        message: 'court_order_number must be in format SO-XXX/YYYY (e.g., SO-001/2024)',
     })
     court_order_number?: string;
 
@@ -204,21 +204,21 @@ export class UpdateAdministrativeCaseDto {
     @IsOptional()
     @IsString()
     @Matches(/^0\d{9}$/, {
-        message: 'agency_contact_phone must be Vietnamese phone format: 0xxxxxxxxx (10 digits)'
+        message: 'agency_contact_phone must be Vietnamese phone format: 0xxxxxxxxx (10 digits)',
     })
     agency_contact_phone?: string;
 
     @IsOptional()
     @IsString()
     @Matches(/^QD-\d{4}-\d{3}$/, {
-        message: 'authorization_code must be in format QD-YYYY-XXX (e.g., QD-2024-001)'
+        message: 'authorization_code must be in format QD-YYYY-XXX (e.g., QD-2024-001)',
     })
     authorization_code?: string;
 
     @IsOptional()
     @IsString()
     @Matches(/^SO-\d{3}\/\d{4}$/, {
-        message: 'court_order_number must be in format SO-XXX/YYYY (e.g., SO-001/2024)'
+        message: 'court_order_number must be in format SO-XXX/YYYY (e.g., SO-001/2024)',
     })
     court_order_number?: string;
 

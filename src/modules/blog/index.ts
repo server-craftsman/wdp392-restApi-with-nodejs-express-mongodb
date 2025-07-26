@@ -7,21 +7,4 @@ import { BlogResponseDto, BlogSearchDto, CreateBlogDto, UpdateBlogDto, BlogImage
 import { LogSchema, ILog, LogService, LogRepository } from './log';
 import BlogRoute from './blog.route';
 
-export {
-    BlogSchema,
-    IBlog,
-    IBlogImage,
-    BlogController,
-    BlogService,
-    BlogRepository,
-    BlogResponseDto,
-    BlogSearchDto,
-    CreateBlogDto,
-    UpdateBlogDto,
-    BlogImageDto,
-    LogSchema,
-    ILog,
-    LogService,
-    LogRepository,
-    BlogRoute
-}; 
+export { BlogSchema, IBlog, IBlogImage, BlogController, BlogService, BlogRepository, BlogResponseDto, BlogSearchDto, CreateBlogDto, UpdateBlogDto, BlogImageDto, LogSchema, ILog, LogService, LogRepository, BlogRoute };

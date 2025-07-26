@@ -10,7 +10,6 @@ import { ConfirmAppointmentDto } from './dtos/confirm-appointment.dto';
 import AdministrativeAppointmentController from './administrative-appointment.controller';
 import AdministrativeAppointmentService from './administrative-appointment.service';
 
-
 export default class AppointmentRoute implements IRoute {
     public path = API_PATH.APPOINTMENT;
     public router = Router();
@@ -23,69 +22,41 @@ export default class AppointmentRoute implements IRoute {
 
     private initializeRoutes() {
         // GET: domain:/api/appointment/search -> Search appointments with filters
-        this.router.get(
-            `${this.path}/search`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]),
-            this.appointmentController.searchAppointments
-        );
+        this.router.get(`${this.path}/search`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]), this.appointmentController.searchAppointments);
 
         // Staff and Lab Tech specific routes - should be before generic /:id routes
         // GET: domain:/api/appointment/staff/available -> Get available staff
-        this.router.get(
-            `${this.path}/staff/available`,
-            authMiddleWare([UserRoleEnum.MANAGER]),
-            this.appointmentController.getStaffRoles
-        );
+        this.router.get(`${this.path}/staff/available`, authMiddleWare([UserRoleEnum.MANAGER]), this.appointmentController.getStaffRoles);
 
         // GET: domain:/api/appointment/staff/slots -> Get available slots for logged-in staff
-        this.router.get(
-            `${this.path}/staff/slots`,
-            authMiddleWare([UserRoleEnum.STAFF]),
-            this.appointmentController.getStaffAvailableSlots
-        );
+        this.router.get(`${this.path}/staff/slots`, authMiddleWare([UserRoleEnum.STAFF]), this.appointmentController.getStaffAvailableSlots);
 
         // GET: domain: /api/appointments/staff/assigned -> Get appointments assigned to staff
-        this.router.get(
-            `${this.path}/staff/assigned`,
-            authMiddleWare([UserRoleEnum.STAFF]),
-            this.appointmentController.getStaffAssignedAppointments
-        );
+        this.router.get(`${this.path}/staff/assigned`, authMiddleWare([UserRoleEnum.STAFF]), this.appointmentController.getStaffAssignedAppointments);
 
         // GET: domain: /api/appointments/lab-tech/assigned -> Get appointments assigned to laboratory technician
-        this.router.get(
-            `${this.path}/lab-tech/assigned`,
-            authMiddleWare([UserRoleEnum.LABORATORY_TECHNICIAN]),
-            this.appointmentController.getLabTechAssignedAppointments
-        );
+        this.router.get(`${this.path}/lab-tech/assigned`, authMiddleWare([UserRoleEnum.LABORATORY_TECHNICIAN]), this.appointmentController.getLabTechAssignedAppointments);
 
         // GET: domain: /api/appointment/lab-tech/available -> Get available laboratory technicians
-        this.router.get(
-            `${this.path}/lab-tech/available`,
-            authMiddleWare([UserRoleEnum.STAFF]),
-            this.appointmentController.getAvailableLabTechnicians
-        );
+        this.router.get(`${this.path}/lab-tech/available`, authMiddleWare([UserRoleEnum.STAFF]), this.appointmentController.getAvailableLabTechnicians);
 
         // POST: domain:/api/appointment/create -> Create a new appointment
         this.router.post(
             `${this.path}/create`,
             authMiddleWare([UserRoleEnum.CUSTOMER]), // Only customers can create appointments
             validationMiddleware(CreateAppointmentDto),
-            this.appointmentController.createAppointment
+            this.appointmentController.createAppointment,
         );
 
         // Generic appointment routes with :id parameter - MUST be after specific routes
         // GET: domain:/api/appointment/:id -> Get appointment by ID
-        this.router.get(
-            `${this.path}/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]),
-            this.appointmentController.getAppointmentById
-        );
+        this.router.get(`${this.path}/:id`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]), this.appointmentController.getAppointmentById);
 
         // GET: domain:/api/appointment/:id/samples -> Get samples for an appointment
         this.router.get(
             `${this.path}/:id/samples`,
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER, UserRoleEnum.LABORATORY_TECHNICIAN]),
-            this.appointmentController.getAppointmentSamples
+            this.appointmentController.getAppointmentSamples,
         );
 
         // PUT: domain:/api/appointment/:id/assign-staff -> Assign staff to appointment
@@ -93,7 +64,7 @@ export default class AppointmentRoute implements IRoute {
             `${this.path}/:id/assign-staff`,
             authMiddleWare([UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]), // Only managers and admins can assign staff
             validationMiddleware(AssignStaffDto),
-            this.appointmentController.assignStaff
+            this.appointmentController.assignStaff,
         );
 
         // PUT: domain:/api/appointment/:id/confirm -> Confirm appointment and assign kit
@@ -101,71 +72,39 @@ export default class AppointmentRoute implements IRoute {
             `${this.path}/:id/confirm`,
             authMiddleWare([UserRoleEnum.STAFF]), // Only staff can confirm appointments
             validationMiddleware(ConfirmAppointmentDto),
-            this.appointmentController.confirmAppointment
+            this.appointmentController.confirmAppointment,
         );
 
         // PUT: domain:/api/appointment/:id/checkin -> Checkin appointment
-        this.router.put(
-            `${this.path}/:id/checkin`,
-            authMiddleWare([UserRoleEnum.STAFF]),
-            this.appointmentController.checkinAppointment
-        );
+        this.router.put(`${this.path}/:id/checkin`, authMiddleWare([UserRoleEnum.STAFF]), this.appointmentController.checkinAppointment);
 
         // PUT: domain:/api/appointment/:id/add-note -> Add appointment note
-        this.router.put(
-            `${this.path}/:id/add-note`,
-            authMiddleWare([UserRoleEnum.STAFF]),
-            this.appointmentController.addAppointmentNote
-        );
+        this.router.put(`${this.path}/:id/add-note`, authMiddleWare([UserRoleEnum.STAFF]), this.appointmentController.addAppointmentNote);
         // GET: domain:/api/appointment/:appointmentId/price -> Get price for an appointment
-        this.router.get(
-            `${this.path}/:appointmentId/price`,
-            authMiddleWare(),
-            this.appointmentController.getAppointmentPrice
-        );
+        this.router.get(`${this.path}/:appointmentId/price`, authMiddleWare(), this.appointmentController.getAppointmentPrice);
 
         // POST: domain: /api/appointments/:id/assign-lab-tech -> Assign laboratory technician to appointment
-        this.router.post(
-            `${this.path}/:id/assign-lab-tech`,
-            authMiddleWare([UserRoleEnum.STAFF]),
-            this.appointmentController.assignLabTechnician
-        );
+        this.router.post(`${this.path}/:id/assign-lab-tech`, authMiddleWare([UserRoleEnum.STAFF]), this.appointmentController.assignLabTechnician);
 
         // PUT domain:/api/appointment/:id/unassign-staff -> Unassign staff from an appointment
-        this.router.put(
-            `${this.path}/:id/unassign-staff`,
-            authMiddleWare([UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]),
-            this.appointmentController.unassignStaff
-        );
+        this.router.put(`${this.path}/:id/unassign-staff`, authMiddleWare([UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]), this.appointmentController.unassignStaff);
 
         // ==================== ADMINISTRATIVE APPOINTMENT ROUTES ====================
 
         // POST: domain:/api/appointment/administrative/:caseId -> Create administrative appointment for a case
-        this.router.post(
-            `${this.path}/administrative/:caseId`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
-            this.administrativeAppointmentController.createAdministrativeAppointment
-        );
+        this.router.post(`${this.path}/administrative/:caseId`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]), this.administrativeAppointmentController.createAdministrativeAppointment);
 
         // GET: domain:/api/appointment/administrative/:caseId/appointments -> Get all appointments for a case
-        this.router.get(
-            `${this.path}/administrative/:caseId/appointments`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
-            this.administrativeAppointmentController.getAppointmentsByCase
-        );
+        this.router.get(`${this.path}/administrative/:caseId/appointments`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]), this.administrativeAppointmentController.getAppointmentsByCase);
 
         // GET: domain:/api/appointment/administrative/:caseId/validate -> Validate if appointment can be created for case
-        this.router.get(
-            `${this.path}/administrative/:caseId/validate`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
-            this.administrativeAppointmentController.validateAppointmentCreation
-        );
+        this.router.get(`${this.path}/administrative/:caseId/validate`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]), this.administrativeAppointmentController.validateAppointmentCreation);
 
         // PUT: domain:/api/appointment/administrative/progress/:appointmentId -> Update appointment progress and case status
         this.router.put(
             `${this.path}/administrative/progress/:appointmentId`,
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
-            this.administrativeAppointmentController.updateAppointmentProgress
+            this.administrativeAppointmentController.updateAppointmentProgress,
         );
     }
-} 
+}

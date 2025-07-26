@@ -4,7 +4,6 @@ import { UserRoles, UserGenders } from './user.constant';
 import { UserRoleEnum, UserGenderEnum } from './user.enum';
 import { IAddress, IUser } from './user.interface';
 
-
 const AddressSchema = new Schema<IAddress>({
     street: { type: String },
     ward: { type: String },
@@ -21,7 +20,7 @@ const UserSchemaEntity: Schema<IUser> = new Schema({
     gender: {
         type: String,
         enum: UserGenders,
-        default: UserGenderEnum.OTHER
+        default: UserGenderEnum.OTHER,
     },
     google_id: { type: String },
     role: {
@@ -35,13 +34,14 @@ const UserSchemaEntity: Schema<IUser> = new Schema({
     avatar_url: { type: String },
     dob: { type: Date },
     address: {
-        type: AddressSchema, default: {
+        type: AddressSchema,
+        default: {
             street: '',
             ward: '',
             district: '',
             city: '',
-            country: 'Việt Nam'
-        }
+            country: 'Việt Nam',
+        },
     },
 
     is_verified: { type: Boolean, default: false },

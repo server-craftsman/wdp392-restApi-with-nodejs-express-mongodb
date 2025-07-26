@@ -17,15 +17,13 @@ export default class PaymentController {
                 headers: req.headers,
                 body: req.body,
                 method: req.method,
-                url: req.url
+                url: req.url,
             });
 
             // Validate webhook data
             if (!req.body) {
                 console.error('PayOS Webhook: Empty request body');
-                return res.status(HttpStatus.BadRequest).json(
-                    formatResponse(false, false, 'Empty webhook data')
-                );
+                return res.status(HttpStatus.BadRequest).json(formatResponse(false, false, 'Empty webhook data'));
             }
 
             const webhookData = req.body;
@@ -36,18 +34,13 @@ export default class PaymentController {
             // PayOS expects a 200 response for successful webhook processing
             const statusCode = result.success ? HttpStatus.Success : HttpStatus.BadRequest;
 
-            res.status(statusCode).json(
-                formatResponse(result, result.success, result.message)
-            );
-
+            res.status(statusCode).json(formatResponse(result, result.success, result.message));
         } catch (error: any) {
             console.error('PayOS Webhook handler error:', error);
 
             // Always return 200 to PayOS to prevent retries for server errors
             // but log the actual error for debugging
-            res.status(HttpStatus.Success).json(
-                formatResponse(false, false, 'Webhook processing failed')
-            );
+            res.status(HttpStatus.Success).json(formatResponse(false, false, 'Webhook processing failed'));
         }
     };
 
@@ -55,16 +48,12 @@ export default class PaymentController {
     public generateTestWebhookSignature = async (req: Request, res: Response, next: NextFunction) => {
         try {
             if (process.env.NODE_ENV === 'production') {
-                return res.status(HttpStatus.Forbidden).json(
-                    formatResponse(false, false, 'Test endpoint not available in production')
-                );
+                return res.status(HttpStatus.Forbidden).json(formatResponse(false, false, 'Test endpoint not available in production'));
             }
 
             const testData = req.body;
             if (!testData) {
-                return res.status(HttpStatus.BadRequest).json(
-                    formatResponse(false, false, 'No test data provided')
-                );
+                return res.status(HttpStatus.BadRequest).json(formatResponse(false, false, 'No test data provided'));
             }
 
             // Import the signature generation function
@@ -72,13 +61,16 @@ export default class PaymentController {
             const signature = generatePayosSignature(testData);
 
             res.status(HttpStatus.Success).json(
-                formatResponse({
-                    signature,
-                    data: testData,
-                    signedData: { ...testData, signature }
-                }, true, 'Test signature generated successfully')
+                formatResponse(
+                    {
+                        signature,
+                        data: testData,
+                        signedData: { ...testData, signature },
+                    },
+                    true,
+                    'Test signature generated successfully',
+                ),
             );
-
         } catch (error) {
             next(error);
         }
@@ -96,7 +88,7 @@ export default class PaymentController {
                 const params = new URLSearchParams([
                     ['code', '99'],
                     ['status', 'error'],
-                    ['message', 'Missing order code']
+                    ['message', 'Missing order code'],
                 ]);
                 res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
                 return;
@@ -111,7 +103,7 @@ export default class PaymentController {
                     ['code', '99'],
                     ['orderCode', orderCode.toString()],
                     ['status', 'error'],
-                    ['message', 'Payment not found']
+                    ['message', 'Payment not found'],
                 ]);
                 res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
                 return;
@@ -132,7 +124,7 @@ export default class PaymentController {
                     ['orderCode', orderCode.toString()],
                     ['status', 'cancelled'],
                     ['paymentNo', payment.payment_no || ''],
-                    ['appointmentId', payment.appointment_id || '']
+                    ['appointmentId', payment.appointment_id || ''],
                 ]);
                 res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
                 return;
@@ -152,20 +144,19 @@ export default class PaymentController {
                 ['paymentNo', payment.payment_no || ''],
                 ['appointmentId', payment.appointment_id || ''],
                 ['payosStatus', result.payos_status || ''],
-                ['verifiedAt', new Date().toISOString()]
+                ['verifiedAt', new Date().toISOString()],
             ]);
 
             console.log(`Redirecting to frontend with params:`, params.toString());
             res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
             return;
-
         } catch (error) {
             console.error('Error in handlePayosReturn:', error);
             const frontendUrl = process.env.DOMAIN_FE || '/';
             const params = new URLSearchParams([
                 ['code', '99'],
                 ['status', 'error'],
-                ['message', 'Internal server error']
+                ['message', 'Internal server error'],
             ]);
             res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
         }
@@ -187,7 +178,7 @@ export default class PaymentController {
             const params = new URLSearchParams([
                 ['code', '99'],
                 ['orderCode', orderCode?.toString() || ''],
-                ['status', 'cancelled']
+                ['status', 'cancelled'],
             ]);
             res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
             return;
@@ -196,7 +187,7 @@ export default class PaymentController {
             const frontendUrl = process.env.DOMAIN_FE || '/';
             const params = new URLSearchParams([
                 ['code', '99'],
-                ['status', 'error']
+                ['status', 'error'],
             ]);
             res.redirect(`${frontendUrl.replace(/\/$/, '')}/payos?${params.toString()}`);
         }
@@ -207,9 +198,7 @@ export default class PaymentController {
         try {
             const userId = req.user.id;
             if (!userId) {
-                res.status(HttpStatus.Unauthorized).json(
-                    formatResponse(false, true, 'User not authenticated')
-                );
+                res.status(HttpStatus.Unauthorized).json(formatResponse(false, true, 'User not authenticated'));
                 return;
             }
 
@@ -221,9 +210,7 @@ export default class PaymentController {
 
             const result = await this.paymentService.createAppointmentPayment(userId, paymentData, userRole);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(result, true, 'Appointment payment created successfully')
-            );
+            res.status(HttpStatus.Success).json(formatResponse(result, true, 'Appointment payment created successfully'));
         } catch (error) {
             next(error);
         }
@@ -235,9 +222,7 @@ export default class PaymentController {
             const { paymentNo } = req.params;
             const result = await this.paymentService.verifyPaymentStatus(paymentNo);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(result, true, 'Payment verification completed')
-            );
+            res.status(HttpStatus.Success).json(formatResponse(result, true, 'Payment verification completed'));
         } catch (error) {
             next(error);
         }
@@ -249,9 +234,7 @@ export default class PaymentController {
             const { paymentNo } = req.params;
             const result = await this.paymentService.cancelPayment(paymentNo);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(result, true, result.message)
-            );
+            res.status(HttpStatus.Success).json(formatResponse(result, true, result.message));
         } catch (error) {
             next(error);
         }
@@ -330,9 +313,7 @@ export default class PaymentController {
             const { paymentId } = req.params;
             const samples = await this.paymentService.getPaymentSamples(paymentId);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(samples, true, 'Samples retrieved successfully')
-            );
+            res.status(HttpStatus.Success).json(formatResponse(samples, true, 'Samples retrieved successfully'));
         } catch (error) {
             next(error);
         }
@@ -344,17 +325,13 @@ export default class PaymentController {
             const { orderCode } = req.params;
 
             if (!orderCode) {
-                return res.status(HttpStatus.BadRequest).json(
-                    formatResponse(false, false, 'Order code is required')
-                );
+                return res.status(HttpStatus.BadRequest).json(formatResponse(false, false, 'Order code is required'));
             }
 
             // Find payment by orderCode
             const payment = await this.paymentService.findPaymentByOrderCode(Number(orderCode));
             if (!payment) {
-                return res.status(HttpStatus.NotFound).json(
-                    formatResponse(false, false, 'Payment not found')
-                );
+                return res.status(HttpStatus.NotFound).json(formatResponse(false, false, 'Payment not found'));
             }
 
             // Verify current status with PayOS
@@ -385,17 +362,14 @@ export default class PaymentController {
                     payos_web_id: payment.payos_web_id,
                     payos_payment_url: payment.payos_payment_url,
                     created_at: payment.created_at,
-                    updated_at: payment.updated_at
+                    updated_at: payment.updated_at,
                 },
                 verification: verificationResult,
                 appointment: appointmentDetails,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
             };
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(responseData, true, 'Payment status retrieved successfully')
-            );
-
+            res.status(HttpStatus.Success).json(formatResponse(responseData, true, 'Payment status retrieved successfully'));
         } catch (error) {
             next(error);
         }
@@ -407,22 +381,15 @@ export default class PaymentController {
             const { paymentId } = req.params;
 
             if (!paymentId) {
-                return res.status(HttpStatus.BadRequest).json(
-                    formatResponse(null, false, 'Payment ID is required')
-                );
+                return res.status(HttpStatus.BadRequest).json(formatResponse(null, false, 'Payment ID is required'));
             }
 
             const transactions = await this.paymentService.getPaymentTransactions(paymentId);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(transactions, true, 'Payment transactions retrieved successfully')
-            );
-
+            res.status(HttpStatus.Success).json(formatResponse(transactions, true, 'Payment transactions retrieved successfully'));
         } catch (error: any) {
             console.error('Get payment transactions error:', error);
-            res.status(HttpStatus.InternalServerError).json(
-                formatResponse(null, false, error.message || 'Error retrieving payment transactions')
-            );
+            res.status(HttpStatus.InternalServerError).json(formatResponse(null, false, error.message || 'Error retrieving payment transactions'));
         }
     };
 
@@ -432,22 +399,15 @@ export default class PaymentController {
             const { appointmentId } = req.params;
 
             if (!appointmentId) {
-                return res.status(HttpStatus.BadRequest).json(
-                    formatResponse(null, false, 'Appointment ID is required')
-                );
+                return res.status(HttpStatus.BadRequest).json(formatResponse(null, false, 'Appointment ID is required'));
             }
 
             const transactions = await this.paymentService.getAppointmentTransactions(appointmentId);
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(transactions, true, 'Appointment transactions retrieved successfully')
-            );
-
+            res.status(HttpStatus.Success).json(formatResponse(transactions, true, 'Appointment transactions retrieved successfully'));
         } catch (error: any) {
             console.error('Get appointment transactions error:', error);
-            res.status(HttpStatus.InternalServerError).json(
-                formatResponse(null, false, error.message || 'Error retrieving appointment transactions')
-            );
+            res.status(HttpStatus.InternalServerError).json(formatResponse(null, false, error.message || 'Error retrieving appointment transactions'));
         }
     };
 
@@ -456,22 +416,15 @@ export default class PaymentController {
         try {
             // Only allow in development environment
             if (process.env.NODE_ENV === 'production') {
-                return res.status(HttpStatus.Forbidden).json(
-                    formatResponse(null, false, 'Test endpoint not available in production')
-                );
+                return res.status(HttpStatus.Forbidden).json(formatResponse(null, false, 'Test endpoint not available in production'));
             }
 
             const result = await this.paymentService.testTransactionCreation();
 
-            res.status(HttpStatus.Success).json(
-                formatResponse(result, result.success, result.message)
-            );
-
+            res.status(HttpStatus.Success).json(formatResponse(result, result.success, result.message));
         } catch (error: any) {
             console.error('Test transaction creation error:', error);
-            res.status(HttpStatus.InternalServerError).json(
-                formatResponse(null, false, error.message || 'Error testing transaction creation')
-            );
+            res.status(HttpStatus.InternalServerError).json(formatResponse(null, false, error.message || 'Error testing transaction creation'));
         }
     };
 }

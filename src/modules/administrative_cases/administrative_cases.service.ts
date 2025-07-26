@@ -27,7 +27,7 @@ export default class AdministrativeCasesService {
         // Check if case number already exists
         const existingCase = await AdministrativeCaseSchema.findOne({
             case_number: data.case_number,
-            is_deleted: false
+            is_deleted: false,
         });
         if (existingCase) {
             throw new Error(`Case number ${data.case_number} already exists`);
@@ -45,9 +45,7 @@ export default class AdministrativeCasesService {
     }
 
     public async getCaseById(id: string): Promise<IAdministrativeCase | null> {
-        return AdministrativeCaseSchema.findById(id)
-            .populate('created_by_user_id', 'email first_name last_name role')
-            .populate('assigned_staff_id', 'email first_name last_name role');
+        return AdministrativeCaseSchema.findById(id).populate('created_by_user_id', 'email first_name last_name role').populate('assigned_staff_id', 'email first_name last_name role');
     }
 
     // Alias for consistency with other services
@@ -76,9 +74,7 @@ export default class AdministrativeCasesService {
         // Create update object with timestamp
         const updateData: any = { ...data, updated_at: new Date() };
 
-        return AdministrativeCaseSchema.findByIdAndUpdate(id, updateData, { new: true })
-            .populate('created_by_user_id', 'email first_name last_name role')
-            .populate('assigned_staff_id', 'email first_name last_name role');
+        return AdministrativeCaseSchema.findByIdAndUpdate(id, updateData, { new: true }).populate('created_by_user_id', 'email first_name last_name role').populate('assigned_staff_id', 'email first_name last_name role');
     }
 
     public async updateCaseStatus(id: string, status: string): Promise<IAdministrativeCase | null> {
@@ -113,31 +109,24 @@ export default class AdministrativeCasesService {
                 $push: { appointment_ids: appointmentId },
                 status: AdministrativeCaseStatus.SCHEDULED,
                 scheduled_at: new Date(),
-                updated_at: new Date()
+                updated_at: new Date(),
             },
-            { new: true }
+            { new: true },
         );
     }
 
     public async deleteCase(id: string): Promise<IAdministrativeCase | null> {
-        return AdministrativeCaseSchema.findByIdAndUpdate(
-            id,
-            { is_deleted: true, updated_at: new Date() },
-            { new: true }
-        );
+        return AdministrativeCaseSchema.findByIdAndUpdate(id, { is_deleted: true, updated_at: new Date() }, { new: true });
     }
 
     public async listCases(query: any): Promise<IAdministrativeCase[]> {
         // Add default filter for non-deleted cases
         const searchQuery = {
             ...query,
-            is_deleted: { $ne: true }
+            is_deleted: { $ne: true },
         };
 
-        return AdministrativeCaseSchema.find(searchQuery)
-            .populate('created_by_user_id', 'email first_name last_name role')
-            .populate('assigned_staff_id', 'email first_name last_name role')
-            .sort({ created_at: -1 }); // Sort by newest first
+        return AdministrativeCaseSchema.find(searchQuery).populate('created_by_user_id', 'email first_name last_name role').populate('assigned_staff_id', 'email first_name last_name role').sort({ created_at: -1 }); // Sort by newest first
     }
 
     /**
@@ -159,7 +148,7 @@ export default class AdministrativeCasesService {
 
         // Find the highest case number for current year
         const latestCase = await AdministrativeCaseSchema.findOne({
-            case_number: { $regex: `^${yearPrefix}` }
+            case_number: { $regex: `^${yearPrefix}` },
         }).sort({ case_number: -1 });
 
         let nextNumber = 1;
@@ -191,7 +180,7 @@ export default class AdministrativeCasesService {
     public async getCaseByCaseNumber(caseNumber: string): Promise<IAdministrativeCase | null> {
         return AdministrativeCaseSchema.findOne({
             case_number: caseNumber,
-            is_deleted: { $ne: true }
+            is_deleted: { $ne: true },
         })
             .populate('created_by_user_id', 'email first_name last_name role')
             .populate('assigned_staff_id', 'email first_name last_name role');

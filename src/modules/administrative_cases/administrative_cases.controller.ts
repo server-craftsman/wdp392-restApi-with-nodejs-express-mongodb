@@ -22,9 +22,7 @@ export default class AdministrativeCasesController {
             const errors = await validate(dto);
 
             if (errors.length > 0) {
-                const errorMessages = errors.map(error =>
-                    Object.values(error.constraints || {}).join(', ')
-                ).join('; ');
+                const errorMessages = errors.map((error) => Object.values(error.constraints || {}).join(', ')).join('; ');
                 throw new HttpException(HttpStatus.BadRequest, `Validation failed: ${errorMessages}`);
             }
 
@@ -74,9 +72,7 @@ export default class AdministrativeCasesController {
             const errors = await validate(dto);
 
             if (errors.length > 0) {
-                const errorMessages = errors.map(error =>
-                    Object.values(error.constraints || {}).join(', ')
-                ).join('; ');
+                const errorMessages = errors.map((error) => Object.values(error.constraints || {}).join(', ')).join('; ');
                 throw new HttpException(HttpStatus.BadRequest, `Validation failed: ${errorMessages}`);
             }
 

@@ -1,5 +1,5 @@
-import { Document, Schema } from "mongoose";
-import { IBlogImage } from "../blog.interface";
+import { Document, Schema } from 'mongoose';
+import { IBlogImage } from '../blog.interface';
 
 export interface ILog extends Document {
     _id: string;
