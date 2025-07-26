@@ -82,8 +82,8 @@ const AdministrativeCaseSchemaEntity = new Schema<IAdministrativeCase>({
     denial_reason: { type: String },
 
     // Người quản lý
-    created_by_user_id: { type: String, ref: COLLECTION_NAME.USER, required: true },
-    assigned_staff_id: { type: String, ref: COLLECTION_NAME.USER },
+    created_by_user_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true },
+    assigned_staff_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER },
 
     // Kết quả
     result_delivery_method: {

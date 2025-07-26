@@ -36,6 +36,9 @@ export default class AdministrativeCasesRouter implements IRoute {
         // PUT: domain:/api/administrative-cases/:id/status -> Update administrative case status
         this.router.put(`${this.path}/:id/status`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.updateCaseStatus);
 
+        // PUT: domain:/api/administrative-cases/:id/assign -> Assign case to staff/labtech
+        this.router.put(`${this.path}/:id/assign`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.assignCaseToStaff);
+
         // GET: domain:/api/administrative-cases/:id -> Get administrative case by id
         this.router.get(`${this.path}/:id`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.getCaseById);
 
@@ -52,5 +55,12 @@ export default class AdministrativeCasesRouter implements IRoute {
 
         // GET: domain:/api/administrative-cases -> Get all administrative cases
         this.router.get(`${this.path}`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.listCases);
+
+        // === STAFF/LABTECH ROUTES ===
+        // GET: domain:/api/administrative-cases/assigned -> Get assigned cases for staff/labtech
+        this.router.get(`${this.path}/assigned`, authMiddleWare([UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]), this.administrativeCasesController.getAssignedCases);
+
+        // GET: domain:/api/administrative-cases/assigned/search -> Search assigned cases for staff/labtech
+        this.router.get(`${this.path}/assigned/search`, authMiddleWare([UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]), this.administrativeCasesController.searchAssignedCases);
     }
 }

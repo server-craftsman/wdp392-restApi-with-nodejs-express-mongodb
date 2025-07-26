@@ -9,6 +9,7 @@ import { UpdateResultDto } from './dtos/updateResult.dto';
 import { StartTestingDto } from './dtos/startTesting.dto';
 import { UserRoleEnum } from '../user/user.enum';
 import { DataStoredInToken, UserInfoInTokenDefault } from '../auth';
+import { generateSimpleVietnameseTestPDF } from './utils/pdfGenerator.util';
 
 export default class ResultController {
     private resultService = new ResultService();
@@ -571,6 +572,48 @@ export default class ResultController {
                     success: false,
                     message: 'Internal server error during simple PDF generation test',
                     error: process.env.NODE_ENV === 'development' ? error.message : undefined
+                });
+            }
+        }
+    };
+
+    /**
+     * Test Vietnamese text rendering in PDF (for debugging font issues)
+     */
+    public testVietnameseText = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const userData: DataStoredInToken = req.user as DataStoredInToken || UserInfoInTokenDefault;
+
+            if (![UserRoleEnum.STAFF, UserRoleEnum.MANAGER, UserRoleEnum.ADMIN].includes(userData.role as UserRoleEnum)) {
+                throw new HttpException(HttpStatus.Forbidden, 'Access denied. Staff, Manager, or Admin access required.');
+            }
+
+            const pdfUrl = await generateSimpleVietnameseTestPDF();
+
+            res.status(HttpStatus.Success).json({
+                success: true,
+                message: 'Vietnamese text test PDF generated successfully',
+                data: {
+                    pdfUrl,
+                    testInfo: {
+                        description: 'Simple Vietnamese text test with different fonts',
+                        generatedAt: new Date().toISOString(),
+                        note: 'This is a test PDF to debug Vietnamese character rendering'
+                    }
+                }
+            });
+        } catch (error: any) {
+            console.error('Error generating Vietnamese test PDF:', error);
+            if (error instanceof HttpException) {
+                res.status(error.status).json({
+                    success: false,
+                    message: error.message
+                });
+            } else {
+                res.status(HttpStatus.InternalServerError).json({
+                    success: false,
+                    message: 'Internal server error during Vietnamese test PDF generation',
+                    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
                 });
             }
         }

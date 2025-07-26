@@ -47,6 +47,13 @@ export default class ResultRoute implements IRoute {
             this.resultController.getTestResultIds
         );
 
+        // GET: domain:/api/result/test-vietnamese -> Test Vietnamese text rendering (for debugging font issues)
+        this.router.get(
+            `${this.path}/test-vietnamese`,
+            authMiddleWare([UserRoleEnum.STAFF, UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]),
+            this.resultController.testVietnameseText
+        );
+
         // GET: domain:/api/result/sample/:sampleId -> Get result by sample ID (all authenticated users)
         this.router.get(
             `${API_PATH.RESULT}/sample/:sampleId`,

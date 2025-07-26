@@ -78,41 +78,37 @@ export interface TestResultReportData {
 }
 
 /**
- * Transliterate Vietnamese text to ASCII for PDF compatibility
+ * Ensure proper UTF-8 encoding for Vietnamese text
  */
-function transliterateVietnamese(text: string): string {
+function ensureUTF8(text: string): string {
+    if (!text) return '';
+    // Normalize Unicode characters for proper display
+    return text.normalize('NFC');
+}
+
+/**
+ * Convert Vietnamese text to a more compatible format for PDF
+ */
+function makeVietnameseCompatible(text: string): string {
     if (!text) return '';
 
-    const vietnameseMap: { [key: string]: string } = {
-        'à': 'a', 'á': 'a', 'ả': 'a', 'ã': 'a', 'ạ': 'a',
-        'ă': 'a', 'ằ': 'a', 'ắ': 'a', 'ẳ': 'a', 'ẵ': 'a', 'ặ': 'a',
-        'â': 'a', 'ầ': 'a', 'ấ': 'a', 'ẩ': 'a', 'ẫ': 'a', 'ậ': 'a',
-        'è': 'e', 'é': 'e', 'ẻ': 'e', 'ẽ': 'e', 'ẹ': 'e',
-        'ê': 'e', 'ề': 'e', 'ế': 'e', 'ể': 'e', 'ễ': 'e', 'ệ': 'e',
-        'ì': 'i', 'í': 'i', 'ỉ': 'i', 'ĩ': 'i', 'ị': 'i',
-        'ò': 'o', 'ó': 'o', 'ỏ': 'o', 'õ': 'o', 'ọ': 'o',
-        'ô': 'o', 'ồ': 'o', 'ố': 'o', 'ổ': 'o', 'ỗ': 'o', 'ộ': 'o',
-        'ơ': 'o', 'ờ': 'o', 'ớ': 'o', 'ở': 'o', 'ỡ': 'o', 'ợ': 'o',
-        'ù': 'u', 'ú': 'u', 'ủ': 'u', 'ũ': 'u', 'ụ': 'u',
-        'ư': 'u', 'ừ': 'u', 'ứ': 'u', 'ử': 'u', 'ữ': 'u', 'ự': 'u',
-        'ỳ': 'y', 'ý': 'y', 'ỷ': 'y', 'ỹ': 'y', 'ỵ': 'y',
-        'đ': 'd',
-        'À': 'A', 'Á': 'A', 'Ả': 'A', 'Ã': 'A', 'Ạ': 'A',
-        'Ă': 'A', 'Ằ': 'A', 'Ắ': 'A', 'Ẳ': 'A', 'Ẵ': 'A', 'Ặ': 'A',
-        'Â': 'A', 'Ầ': 'A', 'Ấ': 'A', 'Ẩ': 'A', 'Ẫ': 'A', 'Ậ': 'A',
-        'È': 'E', 'É': 'E', 'Ẻ': 'E', 'Ẽ': 'E', 'Ẹ': 'E',
-        'Ê': 'E', 'Ề': 'E', 'Ế': 'E', 'Ể': 'E', 'Ễ': 'E', 'Ệ': 'E',
-        'Ì': 'I', 'Í': 'I', 'Ỉ': 'I', 'Ĩ': 'I', 'Ị': 'I',
-        'Ò': 'O', 'Ó': 'O', 'Ỏ': 'O', 'Õ': 'O', 'Ọ': 'O',
-        'Ô': 'O', 'Ồ': 'O', 'Ố': 'O', 'Ổ': 'O', 'Ỗ': 'O', 'Ộ': 'O',
-        'Ơ': 'O', 'Ờ': 'O', 'Ớ': 'O', 'Ở': 'O', 'Ỡ': 'O', 'Ợ': 'O',
-        'Ù': 'U', 'Ú': 'U', 'Ủ': 'U', 'Ũ': 'U', 'Ụ': 'U',
-        'Ư': 'U', 'Ừ': 'U', 'Ứ': 'U', 'Ử': 'U', 'Ữ': 'U', 'Ự': 'U',
-        'Ỳ': 'Y', 'Ý': 'Y', 'Ỷ': 'Y', 'Ỹ': 'Y', 'Ỵ': 'Y',
-        'Đ': 'D'
+    // First normalize the text
+    let normalized = text.normalize('NFC');
+
+    // Replace some problematic characters with alternatives
+    const replacements: { [key: string]: string } = {
+        'Đ': 'D', 'đ': 'd',  // Đ/đ can sometimes cause issues
+        'Ư': 'U', 'ư': 'u',  // Ư/ư can sometimes cause issues
+        'Ơ': 'O', 'ơ': 'o',  // Ơ/ơ can sometimes cause issues
+        'Ă': 'A', 'ă': 'a',  // Ă/ă can sometimes cause issues
     };
 
-    return text.split('').map(char => vietnameseMap[char] || char).join('');
+    // Apply replacements
+    for (const [from, to] of Object.entries(replacements)) {
+        normalized = normalized.replace(new RegExp(from, 'g'), to);
+    }
+
+    return normalized;
 }
 
 /**
@@ -147,7 +143,40 @@ function formatAddress(address: string | any): string {
 }
 
 /**
- * Generate a PDF report for a test result using default fonts only
+ * Safely render Vietnamese text in PDF with fallback options
+ */
+function renderVietnameseText(doc: PDFKit.PDFDocument, text: string, options: any = {}): void {
+    if (!text) return;
+
+    // Simple approach: use normalized text with fallback to transliteration
+    try {
+        // First try with normalized Unicode
+        const normalized = text.normalize('NFC');
+        doc.text(normalized, options);
+    } catch (error) {
+        console.warn('Unicode text rendering failed, using transliteration:', error);
+        // Fallback to transliteration
+        const transliterated = text
+            .replace(/[àáảãạăằắẳẵặâầấẩẫậ]/g, 'a')
+            .replace(/[èéẻẽẹêềếểễệ]/g, 'e')
+            .replace(/[ìíỉĩị]/g, 'i')
+            .replace(/[òóỏõọôồốổỗộơờớởỡợ]/g, 'o')
+            .replace(/[ùúủũụưừứửữự]/g, 'u')
+            .replace(/[ỳýỷỹỵ]/g, 'y')
+            .replace(/[đ]/g, 'd')
+            .replace(/[ÀÁẢÃẠĂẰẮẲẴẶÂẦẤẨẪẬ]/g, 'A')
+            .replace(/[ÈÉẺẼẸÊỀẾỂỄỆ]/g, 'E')
+            .replace(/[ÌÍỈĨỊ]/g, 'I')
+            .replace(/[ÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢ]/g, 'O')
+            .replace(/[ÙÚỦŨỤƯỪỨỬỮỰ]/g, 'U')
+            .replace(/[ỲÝỶỸỴ]/g, 'Y')
+            .replace(/[Đ]/g, 'D');
+        doc.text(transliterated, options);
+    }
+}
+
+/**
+ * Generate a PDF report for a test result using Unicode fonts
  */
 export async function generateTestResultPDF(data: TestResultReportData, template?: string): Promise<string> {
     // Validate AWS environment variables
@@ -162,76 +191,146 @@ export async function generateTestResultPDF(data: TestResultReportData, template
     const tempFilePath = path.join(__dirname, `temp-report-${uuidv4()}.pdf`);
 
     try {
-        // Create PDF document with improved margins for professional presentation
+        // Create PDF document with Unicode support
         const doc = new PDFDocument({
             margin: 50,
             size: 'A4',
             info: {
-                Title: `Bao cao ket qua xet nghiem - ${data.resultId}`,
-                Author: 'He thong Y te',
-                Subject: 'Ket qua xet nghiem y te',
-                Keywords: 'xet nghiem, y te, ket qua',
+                Title: `Báo cáo kết quả xét nghiệm - ${data.resultId}`,
+                Author: 'Hệ thống Y tế',
+                Subject: 'Kết quả xét nghiệm y tế',
+                Keywords: 'xét nghiệm, y tế, kết quả',
                 Creator: 'DNA Testing System',
                 Producer: 'PDFKit',
             },
             autoFirstPage: true,
+            lang: 'vi-VN', // Set language to Vietnamese
+            pdfVersion: '1.7', // Use newer PDF version for better Unicode support
+            compress: true, // Enable compression
+            userPassword: undefined, // No password protection
+            ownerPassword: undefined,
+            permissions: {
+                printing: 'highResolution',
+                modifying: false,
+                copying: false,
+                annotating: false,
+                fillingForms: false,
+                contentAccessibility: true,
+                documentAssembly: false
+            }
         });
         const writeStream = fs.createWriteStream(tempFilePath);
 
         // Pipe the PDF to the file
         doc.pipe(writeStream);
 
-        // Use default fonts only - no custom font registration
-        const regularFontName = 'Helvetica';
-        const boldFontName = 'Helvetica-Bold';
+        // Try to register Unicode fonts, fallback to default if not available
+        let regularFontName = 'Helvetica';
+        let boldFontName = 'Helvetica-Bold';
 
-        console.log('Using default fonts:', { regularFontName, boldFontName });
+        // Try different font options for Vietnamese support
+        const fontOptions = [
+            // Option 1: Try to use Noto Sans fonts
+            {
+                regular: path.join(__dirname, '../../../assets/fonts/NotoSans-Regular.ttf'),
+                bold: path.join(__dirname, '../../../assets/fonts/NotoSans-Bold.ttf'),
+                names: { regular: 'NotoSans', bold: 'NotoSans-Bold' }
+            },
+            // Option 2: Try to use system fonts that support Vietnamese
+            {
+                regular: path.join(__dirname, '../../../assets/fonts/Roboto-Regular.ttf'),
+                bold: path.join(__dirname, '../../../assets/fonts/Roboto-Bold.ttf'),
+                names: { regular: 'Roboto', bold: 'Roboto-Bold' }
+            },
+            // Option 3: Try to use Arial Unicode MS (if available)
+            {
+                regular: path.join(__dirname, '../../../assets/fonts/ArialUnicodeMS.ttf'),
+                bold: path.join(__dirname, '../../../assets/fonts/ArialUnicodeMS-Bold.ttf'),
+                names: { regular: 'ArialUnicodeMS', bold: 'ArialUnicodeMS-Bold' }
+            }
+        ];
+
+        let fontLoaded = false;
+        for (const fontOption of fontOptions) {
+            try {
+                if (fs.existsSync(fontOption.regular) && fs.existsSync(fontOption.bold)) {
+                    doc.registerFont(fontOption.names.regular, fontOption.regular);
+                    doc.registerFont(fontOption.names.bold, fontOption.bold);
+                    regularFontName = fontOption.names.regular;
+                    boldFontName = fontOption.names.bold;
+                    console.log(`Using ${fontOption.names.regular} fonts for Vietnamese support`);
+                    fontLoaded = true;
+                    break;
+                }
+            } catch (fontError) {
+                console.warn(`Font registration failed for ${fontOption.names.regular}:`, fontError);
+                continue;
+            }
+        }
+
+        if (!fontLoaded) {
+            console.log('No custom fonts found, using default fonts with Unicode support');
+            // Try to use built-in fonts that might support Vietnamese better
+            try {
+                // Some PDFKit versions have better Unicode support with certain fonts
+                regularFontName = 'Helvetica';
+                boldFontName = 'Helvetica-Bold';
+            } catch (error) {
+                console.warn('Using fallback fonts:', error);
+            }
+        }
 
         // === ADMINISTRATIVE PDF CUSTOMIZATION ===
         if (template === 'administrative_report_template') {
             // Watermark
-            doc.fontSize(60).fillColor('#eeeeee').opacity(0.3).font(boldFontName).text(transliterateVietnamese('HANH CHINH'), 100, 300);
+            doc.fontSize(60).fillColor('#eeeeee').opacity(0.3).font(boldFontName);
+            renderVietnameseText(doc, 'HÀNH CHÍNH', { x: 100, y: 300 });
             doc.opacity(1);
             // Header
-            doc.fontSize(18).fillColor('#cc0000').font(boldFontName).text(transliterateVietnamese('BAO CAO XET NGHIEM ADN HANH CHINH'), { align: 'center' });
+            doc.fontSize(18).fillColor('#cc0000').font(boldFontName);
+            renderVietnameseText(doc, 'BÁO CÁO XÉT NGHIỆM ADN HÀNH CHÍNH', { align: 'center' });
             doc.moveDown(0.5);
-            // So hieu vu viec
+            // Số hiệu vụ việc
             if (data.caseNumber) {
-                doc.fontSize(12).fillColor('#333333').font(regularFontName).text(transliterateVietnamese(`So vu viec: ${data.caseNumber}`), { align: 'right' });
+                doc.fontSize(12).fillColor('#333333').font(regularFontName);
+                renderVietnameseText(doc, `Số vụ việc: ${data.caseNumber}`, { align: 'right' });
             }
             if (data.agencyName) {
-                doc.fontSize(12).fillColor('#333333').font(regularFontName).text(transliterateVietnamese(`Co quan: ${data.agencyName}`), { align: 'right' });
+                doc.fontSize(12).fillColor('#333333').font(regularFontName);
+                renderVietnameseText(doc, `Cơ quan: ${data.agencyName}`, { align: 'right' });
             }
             doc.moveDown(1);
         } else {
             // Add decorative line for header
             doc.lineWidth(1).moveTo(50, 110).lineTo(550, 110).stroke('#0066cc');
             // Add header with better styling
-            doc.fontSize(22).fillColor('#0066cc').font(boldFontName).text(transliterateVietnamese('BAO CAO KET QUA XET NGHIEM'), { align: 'center' });
+            doc.fontSize(22).fillColor('#0066cc').font(boldFontName);
+            renderVietnameseText(doc, 'BÁO CÁO KẾT QUẢ XÉT NGHIỆM', { align: 'center' });
             doc.moveDown(0.5);
         }
 
         // Add report identification with improved formatting
         const dateStr = moment().locale('vi').format('DD/MM/YYYY');
-        doc.fontSize(11).fillColor('#666666').font(regularFontName).text(`Ma bao cao: ${data.resultId}`, { align: 'right' });
-        doc.text(`Ngay tao: ${dateStr}`, { align: 'right' });
+        doc.fontSize(11).fillColor('#666666').font(regularFontName).text(`Mã báo cáo: ${data.resultId}`, { align: 'right' });
+        doc.text(`Ngày tạo: ${dateStr}`, { align: 'right' });
         doc.moveDown(2);
 
         // Add customer information with better styling
         doc.roundedRect(50, doc.y, 500, 140, 5).fillAndStroke('#f6f6f6', '#dddddd');
         doc.y += 10;
-        doc.fontSize(16).fillColor('#0066cc').font(boldFontName).text(transliterateVietnamese('THONG TIN KHACH HANG'), 70, doc.y);
+        doc.fontSize(16).fillColor('#0066cc').font(boldFontName);
+        renderVietnameseText(doc, 'THÔNG TIN KHÁCH HÀNG', { x: 70, y: doc.y });
         doc.moveDown(0.5);
         doc.fontSize(12).fillColor('#333333').font(regularFontName);
-        doc.text(transliterateVietnamese(`Ho va ten: ${data.customerName}`), 70);
-        doc.text(transliterateVietnamese(`Gioi tinh: ${translateGender(data.customerGender)}`), 70);
-        doc.text(transliterateVietnamese(`Ngay sinh: ${moment(data.customerDateOfBirth).format('DD/MM/YYYY')}`), 70);
-        doc.text(transliterateVietnamese(`Dien thoai: ${data.customerContactInfo.phone}`), 70);
-        doc.text(transliterateVietnamese(`Email: ${data.customerContactInfo.email}`), 70);
+        renderVietnameseText(doc, `Họ và tên: ${data.customerName}`, { x: 70 });
+        renderVietnameseText(doc, `Giới tính: ${translateGender(data.customerGender)}`, { x: 70 });
+        renderVietnameseText(doc, `Ngày sinh: ${moment(data.customerDateOfBirth).format('DD/MM/YYYY')}`, { x: 70 });
+        renderVietnameseText(doc, `Điện thoại: ${data.customerContactInfo.phone}`, { x: 70 });
+        renderVietnameseText(doc, `Email: ${data.customerContactInfo.email}`, { x: 70 });
 
         // Format address properly
         const formattedAddress = formatAddress(data.customerContactInfo.address);
-        doc.text(transliterateVietnamese(`Dia chi: ${formattedAddress}`), 70);
+        renderVietnameseText(doc, `Địa chỉ: ${formattedAddress}`, { x: 70 });
 
         doc.moveDown(1);
         doc.y += 10;
@@ -239,7 +338,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
         // Display information about persons related to the sample if available
         if (data.personsInfo && data.personsInfo.length > 0) {
             doc.addPage();
-            doc.fontSize(18).fillColor('#0066cc').font(boldFontName).text(transliterateVietnamese('THONG TIN NGUOI LIEN QUAN'), { align: 'center' });
+            doc.fontSize(18).fillColor('#0066cc').font(boldFontName).text(ensureUTF8('THÔNG TIN NGƯỜI LIÊN QUAN'), { align: 'center' });
             doc.moveDown(1);
 
             // Display information for each person
@@ -252,7 +351,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
                 doc.fontSize(14)
                     .fillColor('#0066cc')
                     .font(boldFontName)
-                    .text(transliterateVietnamese(`NGUOI THU ${i + 1}`), 70, doc.y);
+                    .text(ensureUTF8(`NGƯỜI THỬ ${i + 1}`), 70, doc.y);
                 doc.moveDown(0.2);
 
                 // Add person image if available
@@ -282,17 +381,17 @@ export async function generateTestResultPDF(data: TestResultReportData, template
                 }
 
                 doc.fontSize(10).fillColor('#333333').font(regularFontName);
-                doc.text(transliterateVietnamese(`Ho va ten: ${person.name}`), 70);
-                doc.text(transliterateVietnamese(`Moi quan he: ${person.relationship}`), 70);
+                doc.text(ensureUTF8(`Họ và tên: ${person.name}`), 70);
+                doc.text(ensureUTF8(`Mối quan hệ: ${person.relationship}`), 70);
                 if (person.dob) {
-                    doc.text(transliterateVietnamese(`Ngay sinh: ${moment(person.dob).format('DD/MM/YYYY')}`), 70);
+                    doc.text(ensureUTF8(`Ngày sinh: ${moment(person.dob).format('DD/MM/YYYY')}`), 70);
                 }
-                doc.text(transliterateVietnamese(`Noi sinh: ${person.birthPlace}`), 70);
-                doc.text(transliterateVietnamese(`Quoc tich: ${person.nationality}`), 70);
+                doc.text(ensureUTF8(`Nơi sinh: ${person.birthPlace}`), 70);
+                doc.text(ensureUTF8(`Quốc tịch: ${person.nationality}`), 70);
                 if (person.identityDocument) {
-                    doc.text(transliterateVietnamese(`CMND/CCCD: ${person.identityDocument}`), 70);
+                    doc.text(ensureUTF8(`CMND/CCCD: ${person.identityDocument}`), 70);
                 }
-                doc.text(transliterateVietnamese(`Ma mau: ${person.sampleId}`), 70);
+                doc.text(ensureUTF8(`Mã mẫu: ${person.sampleId}`), 70);
 
                 doc.moveDown(1);
                 doc.y += 20;
@@ -308,23 +407,23 @@ export async function generateTestResultPDF(data: TestResultReportData, template
         doc.addPage();
         doc.roundedRect(50, doc.y, 500, 110, 5).fillAndStroke('#f0f7ff', '#bbddff');
         doc.y += 10;
-        doc.fontSize(16).fillColor('#0066cc').font(boldFontName).text(transliterateVietnamese('THONG TIN MAU XET NGHIEM'), 70, doc.y);
+        doc.fontSize(16).fillColor('#0066cc').font(boldFontName).text(ensureUTF8('THÔNG TIN MẪU XÉT NGHIỆM'), 70, doc.y);
         doc.moveDown(0.5);
         doc.fontSize(12).fillColor('#333333').font(regularFontName);
         // Display information about additional samples if available
         if (data.allSampleIds && data.allSampleIds.length > 1) {
             doc.moveDown(0.2);
-            doc.text(transliterateVietnamese(`So luong mau: ${data.allSampleIds.length}`), 70);
+            doc.text(ensureUTF8(`Số lượng mẫu: ${data.allSampleIds.length}`), 70);
 
             // Display list of sample IDs (maximum 5 samples to avoid excessive length)
             const displaySampleIds = data.allSampleIds.slice(0, 5);
             const remainingSamples = data.allSampleIds.length - 5;
 
-            doc.text(transliterateVietnamese(`Danh sach ma mau: ${displaySampleIds.join(', ')}${remainingSamples > 0 ? ` va ${remainingSamples} mau khac` : ''}`), 70);
+            doc.text(ensureUTF8(`Danh sách mã mẫu: ${displaySampleIds.join(', ')}${remainingSamples > 0 ? ` và ${remainingSamples} mẫu khác` : ''}`), 70);
         }
-        doc.text(transliterateVietnamese(`Loai mau: ${translateSampleType(data.sampleType)}`), 70);
-        doc.text(transliterateVietnamese(`Phuong phap lay mau: ${translateCollectionMethod(data.collectionMethod)}`), 70);
-        doc.text(transliterateVietnamese(`Ngay lay mau: ${moment(data.collectionDate).format('DD/MM/YYYY')}`), 70);
+        doc.text(ensureUTF8(`Loại mẫu: ${translateSampleType(data.sampleType)}`), 70);
+        doc.text(ensureUTF8(`Phương pháp lấy mẫu: ${translateCollectionMethod(data.collectionMethod)}`), 70);
+        doc.text(ensureUTF8(`Ngày lấy mẫu: ${moment(data.collectionDate).format('DD/MM/YYYY')}`), 70);
 
         doc.moveDown(1);
         doc.y += 10;
@@ -332,12 +431,12 @@ export async function generateTestResultPDF(data: TestResultReportData, template
         // Add appointment information with styled section
         doc.roundedRect(50, doc.y, 500, 90, 5).fillAndStroke('#f5f0ff', '#ccbbff');
         doc.y += 10;
-        doc.fontSize(16).fillColor('#0066cc').font(boldFontName).text(transliterateVietnamese('THONG TIN LICH HEN'), 70, doc.y);
+        doc.fontSize(16).fillColor('#0066cc').font(boldFontName).text(ensureUTF8('THÔNG TIN LỊCH HẸN'), 70, doc.y);
         doc.moveDown(0.5);
         doc.fontSize(12).fillColor('#333333').font(regularFontName);
-        doc.text(transliterateVietnamese(`Ma lich hen: ${data.appointmentId}`), 70);
-        doc.text(transliterateVietnamese(`Ngay hen: ${moment(data.appointmentDate).format('DD/MM/YYYY')}`), 70);
-        doc.text(transliterateVietnamese(`Loai dich vu: ${translateServiceType(data.serviceType)}`), 70);
+        doc.text(ensureUTF8(`Mã lịch hẹn: ${data.appointmentId}`), 70);
+        doc.text(ensureUTF8(`Ngày hẹn: ${moment(data.appointmentDate).format('DD/MM/YYYY')}`), 70);
+        doc.text(ensureUTF8(`Loại dịch vụ: ${translateServiceType(data.serviceType)}`), 70);
         doc.moveDown(1);
         doc.y += 10;
 
@@ -347,7 +446,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
         // Add decorative line for results page
         doc.lineWidth(2).moveTo(50, 70).lineTo(550, 70).stroke('#0066cc');
 
-        doc.fontSize(20).fillColor('#0066cc').font(boldFontName).text(transliterateVietnamese('KET QUA XET NGHIEM'), { align: 'center' });
+        doc.fontSize(20).fillColor('#0066cc').font(boldFontName).text(ensureUTF8('KẾT QUẢ XÉT NGHIỆM'), { align: 'center' });
         doc.moveDown(1);
 
         // Display match results prominently with improved visual indicator
@@ -359,7 +458,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
         doc.fontSize(18)
             .fillColor(data.isMatch ? '#006600' : '#990000')
             .font(boldFontName);
-        doc.text(transliterateVietnamese(`Ket qua: ${data.isMatch ? 'KHO' : 'KHONG KHO'}`), 150, resultBoxY + 20, {
+        doc.text(ensureUTF8(`Kết quả: ${data.isMatch ? 'KHỚP' : 'KHÔNG KHỚP'}`), 150, resultBoxY + 20, {
             align: 'center',
             width: 300,
         });
@@ -368,7 +467,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
 
         // Add detailed results with improved formatting
         if (data.resultData) {
-            doc.fontSize(16).fillColor('#0066cc').font(boldFontName).text(transliterateVietnamese('KET QUA CHI TIET:'), { underline: true });
+            doc.fontSize(16).fillColor('#0066cc').font(boldFontName).text(ensureUTF8('KẾT QUẢ CHI TIẾT:'), { underline: true });
             doc.moveDown(0.5);
 
             // Get keys from result data
@@ -384,8 +483,8 @@ export async function generateTestResultPDF(data: TestResultReportData, template
             doc.fillColor('#ffffff')
                 .fontSize(14)
                 .font(boldFontName)
-                .text(transliterateVietnamese('Thong so'), 70, currentY + 8);
-            doc.text(transliterateVietnamese('Gia tri'), 350, currentY + 8);
+                .text(ensureUTF8('Thông số'), 70, currentY + 8);
+            doc.text(ensureUTF8('Giá trị'), 350, currentY + 8);
             currentY += 30;
 
             // Add each result data point in alternating color rows
@@ -399,8 +498,8 @@ export async function generateTestResultPDF(data: TestResultReportData, template
                 doc.fillColor('#333333')
                     .fontSize(12)
                     .font(regularFontName)
-                    .text(transliterateVietnamese(formattedKey), 70, currentY + 6);
-                doc.text(transliterateVietnamese(`${details[key]}`), 350, currentY + 6);
+                    .text(ensureUTF8(formattedKey), 70, currentY + 6);
+                doc.text(ensureUTF8(`${details[key]}`), 350, currentY + 6);
 
                 currentY += 25;
             });
@@ -414,44 +513,44 @@ export async function generateTestResultPDF(data: TestResultReportData, template
         // Add laboratory technician information with styled section
         doc.roundedRect(50, doc.y, 500, 80, 5).fillAndStroke('#f0f7ff', '#bbddff');
         doc.y += 10;
-        doc.fontSize(16).fillColor('#0066cc').font(boldFontName).text(transliterateVietnamese('THONG TIN PHONG XET NGHIEM'), 70, doc.y);
+        doc.fontSize(16).fillColor('#0066cc').font(boldFontName).text(ensureUTF8('THÔNG TIN PHÒNG XÉT NGHIỆM'), 70, doc.y);
         doc.moveDown(0.5);
         doc.fontSize(12).fillColor('#333333').font(regularFontName);
-        doc.text(transliterateVietnamese(`Ky thuat vien: ${data.labTechnicianName}`), 70);
-        doc.text(transliterateVietnamese(`Ngay hoan thanh: ${moment(data.completedAt).format('DD/MM/YYYY')}`), 70);
+        doc.text(ensureUTF8(`Kỹ thuật viên: ${data.labTechnicianName}`), 70);
+        doc.text(ensureUTF8(`Ngày hoàn thành: ${moment(data.completedAt).format('DD/MM/YYYY')}`), 70);
         doc.moveDown(1.5);
 
         // Administrative specific section
         if (template === 'administrative_report_template') {
             doc.addPage();
-            doc.fontSize(16).fillColor('#cc0000').font(boldFontName).text(transliterateVietnamese('XAC NHAN CUA CAN BO'), { align: 'center' });
+            doc.fontSize(16).fillColor('#cc0000').font(boldFontName).text(ensureUTF8('XÁC NHẬN CỦA CÁN BỘ'), { align: 'center' });
             doc.moveDown(1);
-            doc.fontSize(12).fillColor('#333333').font(regularFontName).text(transliterateVietnamese('Bao cao nay duoc cap cho muc dich hanh chinh/phap ly.'), 70);
+            doc.fontSize(12).fillColor('#333333').font(regularFontName).text(ensureUTF8('Báo cáo này được cấp cho mục đích hành chính/pháp lý.'), 70);
             doc.moveDown(1);
-            doc.text(transliterateVietnamese('Dai dien can bo: ___________________________'), 70);
+            doc.text(ensureUTF8('Đại diện cán bộ: ___________________________'), 70);
             doc.moveDown(0.5);
-            doc.text(transliterateVietnamese('Chuc vu: _______________________________________'), 70);
+            doc.text(ensureUTF8('Chức vụ: _______________________________________'), 70);
             doc.moveDown(0.5);
-            doc.text(transliterateVietnamese('Ngay: ___________________   Chu ky: ___________________'), 70);
+            doc.text(ensureUTF8('Ngày: ___________________   Chữ ký: ___________________'), 70);
             doc.moveDown(2);
         }
 
         // Add signature line with improved styling
         doc.y += 20;
-        doc.fontSize(12).fillColor('#333333').font(regularFontName).text(transliterateVietnamese('Chu ky'), 70);
+        doc.fontSize(12).fillColor('#333333').font(regularFontName).text(ensureUTF8('Chữ ký'), 70);
         doc.lineCap('butt')
             .moveTo(70, doc.y + 40)
             .lineTo(250, doc.y + 40)
             .stroke('#333333');
-        doc.text(transliterateVietnamese('Ky thuat vien phong xet nghiem'), 70, doc.y + 45);
+        doc.text(ensureUTF8('Kỹ thuật viên phòng xét nghiệm'), 70, doc.y + 45);
 
         // Add placeholder for company seal
         doc.circle(400, doc.y + 30, 40).stroke('#999999');
         doc.fontSize(10)
             .fillColor('#999999')
             .font(regularFontName)
-            .text(transliterateVietnamese('Con dau'), 380, doc.y + 25);
-        doc.text(transliterateVietnamese('chinh thuc'), 375, doc.y + 38);
+            .text(ensureUTF8('Con dấu'), 380, doc.y + 25);
+        doc.text(ensureUTF8('chính thức'), 375, doc.y + 38);
 
         // Add footer with disclaimer but no page numbering
         const footerY = doc.page.height - 50;
@@ -463,7 +562,7 @@ export async function generateTestResultPDF(data: TestResultReportData, template
         doc.fontSize(10)
             .fillColor('#666666')
             .font(regularFontName)
-            .text(transliterateVietnamese('Bao cao nay duoc tao tu dong va co hieu luc ma khong can chu ky. ' + 'Ket qua can duoc giai thich boi chuyen gia y te co trinh do.'), 50, footerY, { width: 500, align: 'center' });
+            .text(ensureUTF8('Báo cáo này được tạo tự động và có hiệu lực mà không cần chữ ký. ' + 'Kết quả cần được giải thích bởi chuyên gia y tế có trình độ.'), 50, footerY, { width: 500, align: 'center' });
 
         // Finalize PDF
         doc.end();
@@ -521,54 +620,121 @@ export async function generateTestResultPDF(data: TestResultReportData, template
 }
 
 /**
- * Helper functions to translate terms to Vietnamese (transliterated)
+ * Simple test function to generate a basic PDF with Vietnamese text
+ */
+export async function generateSimpleVietnameseTestPDF(): Promise<string> {
+    const tempFilePath = path.join(__dirname, `test-vietnamese-${uuidv4()}.pdf`);
+
+    try {
+        const doc = new PDFDocument({
+            margin: 50,
+            size: 'A4',
+            info: {
+                Title: 'Test Vietnamese Text',
+                Author: 'Test System',
+                Subject: 'Vietnamese Text Test',
+            },
+            autoFirstPage: true,
+            lang: 'vi-VN',
+            pdfVersion: '1.7',
+        });
+
+        const writeStream = fs.createWriteStream(tempFilePath);
+        doc.pipe(writeStream);
+
+        // Test different fonts
+        const fonts = ['Helvetica', 'Helvetica-Bold', 'Times-Roman', 'Times-Bold'];
+
+        for (let i = 0; i < fonts.length; i++) {
+            const font = fonts[i];
+            doc.fontSize(16).font(font);
+            doc.text(`Font: ${font}`, 50, 100 + i * 50);
+            doc.text('Báo cáo kết quả xét nghiệm', 50, 120 + i * 50);
+            doc.text('Họ và tên: Nguyễn Văn A', 50, 140 + i * 50);
+            doc.text('Địa chỉ: Hà Nội, Việt Nam', 50, 160 + i * 50);
+        }
+
+        doc.end();
+
+        await new Promise<void>((resolve) => {
+            writeStream.on('finish', () => {
+                resolve();
+            });
+        });
+
+        // Upload to S3 for testing
+        const fileContent = fs.readFileSync(tempFilePath);
+        const timestamp = moment().format('YYYYMMDD-HHmmss');
+        const fileName = `test-vietnamese-${timestamp}.pdf`;
+
+        const params = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME!,
+            Key: fileName,
+            Body: fileContent,
+            ContentType: 'application/pdf',
+        };
+
+        const uploadResult = await s3.upload(params).promise();
+        fs.unlinkSync(tempFilePath);
+
+        return uploadResult.Location;
+    } catch (error: any) {
+        if (fs.existsSync(tempFilePath)) {
+            fs.unlinkSync(tempFilePath);
+        }
+        throw new HttpException(HttpStatus.InternalServerError, `Test PDF generation failed: ${error.message}`);
+    }
+}
+
+/**
+ * Helper functions to translate terms to Vietnamese
  */
 function translateGender(gender: string): string {
     const genderMap: Record<string, string> = {
         male: 'Nam',
-        female: 'Nu',
-        other: 'Khac',
+        female: 'Nữ',
+        other: 'Khác',
     };
-    return transliterateVietnamese(genderMap[gender.toLowerCase()] || gender);
+    return ensureUTF8(genderMap[gender.toLowerCase()] || gender);
 }
 
 function translateSampleType(sampleType: string): string {
     const sampleTypeMap: Record<string, string> = {
-        blood: 'Mau',
-        urine: 'Nuoc tieu',
-        hair: 'Toc',
-        saliva: 'Nuoc bot',
-        tissue: 'Mo',
-        swab: 'Tam bong',
+        blood: 'Máu',
+        urine: 'Nước tiểu',
+        hair: 'Tóc',
+        saliva: 'Nước bọt',
+        tissue: 'Mô',
+        swab: 'Tăm bông',
     };
-    return transliterateVietnamese(sampleTypeMap[sampleType.toLowerCase()] || sampleType);
+    return ensureUTF8(sampleTypeMap[sampleType.toLowerCase()] || sampleType);
 }
 
 function translateCollectionMethod(method: string): string {
     const methodMap: Record<string, string> = {
-        venipuncture: 'Lay mau tinh mach',
-        'finger prick': 'Lay mau dau ngon tay',
-        'swab collection': 'Thu thap bang tam bong',
-        'clean catch': 'Thu thap sach',
-        self: 'Tu thu thap',
-        facility: 'Tai co so y te',
-        home: 'Tai nha',
+        venipuncture: 'Lấy máu tĩnh mạch',
+        'finger prick': 'Lấy máu đầu ngón tay',
+        'swab collection': 'Thu thập bằng tăm bông',
+        'clean catch': 'Thu thập sạch',
+        self: 'Tự thu thập',
+        facility: 'Tại cơ sở y tế',
+        home: 'Tại nhà',
     };
-    return transliterateVietnamese(methodMap[method.toLowerCase()] || method);
+    return ensureUTF8(methodMap[method.toLowerCase()] || method);
 }
 
 function translateServiceType(serviceType: string): string {
     const serviceTypeMap: Record<string, string> = {
-        'general checkup': 'Kham tong quat',
-        'blood test': 'Xet nghiem mau',
-        'genetic test': 'Xet nghiem di truyen',
-        'allergy test': 'Xet nghiem di ung',
-        'covid test': 'Xet nghiem COVID',
-        'dna test': 'Xet nghiem ADN',
-        'DNA Paternity Test': 'Xet nghiem ADN xac dinh huyet thong',
-        administrative: 'Xet nghiem hanh chinh',
+        'general checkup': 'Khám tổng quát',
+        'blood test': 'Xét nghiệm máu',
+        'genetic test': 'Xét nghiệm di truyền',
+        'allergy test': 'Xét nghiệm dị ứng',
+        'covid test': 'Xét nghiệm COVID',
+        'dna test': 'Xét nghiệm ADN',
+        'DNA Paternity Test': 'Xét nghiệm ADN xác định huyết thống',
+        administrative: 'Xét nghiệm hành chính',
     };
-    return transliterateVietnamese(serviceTypeMap[serviceType.toLowerCase()] || serviceType);
+    return ensureUTF8(serviceTypeMap[serviceType.toLowerCase()] || serviceType);
 }
 
 function translateResultKey(key: string): string {
@@ -579,19 +745,19 @@ function translateResultKey(key: string): string {
         .join(' ');
 
     const resultKeyMap: Record<string, string> = {
-        'Blood Pressure': 'Huyet ap',
-        'Heart Rate': 'Nhip tim',
-        'Glucose Level': 'Muc duong huyet',
+        'Blood Pressure': 'Huyết áp',
+        'Heart Rate': 'Nhịp tim',
+        'Glucose Level': 'Mức đường huyết',
         Cholesterol: 'Cholesterol',
         Hemoglobin: 'Hemoglobin',
-        'White Blood Cell Count': 'So luong bach cau',
-        'Red Blood Cell Count': 'So luong hong cau',
-        'Platelet Count': 'So luong tieu cau',
-        'Dna Match': 'Kho ADN',
-        'Match Percentage': 'Ty le kho',
-        'Match Score': 'Diem kho',
-        'Confidence Level': 'Muc do tin cay',
+        'White Blood Cell Count': 'Số lượng bạch cầu',
+        'Red Blood Cell Count': 'Số lượng hồng cầu',
+        'Platelet Count': 'Số lượng tiểu cầu',
+        'Dna Match': 'Khớp ADN',
+        'Match Percentage': 'Tỷ lệ khớp',
+        'Match Score': 'Điểm khớp',
+        'Confidence Level': 'Mức độ tin cậy',
     };
 
-    return transliterateVietnamese(resultKeyMap[formattedKey] || formattedKey);
+    return ensureUTF8(resultKeyMap[formattedKey] || formattedKey);
 }

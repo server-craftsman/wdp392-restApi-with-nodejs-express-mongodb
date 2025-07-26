@@ -758,7 +758,14 @@
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/AssignLabTechRequest'
+ *             type: object
+ *             required:
+ *               - lab_tech_id
+ *             properties:
+ *               lab_tech_id:
+ *                 type: string
+ *                 description: ID of the laboratory technician to assign
+ *                 example: "60d0fe4f5311236168a109ce"
  *     responses:
  *       200:
  *         description: Laboratory technician assigned successfully

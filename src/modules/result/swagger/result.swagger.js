@@ -1092,4 +1092,71 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ */
+
+/**
+ * @swagger
+ * /api/result/test-vietnamese:
+ *   get:
+ *     tags: [results]
+ *     summary: Test Vietnamese text rendering in PDF (Development/Testing only)
+ *     description: |
+ *       Generates a simple test PDF with Vietnamese text using different fonts
+ *       to help debug font rendering issues. This endpoint is intended for
+ *       development and testing purposes to identify which fonts work best
+ *       for Vietnamese character display.
+ *       
+ *       **Important Notes:**
+ *       - Tests multiple built-in fonts (Helvetica, Times-Roman, etc.)
+ *       - NO database operations
+ *       - PDF generation only
+ *       - Accessible by Staff, Manager, and Admin roles only
+ *     security:
+ *       - Bearer: []
+ *     responses:
+ *       200:
+ *         description: Vietnamese text test PDF generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Vietnamese text test PDF generated successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     pdfUrl:
+ *                       type: string
+ *                       description: URL to the generated test PDF
+ *                       example: "https://s3.amazonaws.com/bucket/test-vietnamese-20241226-143022.pdf"
+ *                     testInfo:
+ *                       type: object
+ *                       properties:
+ *                         description:
+ *                           type: string
+ *                           example: "Simple Vietnamese text test with different fonts"
+ *                         generatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2024-12-26T14:30:22.123Z"
+ *                         note:
+ *                           type: string
+ *                           example: "This is a test PDF to debug Vietnamese character rendering"
+ *       403:
+ *         description: Forbidden (Access denied)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */ 

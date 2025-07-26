@@ -96,7 +96,7 @@ export interface IAdministrativeCase extends Document {
     denial_reason?: string; // Lý do từ chối (nếu bị deny)
 
     // Người tạo và quản lý
-    created_by_user_id: string; // User tạo case (thường là staff/admin)
+    created_by_user_id?: string; // User tạo case (thường là staff/admin)
     assigned_staff_id?: string; // Staff được phân công xử lý
 
     // Thông tin kết quả

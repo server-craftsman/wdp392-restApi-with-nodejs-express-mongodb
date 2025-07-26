@@ -781,3 +781,194 @@
  *               description: Thời gian cập nhật cuối
  *               example: "2024-01-26T10:00:00.000Z"
  */
+
+/**
+ * @swagger
+ * /api/administrative-cases/assigned/search:
+ *   get:
+ *     tags: [administrative-cases]
+ *     summary: Tìm kiếm vụ việc hành chính được giao cho Staff/LabTech
+ *     description: |
+ *       Tìm kiếm các vụ việc hành chính được Admin giao cho Staff hoặc Laboratory Technician.
+ *       
+ *       **Giới hạn truy cập:**
+ *       - Chỉ Staff và Laboratory Technician mới có thể truy cập
+ *       - Chỉ tìm kiếm trong các vụ việc được giao cho chính mình
+ *       - Chỉ hiển thị một số loại vụ việc nhất định (paternity, maternity, sibling, kinship, immigration, inheritance)
+ *       
+ *       **Tham số tìm kiếm:**
+ *       - case_number: Số vụ việc
+ *       - case_type: Loại vụ việc (chỉ trong phạm vi cho phép)
+ *       - status: Trạng thái vụ việc
+ *       - requesting_agency: Cơ quan yêu cầu
+ *       - from_date: Từ ngày
+ *       - to_date: Đến ngày
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: query
+ *         name: case_number
+ *         schema:
+ *           type: string
+ *         description: Số vụ việc để tìm kiếm
+ *         example: "PL-2024-001"
+ *       - in: query
+ *         name: case_type
+ *         schema:
+ *           type: string
+ *           enum: [paternity, maternity, sibling, kinship, immigration, inheritance]
+ *         description: Loại vụ việc (chỉ trong phạm vi cho phép)
+ *         example: "paternity"
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [submitted, under_review, approved, scheduled, in_progress, completed]
+ *         description: Trạng thái vụ việc
+ *         example: "approved"
+ *       - in: query
+ *         name: requesting_agency
+ *         schema:
+ *           type: string
+ *         description: Cơ quan yêu cầu
+ *         example: "Tòa án nhân dân TP.HCM"
+ *       - in: query
+ *         name: from_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Từ ngày (YYYY-MM-DD)
+ *         example: "2024-01-01"
+ *       - in: query
+ *         name: to_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Đến ngày (YYYY-MM-DD)
+ *         example: "2024-12-31"
+ *     responses:
+ *       200:
+ *         description: Tìm kiếm vụ việc được giao thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/AdministrativeCase'
+ *                 message:
+ *                   type: string
+ *                   example: "Assigned administrative cases search completed"
+ *       401:
+ *         description: Chưa đăng nhập
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         description: Không có quyền truy cập (chỉ Staff/LabTech)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Lỗi hệ thống
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *
+ * /api/administrative-cases/{id}/assign:
+ *   put:
+ *     tags: [administrative-cases]
+ *     summary: Giao vụ việc hành chính cho Staff/LabTech (Admin/Manager)
+ *     description: |
+ *       Giao một vụ việc hành chính cho Staff hoặc Laboratory Technician để xử lý.
+ *       
+ *       **Quyền truy cập:**
+ *       - Chỉ Admin và Manager mới có thể giao vụ việc
+ *       - Staff/LabTech sẽ chỉ thấy vụ việc được giao cho mình
+ *       
+ *       **Lưu ý:**
+ *       - Vụ việc sẽ được hiển thị trong danh sách assigned cases của Staff/LabTech
+ *       - Chỉ các loại vụ việc phù hợp mới được giao (paternity, maternity, sibling, kinship, immigration, inheritance)
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID vụ việc hành chính
+ *         example: "60d21b4667d0d8992e610c85"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - assigned_staff_id
+ *             properties:
+ *               assigned_staff_id:
+ *                 type: string
+ *                 description: ID của Staff hoặc Laboratory Technician được giao
+ *                 example: "60d21b4667d0d8992e610c86"
+ *           example:
+ *             assigned_staff_id: "60d21b4667d0d8992e610c86"
+ *     responses:
+ *       200:
+ *         description: Giao vụ việc thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/AdministrativeCase'
+ *                 message:
+ *                   type: string
+ *                   example: "Case assigned to staff successfully"
+ *       400:
+ *         description: |
+ *           Lỗi yêu cầu:
+ *           - Thiếu Case ID hoặc Staff ID
+ *           - Staff ID không hợp lệ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Chưa đăng nhập
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         description: Không có quyền giao vụ việc (chỉ Admin/Manager)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Không tìm thấy vụ việc hành chính
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Lỗi hệ thống
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */

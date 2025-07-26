@@ -24,8 +24,8 @@ export enum AdministrativeCaseType {
 }
 
 export enum CaseUrgency {
-    LOW = 'low',
-    NORMAL = 'normal',
-    HIGH = 'high',
-    URGENT = 'urgent',
+    LOW = 'low', // Thường
+    NORMAL = 'normal', // Bình thường
+    HIGH = 'high', // Cao
+    URGENT = 'urgent', // Khẩn cấp
 }

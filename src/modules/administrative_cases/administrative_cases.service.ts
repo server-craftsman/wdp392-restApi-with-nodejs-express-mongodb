@@ -1,6 +1,6 @@
 import AdministrativeCaseSchema from './administrative_cases.model';
 import { IAdministrativeCase } from './administrative_cases.interface';
-import { AdministrativeCaseStatus } from './administrative_cases.enum';
+import { AdministrativeCaseStatus, AdministrativeCaseType, CaseUrgency } from './administrative_cases.enum';
 import UserSchema from '../user/user.model';
 import { UserRoleEnum } from '../user';
 import { CreateAdministrativeCaseDto, UpdateAdministrativeCaseDto } from './dtos/commonAdminCases.dto';
@@ -82,19 +82,19 @@ export default class AdministrativeCasesService {
 
         // Set timestamps based on status
         switch (status) {
-            case 'submitted':
+            case AdministrativeCaseStatus.SUBMITTED:
                 updateData.submitted_at = new Date();
                 break;
-            case 'under_review':
+            case AdministrativeCaseStatus.UNDER_REVIEW:
                 updateData.reviewed_at = new Date();
                 break;
-            case 'approved':
+            case AdministrativeCaseStatus.APPROVED:
                 updateData.approved_at = new Date();
                 break;
-            case 'scheduled':
+            case AdministrativeCaseStatus.SCHEDULED:
                 updateData.scheduled_at = new Date();
                 break;
-            case 'completed':
+            case AdministrativeCaseStatus.COMPLETED:
                 updateData.completed_at = new Date();
                 break;
         }
@@ -234,5 +234,104 @@ export default class AdministrativeCasesService {
         }
 
         return this.listCases(query);
+    }
+
+    /**
+     * Get assigned cases for staff/labtech with limited case types
+     * Staff/LabTech can only see cases assigned to them and specific case types
+     */
+    public async getAssignedCasesForStaff(staffId: string, userRole: string): Promise<IAdministrativeCase[]> {
+        // Define allowed case types for staff/labtech
+        const allowedCaseTypes = [
+            AdministrativeCaseType.PATERNITY,      // Xác định cha con
+            AdministrativeCaseType.MATERNITY,      // Xác định mẹ con
+            AdministrativeCaseType.SIBLING,        // Xác định anh chị em
+            AdministrativeCaseType.KINSHIP,        // Xác định họ hàng
+            AdministrativeCaseType.IMMIGRATION,    // Nhập cư
+            AdministrativeCaseType.INHERITANCE,    // Thừa kế
+        ];
+
+        // Build query for assigned cases
+        const query: any = {
+            is_deleted: { $ne: true },
+            assigned_staff_id: staffId,
+            case_type: { $in: allowedCaseTypes }
+        };
+
+        // Add status filter to show only relevant cases
+        const allowedStatuses = [
+            AdministrativeCaseStatus.SUBMITTED,      // Đã nộp hồ sơ
+            AdministrativeCaseStatus.UNDER_REVIEW,   // Đang xem xét
+            AdministrativeCaseStatus.APPROVED,       // Được phê duyệt
+            AdministrativeCaseStatus.SCHEDULED,      // Đã đặt lịch
+            AdministrativeCaseStatus.IN_PROGRESS,    // Đang thực hiện
+            AdministrativeCaseStatus.COMPLETED,      // Hoàn thành
+        ];
+        query.status = { $in: allowedStatuses };
+
+        return AdministrativeCaseSchema.find(query)
+            .populate('created_by_user_id', 'email first_name last_name role')
+            .populate('assigned_staff_id', 'email first_name last_name role')
+            .sort({ created_at: -1 });
+    }
+
+    /**
+     * Get assigned cases for staff/labtech with search functionality
+     */
+    public async searchAssignedCasesForStaff(
+        staffId: string,
+        searchParams: {
+            case_number?: string;
+            case_type?: string;
+            status?: string;
+            requesting_agency?: string;
+            from_date?: Date;
+            to_date?: Date;
+        }
+    ): Promise<IAdministrativeCase[]> {
+        // Define allowed case types for staff/labtech
+        const allowedCaseTypes = [
+            AdministrativeCaseType.PATERNITY,      // Xác định cha con
+            AdministrativeCaseType.MATERNITY,      // Xác định mẹ con
+            AdministrativeCaseType.SIBLING,        // Xác định anh chị em
+            AdministrativeCaseType.KINSHIP,        // Xác định họ hàng
+            AdministrativeCaseType.IMMIGRATION,    // Nhập cư
+            AdministrativeCaseType.INHERITANCE,    // Thừa kế
+        ];
+
+        // Build query for assigned cases
+        const query: any = {
+            is_deleted: { $ne: true },
+            assigned_staff_id: staffId,
+            case_type: { $in: allowedCaseTypes }
+        };
+
+        // Add search filters
+        if (searchParams.case_number) {
+            query.case_number = { $regex: searchParams.case_number, $options: 'i' };
+        }
+        if (searchParams.case_type && allowedCaseTypes.includes(searchParams.case_type as AdministrativeCaseType)) {
+            query.case_type = searchParams.case_type as AdministrativeCaseType;
+        }
+        if (searchParams.status) {
+            query.status = searchParams.status as AdministrativeCaseStatus;
+        }
+        if (searchParams.requesting_agency) {
+            query.requesting_agency = { $regex: searchParams.requesting_agency, $options: 'i' };
+        }
+        if (searchParams.from_date || searchParams.to_date) {
+            query.created_at = {};
+            if (searchParams.from_date) {
+                query.created_at.$gte = searchParams.from_date;
+            }
+            if (searchParams.to_date) {
+                query.created_at.$lte = searchParams.to_date;
+            }
+        }
+
+        return AdministrativeCaseSchema.find(query)
+            .populate('created_by_user_id', 'email first_name last_name role')
+            .populate('assigned_staff_id', 'email first_name last_name role')
+            .sort({ created_at: -1 });
     }
 }
