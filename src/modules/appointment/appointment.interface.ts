@@ -32,7 +32,7 @@ export interface ICheckinLog {
 
 export interface IAppointment extends Document {
     _id: string;
-    user_id: string | undefined;
+    user_id?: string | undefined; // Made optional to support administrative appointments
     service_id: string | undefined;
     slot_id?: string | undefined;
     staff_id?: string | undefined;

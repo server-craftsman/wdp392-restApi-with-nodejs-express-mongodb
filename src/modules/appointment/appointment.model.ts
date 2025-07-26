@@ -5,7 +5,7 @@ import { COLLECTION_NAME } from '../../core/constants';
 
 const appointmentSchema = new Schema<IAppointment>(
     {
-        user_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: true },
+        user_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: false }, // Made optional for administrative appointments
         service_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.SERVICE, required: true },
         slot_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.SLOT },
         staff_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER },

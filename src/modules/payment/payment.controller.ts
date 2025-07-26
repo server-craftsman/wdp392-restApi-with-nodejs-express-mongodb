@@ -6,6 +6,10 @@ import { CreatePayosPaymentDto } from './dtos/createPayosPayment.dto';
 import { CreateSamplePaymentDto } from './dtos/createSamplePayment.dto';
 import { CreateAppointmentPaymentDto } from './dtos/createAppointmentPayment.dto';
 import { PaymentStatusEnum } from './payment.enum';
+import { SearchPaymentDto } from './dtos/searchPayment.dto';
+import { PaymentStatisticsDto } from './dtos/paymentStatistics.dto';
+import { validateOrReject } from 'class-validator';
+import { plainToClass } from 'class-transformer';
 
 export default class PaymentController {
     private paymentService = new PaymentService();
@@ -425,6 +429,36 @@ export default class PaymentController {
         } catch (error: any) {
             console.error('Test transaction creation error:', error);
             res.status(HttpStatus.InternalServerError).json(formatResponse(null, false, error.message || 'Error testing transaction creation'));
+        }
+    };
+
+    // Tìm kiếm danh sách thanh toán
+    public searchPaymentList = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const searchDto = plainToClass(SearchPaymentDto, req.query);
+            await validateOrReject(searchDto);
+
+            const result = await this.paymentService.searchPaymentList(searchDto);
+
+            res.status(HttpStatus.Success).json(formatResponse(result, true, 'Payment list retrieved successfully'));
+        } catch (error: any) {
+            console.error('Search payment list error:', error);
+            res.status(HttpStatus.BadRequest).json(formatResponse(null, false, error.message || 'Error searching payment list'));
+        }
+    };
+
+    // Lấy thống kê thanh toán
+    public getPaymentStatistics = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const statisticsDto = plainToClass(PaymentStatisticsDto, req.query);
+            await validateOrReject(statisticsDto);
+
+            const result = await this.paymentService.getPaymentStatistics(statisticsDto);
+
+            res.status(HttpStatus.Success).json(formatResponse(result, true, 'Payment statistics retrieved successfully'));
+        } catch (error: any) {
+            console.error('Get payment statistics error:', error);
+            res.status(HttpStatus.BadRequest).json(formatResponse(null, false, error.message || 'Error getting payment statistics'));
         }
     };
 }

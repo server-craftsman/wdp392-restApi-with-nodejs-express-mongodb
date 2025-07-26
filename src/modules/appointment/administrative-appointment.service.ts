@@ -54,10 +54,9 @@ export default class AdministrativeAppointmentService {
      */
     public async createAdministrativeAppointment(
         caseId: string,
-        // user_id: string,
         appointmentData: {
             service_id: string;
-            user_id: string;
+            user_id?: string;
             appointment_date?: Date | string;
             collection_address?: string;
             staff_id?: string;
@@ -174,7 +173,9 @@ export default class AdministrativeAppointmentService {
 
             // Try to create payment record (non-critical)
             try {
-                await this.paymentService.createAdministrativePayment(appointment._id, createdByUserId);
+                // For administrative appointments, use createdByUserId if appointment doesn't have user_id
+                const paymentUserId = appointment.user_id || createdByUserId;
+                await this.paymentService.createAdministrativePayment(appointment._id, paymentUserId);
             } catch (paymentError) {
                 console.warn('Non-critical: Could not create administrative payment:', paymentError);
             }
@@ -188,8 +189,14 @@ export default class AdministrativeAppointmentService {
 
             // Try to send notification (non-critical)
             try {
-                await this.sendAdministrativeAppointmentNotification(appointment, adminCase);
-                await this.appointmentLogService.logAgencyNotification(appointment, adminCase.agency_contact_email, createdByUserId, UserRoleEnum.STAFF);
+                // Only send email notification if appointment has a user_id
+                if (appointment.user_id) {
+                    await this.sendAdministrativeAppointmentNotification(appointment, adminCase);
+                    await this.appointmentLogService.logAgencyNotification(appointment, adminCase.agency_contact_email, createdByUserId, UserRoleEnum.STAFF);
+                } else {
+                    // For appointments without user_id, only log the agency notification
+                    await this.appointmentLogService.logAgencyNotification(appointment, adminCase.agency_contact_email, createdByUserId, UserRoleEnum.STAFF);
+                }
             } catch (emailError) {
                 console.warn('Non-critical: Could not send notification:', emailError);
             }

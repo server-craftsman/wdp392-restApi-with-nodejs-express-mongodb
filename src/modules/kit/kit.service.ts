@@ -11,6 +11,7 @@ import { ReturnKitDto } from './dtos/returnKit.dto';
 import { SearchPaginationResponseModel } from '../../core/models/searchPagination.model';
 import { PaginationResponseModel } from '../../core/models/pagination.model';
 import { format, isValid, parse } from 'date-fns';
+import { KitTypeEnum } from './kit.enum';
 
 export default class KitService {
     private kitRepository = new KitRepository();
@@ -76,10 +77,14 @@ export default class KitService {
                 throw new HttpException(HttpStatus.Conflict, 'Kit code already exists');
             }
 
-            // Create kit object
+            // Create kit object with proper defaults
             const kitObject = {
                 code,
-                status: KitStatusEnum.AVAILABLE,
+                type: kitData?.type || KitTypeEnum.REGULAR,
+                status: kitData?.status || KitStatusEnum.AVAILABLE,
+                notes: kitData?.notes,
+                administrative_case_id: kitData?.administrative_case_id,
+                agency_authority: kitData?.agency_authority,
                 created_at: new Date(),
                 updated_at: new Date(),
             };
@@ -135,51 +140,73 @@ export default class KitService {
     }
 
     /**
-     * Search kits with pagination
+     * Search kits with filters and pagination
      */
     public async searchKits(searchParams: SearchKitDto): Promise<SearchPaginationResponseModel<IKit>> {
         try {
-            const { pageNum = 1, pageSize = 10, ...filters } = searchParams;
+            const {
+                code,
+                type,
+                status,
+                assigned_to_user_id,
+                administrative_case_id,
+                agency_authority,
+                pageNum = 1,
+                pageSize = 10,
+                sort_by = 'created_at',
+                sort_order = 'desc'
+            } = searchParams;
 
+            // Build query
             const query: any = {};
 
-            if (filters.code) {
-                query.code = { $regex: filters.code, $options: 'i' }; // $regex: dùng để tìm kiếm theo mã kit
+            if (code) {
+                query.code = { $regex: code, $options: 'i' };
             }
 
-            if (filters.status) {
-                query.status = filters.status;
+            if (type) {
+                query.type = type;
             }
 
-            if (filters.appointment_id) {
-                query.appointment_id = filters.appointment_id;
+            if (status) {
+                query.status = status;
             }
 
-            if (filters.assigned_to_user_id) {
-                query.assigned_to_user_id = filters.assigned_to_user_id;
+            if (assigned_to_user_id) {
+                query.assigned_to_user_id = assigned_to_user_id;
             }
 
-            const skip = (pageNum - 1) * pageSize; // skip: bỏ qua bao nhiêu dòng
-            const limit = pageSize; // limit: lấy bao nhiêu dòng
+            if (administrative_case_id) {
+                query.administrative_case_id = administrative_case_id;
+            }
 
+            if (agency_authority) {
+                query.agency_authority = { $regex: agency_authority, $options: 'i' };
+            }
+
+            // Pagination
+            const skip = (pageNum - 1) * pageSize;
+            const sort: any = { [sort_by]: sort_order === 'desc' ? -1 : 1 };
+
+            // Execute query using repository
             const [kits, totalCount] = await Promise.all([
-                // Promise.all: chạy song song các promise
-                this.kitRepository.findWithPopulate(query, { created_at: -1 }, skip, limit), // findWithPopulate: lấy dữ liệu và populate dữ liệu
-                this.kitRepository.countDocuments(query), // countDocuments: đếm số dòng
+                this.kitRepository.findWithPopulate(query, sort, skip, pageSize),
+                this.kitRepository.countDocuments(query)
             ]);
 
-            const paginationInfo = new PaginationResponseModel(
-                pageNum,
-                pageSize,
-                totalCount,
-                Math.ceil(totalCount / pageSize), // Math.ceil: làm tròn lên
-            );
+            const totalPages = Math.ceil(totalCount / pageSize);
 
-            return new SearchPaginationResponseModel<IKit>(kits, paginationInfo); // trả về dữ liệu và phân trang
+            return new SearchPaginationResponseModel<IKit>(
+                kits,
+                new PaginationResponseModel(
+                    pageNum,
+                    pageSize,
+                    totalCount,
+                    totalPages
+                )
+            );
         } catch (error) {
-            if (error instanceof HttpException) {
-                throw error;
-            }
+            console.error('Error searching kits:', error);
             throw new HttpException(HttpStatus.InternalServerError, 'Error searching kits');
         }
     }
@@ -197,20 +224,31 @@ export default class KitService {
             throw new HttpException(HttpStatus.NotFound, 'Kit not found');
         }
 
-        if (kit.status !== KitStatusEnum.AVAILABLE) {
-            throw new HttpException(HttpStatus.BadRequest, 'Kit is not available');
-        }
+        // Prepare update data with proper date handling
+        const updateData: any = {
+            updated_at: new Date(),
+        };
 
-        if (kitData.notes) {
-            kit.notes = kitData.notes;
+        // Handle optional fields
+        if (kitData.code) updateData.code = kitData.code;
+        if (kitData.type) updateData.type = kitData.type;
+        if (kitData.status) updateData.status = kitData.status;
+        if (kitData.assigned_to_user_id) updateData.assigned_to_user_id = kitData.assigned_to_user_id;
+        if (kitData.notes) updateData.notes = kitData.notes;
+        if (kitData.administrative_case_id) updateData.administrative_case_id = kitData.administrative_case_id;
+        if (kitData.agency_authority) updateData.agency_authority = kitData.agency_authority;
+
+        // Handle date fields
+        if (kitData.assigned_date) {
+            updateData.assigned_date = new Date(kitData.assigned_date);
+        }
+        if (kitData.return_date) {
+            updateData.return_date = new Date(kitData.return_date);
         }
 
         const updatedKit = await this.kitRepository.findByIdAndUpdate(
             kitId,
-            {
-                ...kitData,
-                updated_at: new Date(),
-            },
+            updateData,
             { new: true },
         );
 
@@ -282,28 +320,38 @@ export default class KitService {
     }
 
     /**
-     * Assign a kit to an appointment and laboratory technician
-     * @param kitId - The ID of the kit to assign
-     * @param appointmentId - The ID of the appointment
-     * @param technicianId - The ID of the laboratory technician
+     * Assign a kit to a technician
      */
-    public async assignKit(kitId: string, appointmentId: string, technicianId: string): Promise<IKit> {
-        const kit = await this.findAvailableKitById(kitId);
+    public async assignKit(kitId: string, assignData: any): Promise<IKit> {
+        if (!mongoose.Types.ObjectId.isValid(kitId)) {
+            throw new HttpException(HttpStatus.BadRequest, 'Invalid kit ID');
+        }
 
-        // Validate userId is a valid ObjectId
-        if (!mongoose.Types.ObjectId.isValid(technicianId)) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid laboratory technician ID');
+        const kit = await this.kitRepository.findById(kitId);
+        if (!kit) {
+            throw new HttpException(HttpStatus.NotFound, 'Kit not found');
+        }
+
+        if (kit.status !== KitStatusEnum.AVAILABLE) {
+            throw new HttpException(HttpStatus.BadRequest, 'Kit is not available for assignment');
+        }
+
+        // Update kit with assignment details
+        const updateData: any = {
+            status: KitStatusEnum.ASSIGNED,
+            assigned_to_user_id: assignData.technician_id,
+            assigned_date: new Date(),
+            updated_at: new Date(),
+        };
+
+        // Add optional fields
+        if (assignData.notes) {
+            updateData.notes = assignData.notes;
         }
 
         const updatedKit = await this.kitRepository.findByIdAndUpdate(
             kitId,
-            {
-                status: KitStatusEnum.ASSIGNED,
-                appointment_id: appointmentId as any,
-                assigned_to_user_id: technicianId as any,
-                assigned_date: new Date(),
-                updated_at: new Date(),
-            },
+            updateData,
             { new: true },
         );
 
@@ -317,7 +365,7 @@ export default class KitService {
     /**
      * Return a kit
      */
-    public async returnKit(kitId: string, notes?: string): Promise<IKit> {
+    public async returnKit(kitId: string, returnData?: ReturnKitDto): Promise<IKit> {
         if (!mongoose.Types.ObjectId.isValid(kitId)) {
             throw new HttpException(HttpStatus.BadRequest, 'Invalid kit ID');
         }
@@ -328,17 +376,33 @@ export default class KitService {
         }
 
         if (kit.status !== KitStatusEnum.ASSIGNED && kit.status !== KitStatusEnum.USED) {
-            throw new HttpException(HttpStatus.BadRequest, 'Only assigned or used kits can be returned');
+            throw new HttpException(HttpStatus.BadRequest, 'Kit is not assigned or in use');
+        }
+
+        // Determine the new status
+        const newStatus = returnData?.status || KitStatusEnum.AVAILABLE;
+
+        // Update kit with return details
+        const updateData: any = {
+            status: newStatus,
+            return_date: new Date(),
+            updated_at: new Date(),
+        };
+
+        // Clear assignment data if returning to available
+        if (newStatus === KitStatusEnum.AVAILABLE) {
+            updateData.assigned_to_user_id = null;
+            updateData.assigned_date = null;
+        }
+
+        // Add notes if provided
+        if (returnData?.notes) {
+            updateData.notes = returnData.notes;
         }
 
         const updatedKit = await this.kitRepository.findByIdAndUpdate(
             kitId,
-            {
-                status: KitStatusEnum.RETURNED,
-                return_date: new Date(),
-                notes,
-                updated_at: new Date(),
-            },
+            updateData,
             { new: true },
         );
 

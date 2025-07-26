@@ -1511,4 +1511,349 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ */
+
+/**
+ * @swagger
+ * /api/payments/search:
+ *   get:
+ *     tags: [payment]
+ *     summary: Tìm kiếm danh sách thanh toán (Admin/Manager only)
+ *     description: Tìm kiếm và lọc danh sách thanh toán với nhiều tiêu chí khác nhau
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: query
+ *         name: payment_no
+ *         schema:
+ *           type: string
+ *         description: Mã thanh toán
+ *       - in: query
+ *         name: appointment_id
+ *         schema:
+ *           type: string
+ *         description: ID cuộc hẹn
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: string
+ *         description: ID khách hàng (thông qua cuộc hẹn)
+ *       - in: query
+ *         name: staff_id
+ *         schema:
+ *           type: string
+ *         description: ID nhân viên (thông qua cuộc hẹn)
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           enum: [pending, completed, failed, cancelled]
+ *         description: Trạng thái thanh toán
+ *       - in: query
+ *         name: payment_method
+ *         schema:
+ *           enum: [payos, cash, bank_transfer, government]
+ *         description: Phương thức thanh toán
+ *       - in: query
+ *         name: payment_type
+ *         schema:
+ *           enum: [appointment_deposit, appointment_remaining, sample_collection, result_certificate, reservation_deposit, reservation_full_payment, reservation_remaining, administrative_case_payment]
+ *         description: Loại thanh toán
+ *       - in: query
+ *         name: min_amount
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Số tiền tối thiểu
+ *       - in: query
+ *         name: max_amount
+ *         schema:
+ *           type: number
+ *           minimum: 0
+ *         description: Số tiền tối đa
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Ngày bắt đầu (YYYY-MM-DD)
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Ngày kết thúc (YYYY-MM-DD)
+ *       - in: query
+ *         name: pageNum
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 1
+ *         description: Số trang
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Số lượng item trên mỗi trang
+ *       - in: query
+ *         name: sort_by
+ *         schema:
+ *           type: string
+ *           default: created_at
+ *         description: Trường để sắp xếp
+ *       - in: query
+ *         name: sort_order
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Thứ tự sắp xếp
+ *     responses:
+ *       '200':
+ *         description: Tìm kiếm thanh toán thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Payment list retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     payments:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Payment'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         totalItems:
+ *                           type: integer
+ *                           example: 150
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 15
+ *                         pageNum:
+ *                           type: integer
+ *                           example: 1
+ *                         pageSize:
+ *                           type: integer
+ *                           example: 10
+ *       '400':
+ *         description: Dữ liệu đầu vào không hợp lệ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '401':
+ *         description: Không có quyền truy cập
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '403':
+ *         description: Không có quyền admin/manager
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '500':
+ *         description: Lỗi máy chủ nội bộ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+
+/**
+ * @swagger
+ * /api/payments/statistics:
+ *   get:
+ *     tags: [payment]
+ *     summary: Lấy thống kê thanh toán (Admin/Manager only)
+ *     description: Lấy thống kê chi tiết về các giao dịch thanh toán
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Ngày bắt đầu (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Ngày kết thúc (YYYY-MM-DD)
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, completed, failed, cancelled]
+ *         description: Lọc theo trạng thái thanh toán
+ *       - in: query
+ *         name: payment_method
+ *         schema:
+ *           type: string
+ *           enum: [payos, cash, bank_transfer, government]
+ *         description: Lọc theo phương thức thanh toán
+ *       - in: query
+ *         name: payment_type
+ *         schema:
+ *           type: string
+ *           enum: [appointment_deposit, appointment_remaining, sample_collection, result_certificate, reservation_deposit, reservation_full_payment, reservation_remaining, administrative_case_payment]
+ *         description: Lọc theo loại thanh toán
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 365
+ *           default: 30
+ *         description: Số ngày gần đây (nếu không có startDate/endDate)
+ *     responses:
+ *       '200':
+ *         description: Lấy thống kê thanh toán thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Payment statistics retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         totalPayments:
+ *                           type: integer
+ *                           example: 150
+ *                         totalAmount:
+ *                           type: number
+ *                           example: 15000000
+ *                         averageAmount:
+ *                           type: number
+ *                           example: 100000
+ *                         successfulPayments:
+ *                           type: integer
+ *                           example: 140
+ *                         failedPayments:
+ *                           type: integer
+ *                           example: 10
+ *                         successRate:
+ *                           type: string
+ *                           example: "93.33"
+ *                         dateRange:
+ *                           type: object
+ *                           properties:
+ *                             startDate:
+ *                               type: string
+ *                               nullable: true
+ *                             endDate:
+ *                               type: string
+ *                               nullable: true
+ *                             days:
+ *                               type: integer
+ *                               example: 30
+ *                     breakdowns:
+ *                       type: object
+ *                       properties:
+ *                         byStatus:
+ *                           type: object
+ *                           additionalProperties:
+ *                             type: object
+ *                             properties:
+ *                               count:
+ *                                 type: integer
+ *                               totalAmount:
+ *                                 type: number
+ *                         byMethod:
+ *                           type: object
+ *                           additionalProperties:
+ *                             type: object
+ *                             properties:
+ *                               count:
+ *                                 type: integer
+ *                               totalAmount:
+ *                                 type: number
+ *                         byType:
+ *                           type: object
+ *                           additionalProperties:
+ *                             type: object
+ *                             properties:
+ *                               count:
+ *                                 type: integer
+ *                               totalAmount:
+ *                                 type: number
+ *                     trends:
+ *                       type: object
+ *                       properties:
+ *                         daily:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                                 example: "2024-01-15"
+ *                               count:
+ *                                 type: integer
+ *                               totalAmount:
+ *                                 type: number
+ *                         monthly:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                                 example: "2024-01"
+ *                               count:
+ *                                 type: integer
+ *                               totalAmount:
+ *                                 type: number
+ *                     recentPayments:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Payment'
+ *       '400':
+ *         description: Dữ liệu đầu vào không hợp lệ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '401':
+ *         description: Không có quyền truy cập
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '403':
+ *         description: Không có quyền admin/manager
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       '500':
+ *         description: Lỗi máy chủ nội bộ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */ 

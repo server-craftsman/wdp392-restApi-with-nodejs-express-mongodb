@@ -1,11 +1,16 @@
-import { IsMongoId, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
+import { KitTypeEnum } from '../kit.enum';
 
 export class AssignKitDto {
-    @IsNotEmpty({ message: 'Appointment ID is required' })
-    @IsMongoId({ message: 'Invalid appointment ID format' })
-    appointment_id: string = '';
+    @IsString({ message: 'Technician ID must be a string' })
+    @IsNotEmpty({ message: 'Technician ID is required' })
+    technician_id!: string;
 
-    @IsNotEmpty({ message: 'Laboratory technician ID is required' })
-    @IsMongoId({ message: 'Invalid laboratory technician ID format' })
-    laboratory_technician_id: string = '';
+    @IsOptional()
+    @IsEnum(KitTypeEnum, { message: 'Invalid kit type' })
+    type?: KitTypeEnum;
+
+    @IsOptional()
+    @IsString({ message: 'Notes must be a string' })
+    notes?: string;
 }

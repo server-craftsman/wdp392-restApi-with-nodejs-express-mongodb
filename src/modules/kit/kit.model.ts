@@ -2,7 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 import { COLLECTION_NAME } from '../../core/constants';
 import { KitStatuses } from './kit.constant';
 import { IKit } from './kit.interface';
-import { KitTypeEnum } from './kit.enum';
+import { KitStatusEnum, KitTypeEnum } from './kit.enum';
 
 // Define schema with clear types
 const KitSchemaEntity = new Schema({
@@ -15,10 +15,10 @@ const KitSchemaEntity = new Schema({
     },
     status: {
         type: String,
-        enum: KitStatuses,
+        enum: Object.values(KitStatusEnum),
         required: true,
+        default: KitStatusEnum.AVAILABLE,
     },
-    appointment_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.APPOINTMENT, required: false },
     assigned_date: { type: Date },
     assigned_to_user_id: { type: Schema.Types.ObjectId, ref: COLLECTION_NAME.USER, required: false },
     return_date: { type: Date },

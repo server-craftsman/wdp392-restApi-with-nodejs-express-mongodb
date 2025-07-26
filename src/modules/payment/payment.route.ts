@@ -59,5 +59,11 @@ export default class PaymentRoute implements IRoute {
 
         // GET: domain:/api/payments/test-transaction-creation -> Test transaction creation (dev only)
         this.router.get(`${this.path}/test-transaction-creation`, this.paymentController.testTransactionCreation as any);
+
+        // GET: domain:/api/payments/search -> Search payment list (Admin/Manager only)
+        this.router.get(`${this.path}/search`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.paymentController.searchPaymentList);
+
+        // GET: domain:/api/payments/statistics -> Get payment statistics (Admin/Manager only)
+        this.router.get(`${this.path}/statistics`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.paymentController.getPaymentStatistics);
     }
 }

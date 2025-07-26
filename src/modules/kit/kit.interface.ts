@@ -10,7 +10,6 @@ export interface IKit extends Document {
     code: string;
     type: KitType; // Loại kit: regular hoặc administrative
     status: KitStatus;
-    appointment_id?: string | undefined;
     assigned_date?: Date;
     assigned_to_user_id?: string | undefined;
     return_date?: Date;

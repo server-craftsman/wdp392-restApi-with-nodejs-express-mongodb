@@ -1098,50 +1098,385 @@ export default class PaymentService {
     }
 
     /**
-     * Test method to verify transaction creation (development/debugging only)
+     * Test transaction creation
      */
     public async testTransactionCreation(): Promise<{ success: boolean; message: string; details?: any }> {
         try {
-            // Create a mock payment and appointment for testing
-            const mockPayment = {
-                _id: new Date().getTime().toString(), // Simple mock ID
-                payment_no: `TEST-PAY-${Date.now()}`,
-                payment_stage: PaymentStageEnum.DEPOSIT,
+            // Create a test payment
+            const testPayment = new this.paymentSchema({
+                payment_no: `TEST-${Date.now()}`,
+                appointment_id: 'test-appointment-id',
+                customer_id: 'test-customer-id',
+                amount: 100000,
                 payment_method: PaymentMethodEnum.CASH,
-                payos_payment_id: null,
-                sample_ids: [], // Test with empty sample_ids
-            };
+                payment_type: PaymentTypeEnum.APPOINTMENT_DEPOSIT,
+                status: PaymentStatusEnum.COMPLETED,
+                payment_stage: PaymentStageEnum.DEPOSIT,
+                created_at: new Date(),
+                updated_at: new Date(),
+            });
 
-            const mockAppointment = {
-                _id: new Date().getTime().toString(), // Simple mock ID
-                user_id: new Date().getTime().toString(),
-            };
+            await testPayment.save();
 
-            console.log('Testing transaction creation with mock data...');
-            console.log('Mock payment:', mockPayment);
-            console.log('Mock appointment:', mockAppointment);
-
-            // Test transaction creation
-            await this.createTransactionRecords(mockPayment, mockAppointment);
+            // Create transaction records
+            await this.createTransactionRecords(testPayment, { _id: 'test-appointment' });
 
             return {
                 success: true,
-                message: 'Transaction creation test completed successfully',
+                message: 'Test transaction created successfully',
                 details: {
-                    payment: mockPayment,
-                    appointment: mockAppointment,
+                    payment_id: testPayment._id,
+                    payment_no: testPayment.payment_no,
                 },
             };
-        } catch (error: any) {
-            console.error('Transaction creation test failed:', error);
+        } catch (error) {
+            console.error('Error creating test transaction:', error);
             return {
                 success: false,
-                message: 'Transaction creation test failed',
-                details: {
-                    error: error.message,
-                    stack: error.stack,
-                },
+                message: 'Error creating test transaction',
+                details: error,
             };
+        }
+    }
+
+    /**
+     * Search payment list with filters
+     */
+    public async searchPaymentList(searchParams: any): Promise<{
+        payments: any[];
+        pagination: {
+            totalItems: number;
+            totalPages: number;
+            pageNum: number;
+            pageSize: number;
+        };
+    }> {
+        try {
+            const {
+                payment_no,
+                appointment_id,
+                user_id,
+                staff_id,
+                status,
+                payment_method,
+                payment_type,
+                min_amount,
+                max_amount,
+                start_date,
+                end_date,
+                pageNum = 1,
+                pageSize = 10,
+                sort_by = 'created_at',
+                sort_order = 'desc'
+            } = searchParams;
+
+            // Build query
+            const query: any = {};
+
+            if (payment_no) {
+                query.payment_no = { $regex: payment_no, $options: 'i' };
+            }
+
+            if (appointment_id) {
+                query.appointment_id = appointment_id;
+            }
+
+            // Handle user_id and staff_id through appointment lookup
+            if (user_id || staff_id) {
+                const appointmentQuery: any = {};
+                if (user_id) appointmentQuery.user_id = user_id;
+                if (staff_id) appointmentQuery.staff_id = staff_id;
+
+                // Find appointments that match the criteria
+                const matchingAppointments = await this.appointmentSchema.find(appointmentQuery).select('_id');
+                const appointmentIds = matchingAppointments.map(app => app._id);
+
+                if (appointmentIds.length > 0) {
+                    query.appointment_id = { $in: appointmentIds };
+                } else {
+                    // If no appointments match, return empty result
+                    return {
+                        payments: [],
+                        pagination: {
+                            totalItems: 0,
+                            totalPages: 0,
+                            pageNum,
+                            pageSize
+                        }
+                    };
+                }
+            }
+
+            if (status) {
+                query.status = status;
+            }
+
+            if (payment_method) {
+                query.payment_method = payment_method;
+            }
+
+            if (payment_type) {
+                query.payment_type = payment_type;
+            }
+
+            // Amount range
+            if (min_amount || max_amount) {
+                query.amount = {};
+                if (min_amount) query.amount.$gte = min_amount;
+                if (max_amount) query.amount.$lte = max_amount;
+            }
+
+            // Date range
+            if (start_date || end_date) {
+                query.created_at = {};
+                if (start_date) query.created_at.$gte = new Date(start_date);
+                if (end_date) query.created_at.$lte = new Date(end_date);
+            }
+
+            // Pagination
+            const skip = (pageNum - 1) * pageSize;
+            const sort: any = { [sort_by]: sort_order === 'desc' ? -1 : 1 };
+
+            // Execute query
+            const [payments, totalCount] = await Promise.all([
+                this.paymentSchema.find(query)
+                    .sort(sort)
+                    .skip(skip)
+                    .limit(pageSize)
+                    .populate('appointment_id', 'appointment_date service_id type user_id staff_id')
+                    .populate('parent_payment_id', 'payment_no amount status'),
+                this.paymentSchema.countDocuments(query)
+            ]);
+
+            const totalPages = Math.ceil(totalCount / pageSize);
+
+            return {
+                payments,
+                pagination: {
+                    totalItems: totalCount,
+                    totalPages,
+                    pageNum,
+                    pageSize
+                }
+            };
+        } catch (error) {
+            console.error('Error searching payments:', error);
+            throw new HttpException(HttpStatus.InternalServerError, 'Error searching payments');
+        }
+    }
+
+    /**
+     * Get payment statistics
+     */
+    public async getPaymentStatistics(params: any): Promise<any> {
+        try {
+            const {
+                startDate,
+                endDate,
+                status,
+                payment_method,
+                payment_type,
+                days = 30
+            } = params;
+
+            // Build date filter
+            let dateFilter: any = {};
+            if (startDate || endDate) {
+                dateFilter = {
+                    created_at: {}
+                };
+                if (startDate) dateFilter.created_at.$gte = new Date(startDate);
+                if (endDate) dateFilter.created_at.$lte = new Date(endDate);
+            } else {
+                // Default to last N days
+                const defaultStartDate = new Date();
+                defaultStartDate.setDate(defaultStartDate.getDate() - days);
+                dateFilter = {
+                    created_at: { $gte: defaultStartDate }
+                };
+            }
+
+            // Build additional filters
+            const additionalFilters: any = {};
+            if (status) additionalFilters.status = status;
+            if (payment_method) additionalFilters.payment_method = payment_method;
+            if (payment_type) additionalFilters.payment_type = payment_type;
+
+            const matchFilter = { ...dateFilter, ...additionalFilters };
+
+            // Get total payments count
+            const totalPayments = await this.paymentSchema.countDocuments(matchFilter);
+
+            // Get total amount
+            const totalAmountResult = await this.paymentSchema.aggregate([
+                { $match: matchFilter },
+                {
+                    $group: {
+                        _id: null,
+                        totalAmount: { $sum: '$amount' }
+                    }
+                }
+            ]);
+            const totalAmount = totalAmountResult.length > 0 ? totalAmountResult[0].totalAmount : 0;
+
+            // Get payments by status
+            const paymentsByStatus = await this.paymentSchema.aggregate([
+                { $match: matchFilter },
+                {
+                    $group: {
+                        _id: '$status',
+                        count: { $sum: 1 },
+                        totalAmount: { $sum: '$amount' }
+                    }
+                },
+                { $sort: { count: -1 } }
+            ]);
+
+            // Get payments by method
+            const paymentsByMethod = await this.paymentSchema.aggregate([
+                { $match: matchFilter },
+                {
+                    $group: {
+                        _id: '$payment_method',
+                        count: { $sum: 1 },
+                        totalAmount: { $sum: '$amount' }
+                    }
+                },
+                { $sort: { count: -1 } }
+            ]);
+
+            // Get payments by type
+            const paymentsByType = await this.paymentSchema.aggregate([
+                { $match: matchFilter },
+                {
+                    $group: {
+                        _id: '$payment_type',
+                        count: { $sum: 1 },
+                        totalAmount: { $sum: '$amount' }
+                    }
+                },
+                { $sort: { count: -1 } }
+            ]);
+
+            // Get daily payment trends
+            const dailyPayments = await this.paymentSchema.aggregate([
+                { $match: matchFilter },
+                {
+                    $group: {
+                        _id: {
+                            $dateToString: {
+                                format: '%Y-%m-%d',
+                                date: '$created_at'
+                            }
+                        },
+                        count: { $sum: 1 },
+                        totalAmount: { $sum: '$amount' }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]);
+
+            // Get monthly payment trends
+            const monthlyPayments = await this.paymentSchema.aggregate([
+                { $match: matchFilter },
+                {
+                    $group: {
+                        _id: {
+                            $dateToString: {
+                                format: '%Y-%m',
+                                date: '$created_at'
+                            }
+                        },
+                        count: { $sum: 1 },
+                        totalAmount: { $sum: '$amount' }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]);
+
+            // Get average payment amount
+            const averageAmountResult = await this.paymentSchema.aggregate([
+                { $match: matchFilter },
+                {
+                    $group: {
+                        _id: null,
+                        averageAmount: { $avg: '$amount' }
+                    }
+                }
+            ]);
+            const averageAmount = averageAmountResult.length > 0 ? averageAmountResult[0].averageAmount : 0;
+
+            // Get successful vs failed payments
+            const successfulPayments = await this.paymentSchema.countDocuments({
+                ...matchFilter,
+                status: PaymentStatusEnum.COMPLETED
+            });
+
+            const failedPayments = await this.paymentSchema.countDocuments({
+                ...matchFilter,
+                status: { $in: [PaymentStatusEnum.FAILED, PaymentStatusEnum.CANCELLED] }
+            });
+
+            // Get recent payments (last 10)
+            const recentPayments = await this.paymentSchema.find(matchFilter)
+                .sort({ created_at: -1 })
+                .limit(10)
+                .populate('appointment_id', 'appointment_date service_id')
+                .populate('sample_ids', 'type collection_method status');
+
+            // Convert arrays to objects for easier frontend consumption
+            const paymentsByStatusObj = paymentsByStatus.reduce((acc: any, item: any) => {
+                acc[item._id] = {
+                    count: item.count,
+                    totalAmount: item.totalAmount
+                };
+                return acc;
+            }, {});
+
+            const paymentsByMethodObj = paymentsByMethod.reduce((acc: any, item: any) => {
+                acc[item._id] = {
+                    count: item.count,
+                    totalAmount: item.totalAmount
+                };
+                return acc;
+            }, {});
+
+            const paymentsByTypeObj = paymentsByType.reduce((acc: any, item: any) => {
+                acc[item._id] = {
+                    count: item.count,
+                    totalAmount: item.totalAmount
+                };
+                return acc;
+            }, {});
+
+            return {
+                summary: {
+                    totalPayments,
+                    totalAmount,
+                    averageAmount,
+                    successfulPayments,
+                    failedPayments,
+                    successRate: totalPayments > 0 ? (successfulPayments / totalPayments * 100).toFixed(2) : 0,
+                    dateRange: {
+                        startDate: startDate || null,
+                        endDate: endDate || null,
+                        days
+                    }
+                },
+                breakdowns: {
+                    byStatus: paymentsByStatusObj,
+                    byMethod: paymentsByMethodObj,
+                    byType: paymentsByTypeObj
+                },
+                trends: {
+                    daily: dailyPayments,
+                    monthly: monthlyPayments
+                },
+                recentPayments
+            };
+        } catch (error) {
+            console.error('Error fetching payment statistics:', error);
+            throw new HttpException(HttpStatus.InternalServerError, 'Error fetching payment statistics');
         }
     }
 }

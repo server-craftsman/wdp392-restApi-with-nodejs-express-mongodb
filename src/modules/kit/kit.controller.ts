@@ -7,8 +7,12 @@ import { CreateKitDto } from './dtos/createKit.dto';
 import { UpdateKitDto } from './dtos/updateKit.dto';
 import { SearchKitDto } from './dtos/searchKit.dto';
 import { ReturnKitDto } from './dtos/returnKit.dto';
+import { AssignKitDto } from './dtos/assignKit.dto';
 import KitService from './kit.service';
 import { SearchPaginationResponseModel } from '../../core/models/searchPagination.model';
+import { validateOrReject } from 'class-validator';
+import { plainToClass } from 'class-transformer';
+import { KitStatusEnum } from './kit.enum';
 
 export default class KitController {
     private kitService = new KitService();
@@ -18,9 +22,12 @@ export default class KitController {
      */
     public createKit = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const kitData: CreateKitDto = req.body;
-            const kit = await this.kitService.createKit(kitData);
-            res.status(HttpStatus.Created).json(formatResponse<IKit>(kit));
+            // Validate DTO
+            const dto = plainToClass(CreateKitDto, req.body);
+            await validateOrReject(dto);
+
+            const kit = await this.kitService.createKit(dto);
+            res.status(HttpStatus.Created).json(formatResponse<IKit>(kit, true, 'Kit created successfully'));
         } catch (error) {
             next(error);
         }
@@ -34,7 +41,7 @@ export default class KitController {
             const kitId = req.params.id;
             const kit = await this.kitService.getKitById(kitId);
 
-            res.status(HttpStatus.Success).json(formatResponse<IKit>(kit));
+            res.status(HttpStatus.Success).json(formatResponse<IKit>(kit, true, 'Kit retrieved successfully'));
         } catch (error) {
             next(error);
         }
@@ -45,10 +52,12 @@ export default class KitController {
      */
     public searchKits = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const searchParams: SearchKitDto = req.query as any;
-            const searchResult = await this.kitService.searchKits(searchParams);
+            // Validate DTO
+            const dto = plainToClass(SearchKitDto, req.query);
+            await validateOrReject(dto);
 
-            res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IKit>>(searchResult));
+            const searchResult = await this.kitService.searchKits(dto);
+            res.status(HttpStatus.Success).json(formatResponse<SearchPaginationResponseModel<IKit>>(searchResult, true, 'Kits retrieved successfully'));
         } catch (error) {
             next(error);
         }
@@ -60,10 +69,13 @@ export default class KitController {
     public updateKit = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const kitId = req.params.id;
-            const kitData: UpdateKitDto = req.body;
-            const updatedKit = await this.kitService.updateKit(kitId, kitData);
 
-            res.status(HttpStatus.Success).json(formatResponse<IKit>(updatedKit));
+            // Validate DTO
+            const dto = plainToClass(UpdateKitDto, req.body);
+            await validateOrReject(dto);
+
+            const updatedKit = await this.kitService.updateKit(kitId, dto);
+            res.status(HttpStatus.Success).json(formatResponse<IKit>(updatedKit, true, 'Kit updated successfully'));
         } catch (error) {
             next(error);
         }
@@ -77,7 +89,7 @@ export default class KitController {
             const kitId = req.params.id;
             await this.kitService.deleteKit(kitId);
 
-            res.status(HttpStatus.Success).json(formatResponse<string>('Kit deleted successfully'));
+            res.status(HttpStatus.Success).json(formatResponse<string>('Kit deleted successfully', true, 'Kit deleted successfully'));
         } catch (error) {
             next(error);
         }
@@ -90,9 +102,14 @@ export default class KitController {
         try {
             const kitId = req.params.id;
             const { status } = req.body;
-            const updatedKit = await this.kitService.changeKitStatus(kitId, status);
 
-            res.status(HttpStatus.Success).json(formatResponse<IKit>(updatedKit));
+            // Validate status
+            if (!Object.values(KitStatusEnum).includes(status)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid kit status');
+            }
+
+            const updatedKit = await this.kitService.changeKitStatus(kitId, status);
+            res.status(HttpStatus.Success).json(formatResponse<IKit>(updatedKit, true, 'Kit status updated successfully'));
         } catch (error) {
             next(error);
         }
@@ -104,8 +121,7 @@ export default class KitController {
     public getAvailableKits = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const kits = await this.kitService.getAvailableKits();
-
-            res.status(HttpStatus.Success).json(formatResponse<IKit[]>(kits));
+            res.status(HttpStatus.Success).json(formatResponse<IKit[]>(kits, true, 'Available kits retrieved successfully'));
         } catch (error) {
             next(error);
         }
@@ -117,27 +133,31 @@ export default class KitController {
     public returnKit = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const kitId = req.params.id;
-            const { notes } = req.body;
 
-            const kit = await this.kitService.returnKit(kitId, notes);
+            // Validate DTO
+            const dto = plainToClass(ReturnKitDto, req.body);
+            await validateOrReject(dto);
 
-            res.status(HttpStatus.Success).json(formatResponse<IKit>(kit));
+            const kit = await this.kitService.returnKit(kitId, dto);
+            res.status(HttpStatus.Success).json(formatResponse<IKit>(kit, true, 'Kit returned successfully'));
         } catch (error) {
             next(error);
         }
     };
 
     /**
-     * Assign a kit to a laboratory technician
+     * Assign a kit to an appointment
      */
     public assignKit = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const kitId = req.params.id;
-            const { appointment_id, laboratory_technician_id } = req.body;
 
-            const kit = await this.kitService.assignKit(kitId, appointment_id, laboratory_technician_id);
+            // Validate DTO
+            const dto = plainToClass(AssignKitDto, req.body);
+            await validateOrReject(dto);
 
-            res.status(HttpStatus.Success).json(formatResponse<IKit>(kit));
+            const kit = await this.kitService.assignKit(kitId, dto);
+            res.status(HttpStatus.Success).json(formatResponse<IKit>(kit, true, 'Kit assigned successfully'));
         } catch (error) {
             next(error);
         }

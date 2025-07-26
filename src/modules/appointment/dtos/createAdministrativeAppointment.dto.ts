@@ -6,8 +6,8 @@ export class CreateAdministrativeAppointmentDto {
     service_id!: string;
 
     @IsString()
-    @IsNotEmpty()
-    user_id!: string;
+    @IsOptional()
+    user_id?: string;
 
     @IsDateString()
     @IsOptional()
