@@ -21,7 +21,6 @@ import { LogRoute } from './modules/blog/log';
 import { ReviewRoute } from './modules/review';
 import { AdministrativeCasesRoute } from './modules/administrative_cases';
 import { DashboardRoute } from './modules/dashboard';
-
 // Load environment variables
 dotenv.config();
 

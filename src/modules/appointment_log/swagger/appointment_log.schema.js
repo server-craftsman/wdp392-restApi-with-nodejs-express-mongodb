@@ -2,218 +2,207 @@
  * @swagger
  * components:
  *   schemas:
- *     CreateAppointmentLogDto:
- *       type: object
- *       required:
- *         - appointment_id
- *         - customer_id
- *         - new_status
- *         - type
- *       properties:
- *         appointment_id:
- *           type: string
- *           description: ID of the appointment being logged
- *           example: "60d0fe4f5311236168a109ce"
- *         customer_id:
- *           type: string
- *           description: ID of the customer associated with the appointment
- *           example: "60d0fe4f5311236168a109cf"
- *         staff_id:
- *           type: string
- *           description: ID of the staff member handling the appointment (optional)
- *           example: "60d0fe4f5311236168a109cc"
- *         laboratory_technician_id:
- *           type: string
- *           description: ID of the laboratory technician processing the sample (optional)
- *           example: "60d0fe4f5311236168a109cd"
- *         old_status:
- *           type: string
- *           enum: [pending, confirmed, sample_collected, testing, completed, cancelled]
- *           description: Previous status of the appointment (optional)
- *           example: "pending"
- *         new_status:
- *           type: string
- *           enum: [pending, confirmed, sample_collected, testing, completed, cancelled]
- *           description: New status of the appointment
- *           example: "confirmed"
- *         type:
- *           type: string
- *           enum: [self, facility, home]
- *           description: Type of sample collection
- *           example: "facility"
- *
- *     AppointmentLogResponse:
+ *     AppointmentLog:
  *       type: object
  *       properties:
  *         _id:
  *           type: string
- *           description: Unique log identifier
- *           example: "60d0fe4f5311236168a109d0"
+ *           description: Log entry ID
  *         appointment_id:
- *           type: object
- *           description: Associated appointment information
- *           properties:
- *             _id:
- *               type: string
- *               description: Appointment ID
- *               example: "60d0fe4f5311236168a109ce"
- *             service_id:
- *               type: string
- *               description: Service ID
- *               example: "60d0fe4f5311236168a109ca"
- *             status:
- *               type: string
- *               description: Current appointment status
- *               example: "confirmed"
+ *           type: string
+ *           description: ID of the appointment
  *         customer_id:
- *           type: object
- *           description: Customer information
- *           properties:
- *             _id:
- *               type: string
- *               description: Customer ID
- *               example: "60d0fe4f5311236168a109cf"
- *             first_name:
- *               type: string
- *               description: Customer's first name
- *               example: "John"
- *             last_name:
- *               type: string
- *               description: Customer's last name
- *               example: "Doe"
- *             email:
- *               type: string
- *               description: Customer's email
- *               example: "john.doe@example.com"
+ *           type: string
+ *           description: ID of the customer
  *         staff_id:
- *           type: object
- *           description: Staff information (if assigned)
- *           properties:
- *             _id:
- *               type: string
- *               description: Staff ID
- *               example: "60d0fe4f5311236168a109cc"
- *             first_name:
- *               type: string
- *               description: Staff's first name
- *               example: "Jane"
- *             last_name:
- *               type: string
- *               description: Staff's last name
- *               example: "Smith"
+ *           type: string
+ *           description: ID of the staff member
  *         laboratory_technician_id:
- *           type: object
- *           description: Laboratory technician information (if assigned)
- *           properties:
- *             _id:
- *               type: string
- *               description: Laboratory technician ID
- *               example: "60d0fe4f5311236168a109cd"
- *             first_name:
- *               type: string
- *               description: Technician's first name
- *               example: "Mark"
- *             last_name:
- *               type: string
- *               description: Technician's last name
- *               example: "Johnson"
+ *           type: string
+ *           description: ID of the laboratory technician
+ *         administrative_case_id:
+ *           type: string
+ *           description: ID of the administrative case (for legal appointments)
+ *         agency_contact_email:
+ *           type: string
+ *           description: Email of the requesting agency (for administrative appointments)
  *         old_status:
  *           type: string
- *           enum: [pending, confirmed, sample_collected, testing, completed, cancelled]
- *           description: Previous status of the appointment
- *           example: "pending"
+ *           enum: [pending, confirmed, sample_assigned, sample_collected, sample_received, testing, completed, cancelled, sample_created, awaiting_authorization, authorized, ready_for_collection]
+ *           description: Previous appointment status
  *         new_status:
  *           type: string
- *           enum: [pending, confirmed, sample_collected, testing, completed, cancelled]
- *           description: New status of the appointment
- *           example: "confirmed"
+ *           enum: [pending, confirmed, sample_assigned, sample_collected, sample_received, testing, completed, cancelled, sample_created, awaiting_authorization, authorized, ready_for_collection]
+ *           description: New appointment status
+ *         action:
+ *           type: string
+ *           enum: [create, update_status, assign_staff, assign_lab_tech, checkin, add_note, confirm, cancel, authorize, progress_update, agency_notification]
+ *           description: Action that triggered this log entry
  *         type:
  *           type: string
- *           enum: [self, facility, home]
- *           description: Type of sample collection
- *           example: "facility"
+ *           enum: [self, facility, home, administrative]
+ *           description: Type of appointment
+ *         notes:
+ *           type: string
+ *           description: Additional notes or comments
+ *         metadata:
+ *           type: object
+ *           description: Additional metadata about the action
+ *           properties:
+ *             assigned_staff_ids:
+ *               type: array
+ *               items:
+ *                 type: string
+ *               description: IDs of assigned staff members
+ *             unassigned_staff_ids:
+ *               type: array
+ *               items:
+ *                 type: string
+ *               description: IDs of unassigned staff members
+ *             assigned_lab_tech_id:
+ *               type: string
+ *               description: ID of assigned laboratory technician
+ *             checkin_location:
+ *               type: string
+ *               description: Location where check-in occurred
+ *             checkin_note:
+ *               type: string
+ *               description: Note added during check-in
+ *             case_status_update:
+ *               type: string
+ *               description: Administrative case status update
+ *             agency_notified:
+ *               type: boolean
+ *               description: Whether agency was notified
+ *             authorization_code:
+ *               type: string
+ *               description: Authorization code for legal appointments
+ *             is_administrative:
+ *               type: boolean
+ *               description: Whether this is an administrative appointment
+ *             government_funded:
+ *               type: boolean
+ *               description: Whether this is government funded
+ *             user_agent:
+ *               type: string
+ *               description: User agent of the person performing the action
+ *             ip_address:
+ *               type: string
+ *               description: IP address of the person performing the action
+ *             additional_data:
+ *               type: object
+ *               description: Any additional data
+ *         action_timestamp:
+ *           type: string
+ *           format: date-time
+ *           description: Timestamp when the action occurred
+ *         performed_by_user_id:
+ *           type: string
+ *           description: ID of the user who performed the action
+ *         performed_by_role:
+ *           type: string
+ *           description: Role of the user who performed the action
  *         created_at:
  *           type: string
  *           format: date-time
- *           description: Log creation date
- *           example: "2023-10-01T12:30:00Z"
+ *           description: Log creation timestamp
  *         updated_at:
  *           type: string
  *           format: date-time
- *           description: Log last update date
- *           example: "2023-10-01T12:30:00Z"
- *
- *     AppointmentLogPaginationResponse:
+ *           description: Log update timestamp
+ *       example:
+ *         _id: "60d0fe4f5311236168a109ce"
+ *         appointment_id: "60d0fe4f5311236168a109ca"
+ *         customer_id: "60d0fe4f5311236168a109cb"
+ *         staff_id: "60d0fe4f5311236168a109cc"
+ *         old_status: "pending"
+ *         new_status: "confirmed"
+ *         action: "update_status"
+ *         type: "facility"
+ *         notes: "Appointment confirmed by staff"
+ *         action_timestamp: "2024-01-15T10:00:00.000Z"
+ *         performed_by_user_id: "60d0fe4f5311236168a109cd"
+ *         performed_by_role: "STAFF"
+
+ *     AppointmentLogListResponse:
  *       type: object
  *       properties:
- *         pageData:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/AppointmentLogResponse'
- *         pageInfo:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
+ *           type: string
+ *           example: "Appointment logs retrieved successfully"
+ *         data:
  *           type: object
  *           properties:
- *             totalItems:
- *               type: integer
- *               description: Total number of items
- *               example: 15
- *             totalPages:
- *               type: integer
- *               description: Total number of pages
- *               example: 2
- *             pageNum:
- *               type: integer
- *               description: Current page number
- *               example: 1
- *             pageSize:
- *               type: integer
- *               description: Number of items per page
- *               example: 10
- *
- *     SearchAppointmentLogParams:
+ *             pageData:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/AppointmentLog'
+ *             pageInfo:
+ *               type: object
+ *               properties:
+ *                 totalItems:
+ *                   type: integer
+ *                   example: 25
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 3
+ *                 pageNum:
+ *                   type: integer
+ *                   example: 1
+ *                 pageSize:
+ *                   type: integer
+ *                   example: 10
+
+ *     AppointmentTimelineResponse:
  *       type: object
  *       properties:
- *         pageNum:
- *           type: integer
- *           description: Page number for pagination
- *           default: 1
- *           example: 1
- *         pageSize:
- *           type: integer
- *           description: Number of items per page
- *           default: 10
- *           example: 10
- *         old_status:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
  *           type: string
- *           enum: [pending, confirmed, sample_collected, testing, completed, cancelled]
- *           description: Filter by previous status
- *           example: "pending"
- *         new_status:
+ *           example: "Appointment timeline retrieved successfully"
+ *         data:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/AppointmentLog'
+
+ *     LogStatisticsResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
  *           type: string
- *           enum: [pending, confirmed, sample_collected, testing, completed, cancelled]
- *           description: Filter by new status
- *           example: "confirmed"
- *         customer_id:
- *           type: string
- *           description: Filter logs by customer ID
- *           example: "60d0fe4f5311236168a109cf"
- *         staff_id:
- *           type: string
- *           description: Filter logs by staff ID
- *           example: "60d0fe4f5311236168a109cc"
- *         date_from:
- *           type: string
- *           format: date
- *           description: Filter logs from this date
- *           example: "2023-10-01"
- *         date_to:
- *           type: string
- *           format: date
- *           description: Filter logs until this date
- *           example: "2023-10-31"
- *         type:
- *           type: string
- *           enum: [self, facility, home]
- *           description: Filter by appointment type
- *           example: "facility"
+ *           example: "Log statistics retrieved successfully"
+ *         data:
+ *           type: object
+ *           properties:
+ *             totalLogs:
+ *               type: integer
+ *               example: 150
+ *             logsByAction:
+ *               type: object
+ *               example:
+ *                 create: 25
+ *                 update_status: 50
+ *                 assign_staff: 30
+ *                 checkin: 20
+ *                 progress_update: 15
+ *                 agency_notification: 10
+ *             logsByStatus:
+ *               type: object
+ *               example:
+ *                 pending: 10
+ *                 confirmed: 25
+ *                 sample_collected: 30
+ *                 testing: 20
+ *                 completed: 65
+ *             adminAppointments:
+ *               type: integer
+ *               example: 15
  */

@@ -7,11 +7,15 @@ import AppointmentController from './appointment.controller';
 import { CreateAppointmentDto } from './dtos/createAppointment.dto';
 import { AssignStaffDto } from './dtos/assign-staff.dto';
 import { ConfirmAppointmentDto } from './dtos/confirm-appointment.dto';
+import AdministrativeAppointmentController from './administrative-appointment.controller';
+import AdministrativeAppointmentService from './administrative-appointment.service';
+
 
 export default class AppointmentRoute implements IRoute {
     public path = API_PATH.APPOINTMENT;
     public router = Router();
     private appointmentController = new AppointmentController();
+    private administrativeAppointmentController = new AdministrativeAppointmentController();
 
     constructor() {
         this.initializeRoutes();
@@ -132,6 +136,36 @@ export default class AppointmentRoute implements IRoute {
             `${this.path}/:id/unassign-staff`,
             authMiddleWare([UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]),
             this.appointmentController.unassignStaff
+        );
+
+        // ==================== ADMINISTRATIVE APPOINTMENT ROUTES ====================
+
+        // POST: domain:/api/appointment/administrative/:caseId -> Create administrative appointment for a case
+        this.router.post(
+            `${this.path}/administrative/:caseId`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            this.administrativeAppointmentController.createAdministrativeAppointment
+        );
+
+        // GET: domain:/api/appointment/administrative/:caseId/appointments -> Get all appointments for a case
+        this.router.get(
+            `${this.path}/administrative/:caseId/appointments`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            this.administrativeAppointmentController.getAppointmentsByCase
+        );
+
+        // GET: domain:/api/appointment/administrative/:caseId/validate -> Validate if appointment can be created for case
+        this.router.get(
+            `${this.path}/administrative/:caseId/validate`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            this.administrativeAppointmentController.validateAppointmentCreation
+        );
+
+        // PUT: domain:/api/appointment/administrative/progress/:appointmentId -> Update appointment progress and case status
+        this.router.put(
+            `${this.path}/administrative/progress/:appointmentId`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
+            this.administrativeAppointmentController.updateAppointmentProgress
         );
     }
 } 

@@ -28,7 +28,7 @@ import { StaffProfileSchema, StaffStatusEnum } from '../staff_profile';
 // import { SubscriptionSchema } from '../subscription';
 import { DataStoredInToken, UserInfoInTokenDefault } from '../auth';
 import UserRepository from './user.repository';
-import { AdministrativeCaseSchema } from '../administrative_cases/administrative_cases.model';
+import AdministrativeCaseSchema from '../administrative_cases/administrative_cases.model';
 
 export default class UserService {
     private userRepository = new UserRepository();
@@ -60,7 +60,7 @@ export default class UserService {
             },
             role: model.role || UserRoleEnum.CUSTOMER,
             google_id: model.google_id || '',
-            phone_number: model.phone_number || '',
+            phone_number: model.phone_number || 0,
             avatar_url: model.avatar_url || '',
             token_version: 0,
         };
@@ -271,13 +271,23 @@ export default class UserService {
             throw new HttpException(HttpStatus.BadRequest, `The URL '${model.avatar_url}' is not valid`);
         }
 
+        // Handle address field - convert string to object if needed
+        let addressData = model.address || item.address;
+        if (typeof addressData === 'string') {
+            try {
+                addressData = JSON.parse(addressData);
+            } catch (error) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid address format');
+            }
+        }
+
         const updateData = {
-            first_name: model.first_name,
-            last_name: model.last_name,
+            first_name: model.first_name || item.first_name,
+            last_name: model.last_name || item.last_name,
             phone_number: model.phone_number || item.phone_number,
             avatar_url: avatarUrl,
             dob: model.dob || item.dob,
-            address: model.address || item.address,
+            address: addressData,
             gender: model.gender || item.gender,
             updated_at: new Date(),
         };
@@ -517,6 +527,77 @@ export default class UserService {
                 throw error;
             }
             throw new HttpException(HttpStatus.InternalServerError, 'Error getting staff and laboratory technician users');
+        }
+    }
+
+    /**
+     * Search customer by phone number or email (for staff convenience)
+     */
+    public async searchCustomerByPhoneOrEmail(searchTerm: string): Promise<IUser | null> {
+        try {
+            if (!searchTerm || searchTerm.trim() === '') {
+                throw new HttpException(HttpStatus.BadRequest, 'Search term is required');
+            }
+
+            const trimmedSearchTerm = searchTerm.trim().toLowerCase();
+
+            // Build search conditions based on input type
+            let searchConditions = [];
+
+            // Check if searchTerm looks like an email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (emailRegex.test(trimmedSearchTerm)) {
+                searchConditions.push({ email: { $regex: trimmedSearchTerm, $options: 'i' } });
+            }
+
+            // Check if searchTerm looks like a phone number (digits only)
+            const phoneRegex = /^\d+$/;
+            if (phoneRegex.test(trimmedSearchTerm)) {
+                // Convert to number for phone_number field
+                const phoneNumber = parseInt(trimmedSearchTerm, 10);
+                if (!isNaN(phoneNumber)) {
+                    searchConditions.push({ phone_number: phoneNumber });
+                }
+            }
+
+            // If neither email nor phone pattern, search in both fields
+            if (searchConditions.length === 0) {
+                // Try as email (partial match)
+                searchConditions.push({ email: { $regex: trimmedSearchTerm, $options: 'i' } });
+
+                // Try as phone number (if it's numeric)
+                const phoneNumber = parseInt(trimmedSearchTerm, 10);
+                if (!isNaN(phoneNumber)) {
+                    searchConditions.push({ phone_number: phoneNumber });
+                }
+            }
+
+            // Search by phone number or email
+            const customer = await UserSchema.findOne({
+                $or: searchConditions,
+                role: UserRoleEnum.CUSTOMER,
+                is_deleted: { $ne: true }
+            }).select('-password -verification_token -verification_token_expires -token_version').lean();
+
+            if (!customer) {
+                return null;
+            }
+
+            // Get administrative cases for this customer
+            const administrative_cases = await AdministrativeCaseSchema.find({
+                applicant_id: customer._id
+            }).select('case_number case_type status requesting_agency created_at').lean();
+
+            return {
+                ...customer,
+                administrative_cases
+            };
+        } catch (error) {
+            console.error('Error in searchCustomerByPhoneOrEmail:', error);
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error searching for customer');
         }
     }
 }

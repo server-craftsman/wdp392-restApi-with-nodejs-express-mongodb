@@ -14,7 +14,7 @@ import SlotSchema from '../slot/slot.model';
 import { SlotStatusEnum } from '../slot/slot.enum';
 import ServiceSchema from '../service/service.model';
 import { SampleMethodEnum } from '../service/service.enum';
-import { AppointmentLogService } from '../appointment_log';
+import AppointmentLogService from '../appointment_log/appointment_log.service';
 import { AppointmentLogTypeEnum } from '../appointment_log/appointment_log.enum';
 import KitService from '../kit/kit.service';
 import StaffProfileSchema from '../staff_profile/staff_profile.model';
@@ -25,13 +25,17 @@ import SampleService from '../sample/sample.service';
 import { ISample } from '../sample/sample.interface';
 import { sendMail, createNotificationEmailTemplate } from '../../core/utils';
 import { ISendMailDetail } from '../../core/interfaces';
-import { AdministrativeCaseSchema } from '../administrative_cases/administrative_cases.model';
+import AdministrativeCaseSchema from '../administrative_cases/administrative_cases.model';
 import { AdministrativeCaseStatus } from '../administrative_cases/administrative_cases.enum';
 import { ServiceTypeEnum } from '../service/service.enum';
 import PaymentService from '../payment/payment.service';
 import ConsultationSchema from './consultation.model';
 import { IConsultation, ConsultationStatusEnum } from './consultation.interface';
 import { AppointmentPaymentStageEnum } from './appointment.enum';
+import AdministrativeCaseService from '../administrative_cases/administrative_cases.service';
+import ServiceService from '../service/service.service';
+import UserRepository from '../user/user.repository';
+import AdministrativeCasesService from '../administrative_cases/administrative_cases.service';
 
 // Add business hour constants just after other imports
 // CONSTANTS_START
@@ -43,15 +47,25 @@ const HOME_SERVICE_SURCHARGE_PERCENTAGE: number = process.env.HOME_SERVICE_SURCH
 export default class AppointmentService {
     private readonly appointmentRepository: AppointmentRepository;
     private readonly appointmentLogService: AppointmentLogService;
+    private readonly userRepository: UserRepository;
+    private readonly consultationSchema: typeof ConsultationSchema;
     private readonly kitService: KitService;
     private readonly staffProfileSchema: typeof StaffProfileSchema;
     private sampleService?: SampleService;
+    private readonly administrativeCaseService: AdministrativeCasesService;
+    private readonly serviceService: ServiceService;
+    private readonly paymentService: PaymentService;
 
     constructor() {
         this.appointmentRepository = new AppointmentRepository();
+        this.userRepository = new UserRepository();
         this.appointmentLogService = new AppointmentLogService();
+        this.consultationSchema = ConsultationSchema;
         this.kitService = new KitService();
         this.staffProfileSchema = StaffProfileSchema;
+        this.administrativeCaseService = new AdministrativeCasesService();
+        this.serviceService = new ServiceService();
+        this.paymentService = new PaymentService();
     }
 
     private getSampleService(): SampleService {
@@ -59,6 +73,28 @@ export default class AppointmentService {
             this.sampleService = new SampleService();
         }
         return this.sampleService;
+    }
+
+    /**
+     * Convert AppointmentStatusEnum to AppointmentLogTypeEnum
+     */
+    private convertStatusToLogType(status: any): AppointmentLogTypeEnum {
+        // Map appointment status to log type
+        const statusMap: Record<string, AppointmentLogTypeEnum> = {
+            'pending': AppointmentLogTypeEnum.PENDING,
+            'confirmed': AppointmentLogTypeEnum.CONFIRMED,
+            'sample_assigned': AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
+            'sample_collected': AppointmentLogTypeEnum.SAMPLE_COLLECTED,
+            'sample_received': AppointmentLogTypeEnum.SAMPLE_RECEIVED,
+            'testing': AppointmentLogTypeEnum.TESTING,
+            'completed': AppointmentLogTypeEnum.COMPLETED,
+            'cancelled': AppointmentLogTypeEnum.CANCELLED,
+            'awaiting_authorization': AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
+            'authorized': AppointmentLogTypeEnum.AUTHORIZED,
+            'ready_for_collection': AppointmentLogTypeEnum.READY_FOR_COLLECTION
+        };
+
+        return statusMap[status] || AppointmentLogTypeEnum.PENDING;
     }
 
     /**
@@ -93,12 +129,8 @@ export default class AppointmentService {
 
             const savedConsultation = await consultation.save();
 
-            // Log consultation creation
-            try {
-                await this.appointmentLogService.logConsultationCreation(savedConsultation);
-            } catch (logError) {
-                console.error('Failed to create consultation log:', logError);
-            }
+            // Note: Consultation logging will be handled separately
+            // as consultations are not appointments in the new system
 
             // Send confirmation email
             try {
@@ -239,12 +271,7 @@ export default class AppointmentService {
                 throw new HttpException(HttpStatus.InternalServerError, 'Failed to assign consultant');
             }
 
-            // Log assignment
-            try {
-                await this.appointmentLogService.logConsultationAssignment(updatedConsultation, consultantId);
-            } catch (logError) {
-                console.error('Failed to create consultation assignment log:', logError);
-            }
+            // Note: Consultation logging will be handled separately
 
             // Send notification emails
             try {
@@ -304,12 +331,7 @@ export default class AppointmentService {
                 throw new HttpException(HttpStatus.InternalServerError, 'Failed to update consultation status');
             }
 
-            // Log status change
-            try {
-                await this.appointmentLogService.logConsultationStatusChange(updatedConsultation, status);
-            } catch (logError) {
-                console.error('Failed to create consultation status change log:', logError);
-            }
+            // Note: Consultation logging will be handled separately
 
             // Send status update email
             try {
@@ -753,7 +775,7 @@ export default class AppointmentService {
 
             // Log sự kiện tạo appointment
             try {
-                await this.appointmentLogService.logAppointmentCreation(appointment);
+                await this.appointmentLogService.logAppointmentCreation(appointment, userId, 'CUSTOMER');
             } catch (logError) {
                 console.error('Failed to create appointment log:', logError);
             }
@@ -1031,9 +1053,11 @@ export default class AppointmentService {
 
         // Log sự kiện gán nhân viên
         try {
-            await this.appointmentLogService.logStatusChange(
+            await this.appointmentLogService.logStaffAssignment(
                 updatedAppointment,
-                oldStatus as unknown as AppointmentLogTypeEnum
+                assignStaffData.staff_ids,
+                'system', // performed by system/manager
+                UserRoleEnum.MANAGER
             );
         } catch (logError) {
             console.error('Failed to create appointment log for staff assignment:', logError);
@@ -1215,9 +1239,13 @@ export default class AppointmentService {
 
             // Log the confirmation
             try {
-                await this.appointmentLogService.logStatusChange(
+                await this.appointmentLogService.logStatusUpdate(
                     updatedAppointment,
-                    oldStatus as unknown as AppointmentLogTypeEnum
+                    this.convertStatusToLogType(oldStatus),
+                    this.convertStatusToLogType(updatedAppointment.status),
+                    staffId,
+                    UserRoleEnum.STAFF,
+                    'Appointment confirmed by staff'
                 );
             } catch (logError) {
                 console.error('Failed to create appointment log for confirmation:', logError);
@@ -1263,6 +1291,20 @@ export default class AppointmentService {
         if (!updated) {
             throw new HttpException(HttpStatus.InternalServerError, 'Failed to checkin appointment');
         }
+
+        // Log the checkin
+        try {
+            await this.appointmentLogService.logCheckin(
+                updated,
+                staffId,
+                UserRoleEnum.STAFF,
+                note,
+                appointment.collection_address
+            );
+        } catch (logError) {
+            console.error('Failed to create appointment log for checkin:', logError);
+        }
+
         return updated;
     }
 
@@ -1279,6 +1321,19 @@ export default class AppointmentService {
         if (!updated) {
             throw new HttpException(HttpStatus.InternalServerError, 'Failed to add appointment note');
         }
+
+        // Log the note addition
+        try {
+            await this.appointmentLogService.logNoteAddition(
+                updated,
+                note,
+                'system', // Could be enhanced to track actual user
+                UserRoleEnum.STAFF
+            );
+        } catch (logError) {
+            console.error('Failed to create appointment log for note addition:', logError);
+        }
+
         return updated;
     }
 
@@ -1466,7 +1521,9 @@ export default class AppointmentService {
         try {
             await this.appointmentLogService.logStatusChange(
                 updatedAppointment,
-                oldStatus as unknown as AppointmentLogTypeEnum
+                this.convertStatusToLogType(oldStatus),
+                this.convertStatusToLogType(updatedAppointment.status),
+                'system' // Could be enhanced to track actual user
             );
         } catch (logError) {
             console.error('Failed to create appointment log for status change:', logError);
@@ -1530,7 +1587,7 @@ export default class AppointmentService {
     public async getUserRoleStaff(address?: any, pageNum: number = 1, pageSize: number = 10): Promise<SearchPaginationResponseModel<any>> {
         try {
             // Build query for staff users
-            const staffQuery: any = { role: UserRoleEnum.STAFF };
+            const staffQuery: any = { role: { $in: [UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN] } };
 
             // Filter by address if provided
             if (address && typeof address === 'object') {
@@ -1691,7 +1748,12 @@ export default class AppointmentService {
 
             // Log the assignment
             try {
-                await this.appointmentLogService.logAppointmentCreation(updatedAppointment);
+                await this.appointmentLogService.logLabTechAssignment(
+                    updatedAppointment,
+                    labTechId,
+                    'system', // Could be enhanced to track actual user
+                    UserRoleEnum.STAFF
+                );
             } catch (logError) {
                 console.error('Failed to create appointment log for lab tech assignment:', logError);
             }
@@ -2073,6 +2135,160 @@ export default class AppointmentService {
 
         // Address is valid if it contains HCM indicators and optionally Vietnam
         return hasHcmKeyword || hasHcmDistrict || (hasVietnamKeyword && (hasHcmKeyword || hasHcmDistrict));
+    }
+
+    /**
+     * Create administrative appointment (for legal cases)
+     */
+    public async createAdministrativeAppointment(
+        caseId: string,
+        appointmentData: {
+            service_id: string;
+            appointment_date: Date;
+            collection_address?: string;
+            staff_id?: string;
+            laboratory_technician_id?: string;
+            participants: string[]; // IDs of participants
+        },
+        createdByUserId: string
+    ): Promise<IAppointment> {
+        try {
+            // Verify administrative case exists and is approved
+            const adminCase = await this.administrativeCaseService.getAdministrativeCaseById(caseId);
+            if (!adminCase) {
+                throw new HttpException(HttpStatus.BadRequest, 'Administrative case not found');
+            }
+
+            if (adminCase.status !== 'approved') {
+                throw new HttpException(
+                    HttpStatus.BadRequest,
+                    'Administrative case must be approved before scheduling appointment'
+                );
+            }
+
+            // Validate service
+            const service = await this.serviceService.getServiceById(appointmentData.service_id);
+            if (!service) {
+                throw new HttpException(HttpStatus.BadRequest, 'Service not found');
+            }
+
+            // Create appointment with administrative type
+            const newAppointment = {
+                user_id: undefined as unknown as string, // No specific user for administrative appointments
+                service_id: appointmentData.service_id,
+                appointment_date: appointmentData.appointment_date,
+                type: TypeEnum.ADMINISTRATIVE,
+                collection_address: appointmentData.collection_address,
+                status: AppointmentStatusEnum.AUTHORIZED, // Pre-authorized by agency
+                payment_status: PaymentStatusEnum.GOVERNMENT_FUNDED,
+                payment_stage: AppointmentPaymentStageEnum.GOVERNMENT_PAID as unknown as IAppointment['payment_stage'],
+                total_amount: 0, // Government funded
+                deposit_amount: 0,
+                amount_paid: 0,
+                administrative_case_id: caseId,
+                staff_id: appointmentData.staff_id,
+                laboratory_technician_id: appointmentData.laboratory_technician_id,
+                agency_contact_email: adminCase.agency_contact_email,
+                created_at: new Date(),
+                updated_at: new Date()
+            };
+
+            const appointment = await this.appointmentRepository.create(newAppointment);
+
+            // Update administrative case with appointment ID
+            await this.administrativeCaseService.addAppointmentToCase(caseId, appointment._id);
+
+            // Create administrative payment record (government funded)
+            await this.paymentService.createAdministrativePayment(appointment._id, createdByUserId);
+
+            // Send notification to agency
+            try {
+                await this.sendAdministrativeAppointmentNotification(appointment, adminCase);
+            } catch (emailError) {
+                console.error('Failed to send administrative appointment notification:', emailError);
+            }
+
+            return appointment;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error creating administrative appointment');
+        }
+    }
+
+    /**
+     * Send notification to agency about appointment scheduling
+     */
+    private async sendAdministrativeAppointmentNotification(appointment: any, adminCase: any): Promise<void> {
+        try {
+            const emailDetails = {
+                toMail: adminCase.agency_contact_email,
+                subject: `DNA Testing Appointment Scheduled - Case ${adminCase.case_number}`,
+                html: `
+                    <h2>DNA Testing Appointment Scheduled</h2>
+                    <p>Dear ${adminCase.agency_contact_name},</p>
+                    <p>The DNA testing appointment for case <strong>${adminCase.case_number}</strong> has been scheduled.</p>
+                    
+                    <h3>Appointment Details:</h3>
+                    <ul>
+                        <li><strong>Date & Time:</strong> ${new Date(appointment.appointment_date).toLocaleString()}</li>
+                        <li><strong>Type:</strong> Administrative</li>
+                        <li><strong>Collection Address:</strong> ${appointment.collection_address || 'At facility'}</li>
+                        <li><strong>Case Type:</strong> ${adminCase.case_type}</li>
+                        <li><strong>Authorization Code:</strong> ${adminCase.authorization_code || 'Pending'}</li>
+                    </ul>
+                    
+                    <h3>Next Steps:</h3>
+                    <p>1. Ensure all participants are prepared for sample collection</p>
+                    <p>2. Required documents should be available during appointment</p>
+                    <p>3. Results will be delivered according to specified method</p>
+                    
+                    <p>If you need to make any changes, please contact us immediately.</p>
+                    
+                    <p>Best regards,<br/>
+                    Bloodline DNA Testing Service</p>
+                `
+            };
+
+            await sendMail(emailDetails);
+        } catch (error) {
+            console.error('Error sending administrative appointment notification:', error);
+        }
+    }
+
+    /**
+     * Update administrative case status based on appointment progress
+     */
+    public async updateAdministrativeCaseProgress(appointmentId: string, newStatus: AppointmentStatusEnum): Promise<void> {
+        try {
+            const appointment = await this.appointmentRepository.findById(appointmentId);
+            if (!appointment || !appointment.administrative_case_id) {
+                return;
+            }
+
+            let caseStatus = null;
+            switch (newStatus) {
+                case AppointmentStatusEnum.SAMPLE_COLLECTED:
+                    caseStatus = 'in_progress';
+                    break;
+                case AppointmentStatusEnum.TESTING:
+                    caseStatus = 'in_progress';
+                    break;
+                case AppointmentStatusEnum.COMPLETED:
+                    caseStatus = 'completed';
+                    break;
+            }
+
+            if (caseStatus) {
+                await this.administrativeCaseService.updateCaseStatus(
+                    appointment.administrative_case_id,
+                    caseStatus
+                );
+            }
+        } catch (error) {
+            console.error('Error updating administrative case progress:', error);
+        }
     }
 }
 

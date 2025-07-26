@@ -2,7 +2,7 @@
  * @swagger
  * tags:
  *   name: appointment-logs
- *   description: Appointment and consultation logging APIs
+ *   description: Appointment log management and tracking APIs
  */
 
 /**
@@ -101,18 +101,25 @@
 
 /**
  * @swagger
- * /api/appointment-logs/search:
+ * /api/appointment-logs/appointment/{appointmentId}:
  *   get:
  *     tags:
  *       - appointment-logs
- *     summary: Search appointment and consultation logs (Admin/Manager only)
+ *     summary: Get logs for a specific appointment
  *     description: |
- *       Retrieve paginated list of appointment and consultation activity logs with filtering options.
- *       Includes logs for appointments, consultations, status changes, and staff assignments.
- *     operationId: searchAppointmentLogs
+ *       Retrieve paginated logs for a specific appointment including all status changes,
+ *       staff assignments, check-ins, and administrative actions.
+ *     operationId: getAppointmentLogs
  *     security:
  *       - Bearer: []
  *     parameters:
+ *       - in: path
+ *         name: appointmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Appointment ID
+ *         example: "60d0fe4f5311236168a109ce"
  *       - in: query
  *         name: pageNum
  *         schema:
@@ -130,68 +137,6 @@
  *           maximum: 100
  *         description: Number of items per page
  *         example: 10
- *       - in: query
- *         name: customer_id
- *         schema:
- *           type: string
- *           pattern: '^[0-9a-fA-F]{24}$'
- *         description: Filter by customer ID (MongoDB ObjectId)
- *         example: "60d0fe4f5311236168a109ca"
- *       - in: query
- *         name: staff_id
- *         schema:
- *           type: string
- *           pattern: '^[0-9a-fA-F]{24}$'
- *         description: Filter by staff ID (MongoDB ObjectId)
- *         example: "60d0fe4f5311236168a109cb"
- *       - in: query
- *         name: appointment_id
- *         schema:
- *           type: string
- *           pattern: '^[0-9a-fA-F]{24}$'
- *         description: Filter by appointment ID (MongoDB ObjectId)
- *         example: "60d0fe4f5311236168a109cd"
- *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *           enum: [self, facility, home]
- *         description: Filter by appointment/consultation type
- *         example: "home"
- *       - in: query
- *         name: old_status
- *         schema:
- *           type: string
- *           enum: [pending, confirmed, sample_assigned, sample_collected, sample_received, testing, completed, cancelled, sample_created]
- *         description: Filter by previous status
- *         example: "pending"
- *       - in: query
- *         name: new_status
- *         schema:
- *           type: string
- *           enum: [pending, confirmed, sample_assigned, sample_collected, sample_received, testing, completed, cancelled, sample_created]
- *         description: Filter by new status
- *         example: "confirmed"
- *       - in: query
- *         name: start_date
- *         schema:
- *           type: string
- *           format: date
- *         description: Filter logs from this date (YYYY-MM-DD)
- *         example: "2024-01-01"
- *       - in: query
- *         name: end_date
- *         schema:
- *           type: string
- *           format: date
- *         description: Filter logs until this date (YYYY-MM-DD)
- *         example: "2024-12-31"
- *       - in: query
- *         name: search_term
- *         schema:
- *           type: string
- *         description: Search in log notes
- *         example: "consultation"
  *     responses:
  *       200:
  *         description: Appointment logs retrieved successfully
@@ -199,116 +144,204 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/AppointmentLogListResponse'
- *             examples:
- *               success:
- *                 summary: Successful response with logs
- *                 value:
- *                   status: "success"
- *                   message: "Appointment logs retrieved successfully"
- *                   data:
- *                     pageData:
- *                       - _id: "60d0fe4f5311236168a109ce"
- *                         customer_id: "60d0fe4f5311236168a109ca"
- *                         staff_id: "60d0fe4f5311236168a109cb"
- *                         appointment_id: "60d0fe4f5311236168a109cd"
- *                         old_status: "pending"
- *                         new_status: "confirmed"
- *                         type: "home"
- *                         notes: "Appointment confirmed by staff member"
- *                         created_at: "2024-01-15T10:00:00.000Z"
- *                       - _id: "60d0fe4f5311236168a109cf"
- *                         staff_id: "60d0fe4f5311236168a109cb"
- *                         old_status: "pending"
- *                         new_status: "pending"
- *                         type: "home"
- *                         notes: "Consultation request created for Nguyễn Văn A - Subject: Tư vấn về xét nghiệm DNA"
- *                         created_at: "2024-01-15T09:30:00.000Z"
- *                     pageInfo:
- *                       totalItems: 100
- *                       totalPages: 10
- *                       pageNum: 1
- *                       pageSize: 10
  *       401:
  *         description: Unauthorized - Authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
- *         description: Forbidden - Admin/Manager access required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *         description: Forbidden - Insufficient permissions
+ *       404:
+ *         description: Appointment not found
  *       500:
  *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *
- * /api/appointment-logs/{id}:
+ */
+
+/**
+ * @swagger
+ * /api/appointment-logs/appointment/{appointmentId}/timeline:
  *   get:
  *     tags:
  *       - appointment-logs
- *     summary: Get appointment log by ID (Admin/Manager only)
- *     description: Retrieve detailed information about a specific appointment or consultation log entry
- *     operationId: getAppointmentLogById
+ *     summary: Get chronological timeline for appointment
+ *     description: |
+ *       Retrieve complete chronological activity timeline for an appointment,
+ *       showing all actions in the order they occurred.
+ *     operationId: getAppointmentTimeline
  *     security:
  *       - Bearer: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: appointmentId
  *         required: true
  *         schema:
  *           type: string
- *           pattern: '^[0-9a-fA-F]{24}$'
- *         description: Log entry ID (MongoDB ObjectId)
+ *         description: Appointment ID
  *         example: "60d0fe4f5311236168a109ce"
  *     responses:
  *       200:
- *         description: Log entry details retrieved successfully
+ *         description: Appointment timeline retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: "success"
- *                 message:
- *                   type: string
- *                   example: "Appointment log retrieved successfully"
- *                 data:
- *                   $ref: '#/components/schemas/AppointmentLogResponse'
- *       400:
- *         description: Invalid log ID format
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *               $ref: '#/components/schemas/AppointmentTimelineResponse'
  *       401:
  *         description: Unauthorized - Authentication required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
- *         description: Forbidden - Admin/Manager access required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *         description: Forbidden - Insufficient permissions
  *       404:
- *         description: Log entry not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *         description: Appointment not found
  *       500:
  *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment-logs/administrative-case/{caseId}:
+ *   get:
+ *     tags:
+ *       - appointment-logs
+ *     summary: Get logs for an administrative case
+ *     description: |
+ *       Retrieve paginated logs for all appointments associated with a specific
+ *       administrative/legal case, including case progress updates and agency notifications.
+ *     operationId: getAdministrativeCaseLogs
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Administrative case ID
+ *         example: "60d0fe4f5311236168a109ce"
+ *       - in: query
+ *         name: pageNum
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination
+ *         example: 1
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of items per page
+ *         example: 10
+ *     responses:
+ *       200:
+ *         description: Administrative case logs retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *               $ref: '#/components/schemas/AppointmentLogListResponse'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Insufficient permissions (Admin/Manager/Staff only)
+ *       404:
+ *         description: Administrative case not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment-logs/action/{action}:
+ *   get:
+ *     tags:
+ *       - appointment-logs
+ *     summary: Get logs by action type
+ *     description: |
+ *       Retrieve paginated logs filtered by specific action type.
+ *       Useful for analyzing patterns and generating reports.
+ *     operationId: getLogsByAction
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: action
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [create, update_status, assign_staff, assign_lab_tech, checkin, add_note, confirm, cancel, authorize, progress_update, agency_notification]
+ *         description: Action type to filter by
+ *         example: "checkin"
+ *       - in: query
+ *         name: pageNum
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Page number for pagination
+ *         example: 1
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Number of items per page
+ *         example: 10
+ *     responses:
+ *       200:
+ *         description: Logs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AppointmentLogListResponse'
+ *       400:
+ *         description: Invalid action type
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Insufficient permissions (Admin/Manager only)
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment-logs/statistics:
+ *   get:
+ *     tags:
+ *       - appointment-logs
+ *     summary: Get log statistics for dashboard
+ *     description: |
+ *       Retrieve statistical data about appointment logs for dashboard and reporting purposes.
+ *       Includes counts by action type, status, and administrative appointments.
+ *     operationId: getLogStatistics
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for statistics (YYYY-MM-DD)
+ *         example: "2024-01-01"
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for statistics (YYYY-MM-DD)
+ *         example: "2024-12-31"
+ *     responses:
+ *       200:
+ *         description: Log statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/LogStatisticsResponse'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Insufficient permissions (Admin/Manager only)
+ *       500:
+ *         description: Internal server error
  */

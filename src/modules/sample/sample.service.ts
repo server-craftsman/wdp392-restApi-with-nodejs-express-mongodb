@@ -4,7 +4,7 @@ import { HttpException } from '../../core/exceptions';
 import { IPersonInfo, ISample } from './sample.interface';
 import { SampleStatusEnum, SampleTypeEnum, CollectionMethodEnum } from './sample.enum';
 import SampleRepository from './sample.repository';
-import { AppointmentLogService } from '../appointment_log';
+import AppointmentLogService from '../appointment_log/appointment_log.service';
 import { AppointmentLogTypeEnum } from '../appointment_log/appointment_log.enum';
 import AppointmentService from '../appointment/appointment.service';
 import { AppointmentStatusEnum } from '../appointment/appointment.enum';
@@ -134,13 +134,44 @@ export default class SampleService {
     private readonly sampleRepository: SampleRepository;
     private readonly appointmentLogService: AppointmentLogService;
     private readonly kitService: KitService;
-    private readonly appointmentService: AppointmentService;
+    private appointmentService?: AppointmentService;
 
     constructor() {
         this.sampleRepository = new SampleRepository();
         this.appointmentLogService = new AppointmentLogService();
         this.kitService = new KitService();
-        this.appointmentService = new AppointmentService();
+    }
+
+    /**
+     * Lazy load AppointmentService to avoid circular dependency
+     */
+    private getAppointmentService(): AppointmentService {
+        if (!this.appointmentService) {
+            this.appointmentService = new AppointmentService();
+        }
+        return this.appointmentService;
+    }
+
+    /**
+     * Convert AppointmentStatusEnum to AppointmentLogTypeEnum
+     */
+    private convertStatusToLogType(status: any): AppointmentLogTypeEnum {
+        // Map appointment status to log type
+        const statusMap: Record<string, AppointmentLogTypeEnum> = {
+            'pending': AppointmentLogTypeEnum.PENDING,
+            'confirmed': AppointmentLogTypeEnum.CONFIRMED,
+            'sample_assigned': AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
+            'sample_collected': AppointmentLogTypeEnum.SAMPLE_COLLECTED,
+            'sample_received': AppointmentLogTypeEnum.SAMPLE_RECEIVED,
+            'testing': AppointmentLogTypeEnum.TESTING,
+            'completed': AppointmentLogTypeEnum.COMPLETED,
+            'cancelled': AppointmentLogTypeEnum.CANCELLED,
+            'awaiting_authorization': AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
+            'authorized': AppointmentLogTypeEnum.AUTHORIZED,
+            'ready_for_collection': AppointmentLogTypeEnum.READY_FOR_COLLECTION
+        };
+
+        return statusMap[status] || AppointmentLogTypeEnum.PENDING;
     }
 
     /**
@@ -167,7 +198,7 @@ export default class SampleService {
             console.log('Extracted appointment ID:', appointmentId);
 
             // Verify that the sample belongs to the user making the request
-            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
 
             // Log for debugging
             console.log('Sample appointment_id:', sample.appointment_id, 'type:', typeof sample.appointment_id);
@@ -216,7 +247,7 @@ export default class SampleService {
 
             // Update appointment status to SAMPLE_COLLECTED if not already
             if (appointment.status !== AppointmentStatusEnum.SAMPLE_COLLECTED) {
-                await this.appointmentService.updateAppointmentStatus(
+                await this.getAppointmentService().updateAppointmentStatus(
                     appointment._id.toString(),
                     AppointmentStatusEnum.SAMPLE_COLLECTED
                 );
@@ -225,7 +256,9 @@ export default class SampleService {
                 try {
                     await this.appointmentLogService.logStatusChange(
                         appointment,
-                        AppointmentLogTypeEnum.SAMPLE_COLLECTED
+                        this.convertStatusToLogType(appointment.status),
+                        AppointmentLogTypeEnum.SAMPLE_COLLECTED,
+                        userId
                     );
                 } catch (logError) {
                     console.error('Failed to create appointment log for sample submission:', logError);
@@ -317,7 +350,7 @@ export default class SampleService {
             }
 
             // Update appointment status to SAMPLE_RECEIVED
-            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
 
             // Log for debugging
             console.log('Sample appointment_id:', sample.appointment_id, 'type:', typeof sample.appointment_id);
@@ -335,7 +368,7 @@ export default class SampleService {
             }
 
             if (appointment.status !== AppointmentStatusEnum.SAMPLE_RECEIVED) {
-                await this.appointmentService.updateAppointmentStatus(
+                await this.getAppointmentService().updateAppointmentStatus(
                     appointment._id.toString(),
                     AppointmentStatusEnum.SAMPLE_RECEIVED
                 );
@@ -344,7 +377,9 @@ export default class SampleService {
                 try {
                     await this.appointmentLogService.logStatusChange(
                         appointment,
-                        AppointmentLogTypeEnum.SAMPLE_RECEIVED
+                        this.convertStatusToLogType(appointment.status),
+                        AppointmentLogTypeEnum.SAMPLE_RECEIVED,
+                        staffId
                     );
                 } catch (logError) {
                     console.error('Failed to create appointment log for sample reception:', logError);
@@ -453,7 +488,7 @@ export default class SampleService {
             console.log('Finding samples for appointment ID:', appointmentId);
 
             // Verify that the appointment exists
-            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
 
             // Extract the ID to ensure we're using a consistent format
             const appointmentIdStr = appointment._id.toString();
@@ -513,7 +548,7 @@ export default class SampleService {
             }
 
             // Get appointment data for logging
-            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
 
             // Create samples with assigned kits
             const samples: ISample[] = [];
@@ -569,7 +604,7 @@ export default class SampleService {
 
             // Log the sample creation event
             try {
-                await this.appointmentLogService.logSampleCreation(appointment, samples);
+                await this.appointmentLogService.logAppointmentCreation(appointment, 'system', UserRoleEnum.CUSTOMER || UserRoleEnum.STAFF);
                 console.log(`Successfully logged sample creation for appointment ${appointmentId}`);
             } catch (logError) {
                 console.error('Failed to create log for sample creation:', logError);
@@ -599,7 +634,7 @@ export default class SampleService {
             }
 
             // Get the appointment
-            const appointment = await this.appointmentService.getAppointmentById(addSampleData.appointment_id);
+            const appointment = await this.getAppointmentService().getAppointmentById(addSampleData.appointment_id);
             if (!appointment) {
                 throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
             }
@@ -684,11 +719,15 @@ export default class SampleService {
             }
 
             // Log the sample addition
-            await this.appointmentLogService.logSampleCreation(appointment, samples);
+            try {
+                await this.appointmentLogService.logAppointmentCreation(appointment, userId, UserRoleEnum.CUSTOMER);
+            } catch (logError) {
+                console.error('Failed to log sample addition:', logError);
+            }
 
             // Change appointment status to SAMPLE_ASSIGNED if not already
             if (appointment.status !== AppointmentStatusEnum.SAMPLE_ASSIGNED) {
-                await this.appointmentService.updateAppointmentStatus(
+                await this.getAppointmentService().updateAppointmentStatus(
                     addSampleData.appointment_id,
                     AppointmentStatusEnum.SAMPLE_ASSIGNED
                 );
@@ -696,7 +735,9 @@ export default class SampleService {
                 try {
                     await this.appointmentLogService.logStatusChange(
                         appointment,
-                        AppointmentLogTypeEnum.SAMPLE_ASSIGNED
+                        this.convertStatusToLogType(appointment.status),
+                        AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
+                        userId
                     );
                 } catch (logError) {
                     console.error('Failed to create appointment log for SAMPLE_ASSIGNED:', logError);
@@ -754,7 +795,7 @@ export default class SampleService {
             // Verify authorization and validate samples for each appointment
             for (const [appointmentId, appointmentSamples] of samplesByAppointment.entries()) {
                 // Verify that the samples belong to the user making the request
-                const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+                const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
                 const appointmentUserId = extractUserIdFromAppointment(appointment);
 
                 if (!areIdsEqual(appointmentUserId, userId)) {
@@ -801,11 +842,11 @@ export default class SampleService {
 
             // Update appointment status and kit status for each appointment
             for (const [appointmentId, appointmentSamples] of samplesByAppointment.entries()) {
-                const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+                const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
 
                 // Update appointment status to SAMPLE_COLLECTED if not already
                 if (appointment.status !== AppointmentStatusEnum.SAMPLE_COLLECTED) {
-                    await this.appointmentService.updateAppointmentStatus(
+                    await this.getAppointmentService().updateAppointmentStatus(
                         appointmentId,
                         AppointmentStatusEnum.SAMPLE_COLLECTED
                     );
@@ -814,7 +855,9 @@ export default class SampleService {
                     try {
                         await this.appointmentLogService.logStatusChange(
                             appointment,
-                            AppointmentLogTypeEnum.SAMPLE_COLLECTED
+                            this.convertStatusToLogType(appointment.status),
+                            AppointmentLogTypeEnum.SAMPLE_COLLECTED,
+                            userId
                         );
                     } catch (logError) {
                         console.error('Failed to create appointment log for batch sample submission:', logError);
@@ -933,11 +976,11 @@ export default class SampleService {
 
             // Update appointment status for each appointment
             for (const [appointmentId, _] of samplesByAppointment.entries()) {
-                const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+                const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
 
                 // Update appointment status to SAMPLE_RECEIVED if not already
                 if (appointment.status !== AppointmentStatusEnum.SAMPLE_RECEIVED) {
-                    await this.appointmentService.updateAppointmentStatus(
+                    await this.getAppointmentService().updateAppointmentStatus(
                         appointmentId,
                         AppointmentStatusEnum.SAMPLE_RECEIVED
                     );
@@ -946,7 +989,9 @@ export default class SampleService {
                     try {
                         await this.appointmentLogService.logStatusChange(
                             appointment,
-                            AppointmentLogTypeEnum.SAMPLE_RECEIVED
+                            this.convertStatusToLogType(appointment.status),
+                            AppointmentLogTypeEnum.SAMPLE_RECEIVED,
+                            staffId
                         );
                     } catch (logError) {
                         console.error('Failed to create appointment log for batch sample reception:', logError);
@@ -1008,7 +1053,7 @@ export default class SampleService {
             // but customers can only upload images for their own samples
             if (userRole !== UserRoleEnum.STAFF && userRole !== UserRoleEnum.LABORATORY_TECHNICIAN) {
                 // For customers, verify that the sample belongs to the user making the request
-                const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+                const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
                 const appointmentUserId = extractUserIdFromAppointment(appointment);
 
                 if (!areIdsEqual(appointmentUserId, userId)) {
@@ -1308,22 +1353,95 @@ export default class SampleService {
      * Collect sample at facility
      */
     public async collectSampleAtFacility(model: CollectSampleDto, staff_id: string): Promise<ISample[]> {
-        const appointment = await this.appointmentService.getAppointmentById(model.appointment_id);
+        const appointment = await this.getAppointmentService().getAppointmentById(model.appointment_id);
         if (!appointment) {
             throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
         }
 
-        // if (appointment.status === AppointmentStatusEnum.PENDING) {
-        //     throw new HttpException(HttpStatus.BadRequest, 'Appointment must be confirmed or pending before collecting sample');
-        // }
-
-        if (appointment.status !== AppointmentStatusEnum.CONFIRMED && appointment.status !== AppointmentStatusEnum.PENDING) {
+        if (appointment.status !== AppointmentStatusEnum.CONFIRMED && appointment.status !== AppointmentStatusEnum.PENDING && appointment.status !== AppointmentStatusEnum.AUTHORIZED && appointment.status !== AppointmentStatusEnum.READY_FOR_COLLECTION) {
             throw new HttpException(HttpStatus.BadRequest, 'Appointment must be confirmed or pending before collecting sample');
         }
 
-        // Validate that number of sample types matches number of person info entries
-        if (model.type.length !== model.person_info.length) {
-            throw new HttpException(HttpStatus.BadRequest, 'Number of sample types must match number of person information entries');
+        let personInfoList: any[] = [];
+
+        // Check if this is an administrative appointment
+        if (appointment.administrative_case_id) {
+            console.log('This is an administrative appointment, fetching participants from case...');
+
+            try {
+                // Import AdministrativeCasesService locally to avoid circular dependency
+                const AdministrativeCasesService = require('../administrative_cases/administrative_cases.service').default;
+                const adminCasesService = new AdministrativeCasesService();
+
+                // Get the administrative case
+                const adminCase = await adminCasesService.getAdministrativeCaseById(appointment.administrative_case_id);
+                if (!adminCase) {
+                    throw new HttpException(HttpStatus.NotFound, 'Administrative case not found');
+                }
+
+                console.log(`Found administrative case: ${adminCase.case_number} with ${adminCase.participants?.length || 0} participants`);
+
+                // Extract person_info from participants
+                if (adminCase.participants && adminCase.participants.length > 0) {
+                    personInfoList = adminCase.participants.map((participant: any) => ({
+                        name: participant.name || 'Unknown',
+                        relationship: participant.relationship || '',
+                        identity_document: participant.id_number || '',
+                        phone_number: participant.phone || '',
+                        nationality: 'Vietnamese', // Default for administrative cases
+                        birth_place: participant.address || ''
+                    }));
+
+                    console.log(`Mapped ${personInfoList.length} participants to person_info`);
+                } else {
+                    console.log('No participants found in administrative case, using provided person_info');
+                    personInfoList = model.person_info || [];
+                }
+
+                // Ensure we have the right number of person_info entries for sample types
+                if (personInfoList.length < model.type.length) {
+                    console.log(`Not enough participants (${personInfoList.length}) for sample types (${model.type.length}), padding with defaults`);
+
+                    // Pad with default person info if needed
+                    while (personInfoList.length < model.type.length) {
+                        personInfoList.push({
+                            name: `Participant ${personInfoList.length + 1}`,
+                            relationship: 'Unknown',
+                            nationality: 'Vietnamese'
+                        });
+                    }
+                }
+
+                // Trim if we have too many
+                if (personInfoList.length > model.type.length) {
+                    console.log(`Too many participants (${personInfoList.length}) for sample types (${model.type.length}), trimming`);
+                    personInfoList = personInfoList.slice(0, model.type.length);
+                }
+
+            } catch (adminError) {
+                console.error('Error fetching administrative case participants:', adminError);
+                // Fall back to provided person_info
+                personInfoList = model.person_info || [];
+            }
+        } else {
+            // For regular appointments, use provided person_info
+            console.log('Regular appointment, using provided person_info');
+            personInfoList = model.person_info || [];
+        }
+
+        // Validate that we have person info for each sample type
+        if (personInfoList.length === 0) {
+            throw new HttpException(
+                HttpStatus.BadRequest,
+                'No person information available. For administrative appointments, ensure the case has participants.'
+            );
+        }
+
+        if (personInfoList.length !== model.type.length) {
+            throw new HttpException(
+                HttpStatus.BadRequest,
+                `Number of person information entries (${personInfoList.length}) must match number of sample types (${model.type.length})`
+            );
         }
 
         // Get available kits
@@ -1357,23 +1475,26 @@ export default class SampleService {
                 collection_method: CollectionMethodEnum.FACILITY,
                 collection_date: model.collection_date ? new Date(model.collection_date) : new Date(),
                 status: SampleStatusEnum.PENDING,
-                person_info: model.person_info[i] as IPersonInfo,
+                person_info: personInfoList[i] as IPersonInfo,
                 created_at: new Date(),
                 updated_at: new Date(),
                 created_by: staff_id,
                 updated_by: staff_id
             };
 
+            console.log(`Creating sample ${i + 1} with person_info:`, personInfoList[i]);
+
             const sample = await this.sampleRepository.create(sampleData);
             samples.push(sample);
         }
 
         // Update appointment status to SAMPLE_COLLECTED
-        await this.appointmentService.updateAppointmentStatus(
+        await this.getAppointmentService().updateAppointmentStatus(
             model.appointment_id,
             AppointmentStatusEnum.SAMPLE_COLLECTED
         );
 
+        console.log(`Successfully collected ${samples.length} samples at facility`);
         return samples;
     }
 } 

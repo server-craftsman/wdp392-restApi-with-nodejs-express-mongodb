@@ -10,6 +10,9 @@ import AppointmentService from './appointment.service';
 import AppointmentRepository from './appointment.repository';
 import { CreateAppointmentDto } from './dtos/createAppointment.dto';
 import { CreateConsultationDto } from './dtos/createConsultation.dto';
+import AdministrativeAppointmentController from './administrative-appointment.controller';
+import AdministrativeAppointmentService from './administrative-appointment.service';
+
 
 export {
     AppointmentSchema,
@@ -27,5 +30,7 @@ export {
     AppointmentService,
     AppointmentRepository,
     CreateAppointmentDto,
-    CreateConsultationDto
+    CreateConsultationDto,
+    AdministrativeAppointmentController,
+    AdministrativeAppointmentService
 }; 

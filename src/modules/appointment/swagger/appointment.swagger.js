@@ -1008,9 +1008,9 @@
  *   put:
  *     tags:
  *       - appointments
- *     summary: Unassign staff from appointment (Manager/Admin only)
- *     description: Remove the assigned staff from an appointment and update the slot's assigned_count
- *     operationId: unassignStaffFromAppointment
+ *     summary: Unassign staff from an appointment
+ *     description: Remove the assigned staff from an appointment. This will also update the slot availability.
+ *     operationId: unassignStaff
  *     security:
  *       - Bearer: []
  *     parameters:
@@ -1032,19 +1032,240 @@
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 data:
- *                   $ref: '#/components/schemas/AppointmentResponse'
  *                 message:
  *                   type: string
  *                   example: "Staff unassigned successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/Appointment'
  *       400:
- *         description: Invalid appointment ID format
+ *         description: Bad request
  *       401:
- *         description: Unauthorized - Authentication required
+ *         description: Unauthorized
  *       403:
- *         description: Forbidden - Manager/Admin access required
+ *         description: Forbidden
  *       404:
  *         description: Appointment not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment/administrative/{caseId}:
+ *   post:
+ *     tags:
+ *       - administrative-appointments
+ *     summary: Create administrative appointment for legal case
+ *     description: |
+ *       Create a DNA testing appointment for an approved administrative/legal case.
+ *       This endpoint is used by staff to schedule appointments for government/court-ordered DNA tests.
+ *       The appointment will be automatically set as government-funded with no cost to the agency.
+ *     operationId: createAdministrativeAppointment
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Administrative case ID
+ *         example: "60d0fe4f5311236168a109ce"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateAdministrativeAppointmentRequest'
+ *           example:
+ *             service_id: "6880ff47cda9a9e0a4c528e1"
+ *             user_id: "68810ddb8c84f0da10721596"
+ *             collection_address: "123 Main St, Ho Chi Minh City"
+ *             staff_id: "60d0fe4f5311236168a109cd"
+ *             laboratory_technician_id: "68810d92071ec5fbf580ec89"
+ *     responses:
+ *       201:
+ *         description: Administrative appointment created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Administrative appointment created successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/AdministrativeAppointmentResponse'
+ *       400:
+ *         description: |
+ *           Bad request - Validation failed or case not approved:
+ *           - Missing required fields (service_id, user_id)
+ *           - Invalid appointment_date format (must be ISO 8601 date string)
+ *           - Case must be approved before scheduling appointment
+ *           - Invalid service_id or user_id
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed: appointment_date must be a valid ISO 8601 date string"
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       404:
+ *         description: Administrative case or service not found
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment/administrative/{caseId}/appointments:
+ *   get:
+ *     tags:
+ *       - administrative-appointments
+ *     summary: Get all appointments for an administrative case
+ *     description: |
+ *       Retrieve all appointments associated with a specific administrative case.
+ *       This includes both active and cancelled appointments for tracking purposes.
+ *     operationId: getAppointmentsByCase
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Administrative case ID
+ *         example: "60d0fe4f5311236168a109ce"
+ *     responses:
+ *       200:
+ *         description: Case appointments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Case appointments retrieved successfully"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/AdministrativeAppointmentResponse'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment/administrative/{caseId}/validate:
+ *   get:
+ *     tags:
+ *       - administrative-appointments
+ *     summary: Validate if appointment can be created for case
+ *     description: |
+ *       Check if a new appointment can be created for the specified administrative case.
+ *       This validates that the case is in approved status and doesn't have conflicting appointments.
+ *     operationId: validateAppointmentCreation
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: caseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Administrative case ID
+ *         example: "60d0fe4f5311236168a109ce"
+ *     responses:
+ *       200:
+ *         description: Validation completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Validation completed"
+ *                 data:
+ *                   $ref: '#/components/schemas/AppointmentValidationResponse'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/appointment/administrative/progress/{appointmentId}:
+ *   put:
+ *     tags:
+ *       - administrative-appointments
+ *     summary: Update appointment progress and case status
+ *     description: |
+ *       Update the progress of an administrative appointment and automatically sync
+ *       the corresponding administrative case status. This endpoint is typically used
+ *       by staff or lab technicians to report progress on sample collection and testing.
+ *     operationId: updateAppointmentProgress
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: path
+ *         name: appointmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Administrative appointment ID
+ *         example: "60d0fe4f5311236168a109ce"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateAppointmentProgressRequest'
+ *           example:
+ *             status: "sample_collected"
+ *     responses:
+ *       200:
+ *         description: Appointment progress updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AppointmentProgressResponse'
+ *       400:
+ *         description: Bad request - Invalid status or appointment not found
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       404:
+ *         description: Appointment not found
+ *       500:
+ *         description: Internal server error
  */
 
 /**

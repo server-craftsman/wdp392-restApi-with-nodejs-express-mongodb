@@ -1,5 +1,3 @@
-import { SampleService } from '../../sample';
-import { AppointmentService } from '../../appointment';
 import UserService from '../../user/user.service';
 import ServiceService from '../../service/service.service';
 import { TestResultReportData } from '../utils/pdfGenerator.util';
@@ -8,13 +6,39 @@ import { IResult } from '../result.interface';
 import mongoose from 'mongoose';
 import { HttpException } from '../../../core/exceptions';
 import { HttpStatus } from '../../../core/enums';
+import AdministrativeCasesService from '../../administrative_cases/administrative_cases.service';
 
 export default class ReportGeneratorService {
-    private sampleService = new SampleService();
-    private appointmentService = new AppointmentService();
+    private sampleService?: any;
+    private appointmentService?: any;
     private serviceService = new ServiceService();
     private userService = new UserService();
     private resultRepository = new ResultRepository();
+    private administrativeCasesService = new AdministrativeCasesService();
+
+
+
+    /**
+     * Lazy load SampleService to avoid circular dependency
+     */
+    private getSampleService(): any {
+        if (!this.sampleService) {
+            const { SampleService } = require('../../sample');
+            this.sampleService = new SampleService();
+        }
+        return this.sampleService;
+    }
+
+    /**
+     * Lazy load AppointmentService to avoid circular dependency
+     */
+    private getAppointmentService(): any {
+        if (!this.appointmentService) {
+            const { AppointmentService } = require('../../appointment');
+            this.appointmentService = new AppointmentService();
+        }
+        return this.appointmentService;
+    }
 
     /**
      * Collect all data needed for the test result report
@@ -41,7 +65,7 @@ export default class ReportGeneratorService {
         const sampleIds = result.sample_ids.map(id => id.toString());
 
         for (const sampleId of sampleIds) {
-            const sample = await this.sampleService.getSampleById(sampleId);
+            const sample = await this.getSampleService().getSampleById(sampleId);
             if (sample) {
                 samples.push(sample);
             }
@@ -55,7 +79,7 @@ export default class ReportGeneratorService {
         const primarySample = samples[0];
 
         // Get appointment data
-        const appointment = await this.appointmentService.getAppointmentById(result.appointment_id?.toString() || '');
+        const appointment = await this.getAppointmentService().getAppointmentById(result.appointment_id?.toString() || '');
         if (!appointment) {
             throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
         }
@@ -118,6 +142,24 @@ export default class ReportGeneratorService {
                 imageUrl: sample.person_info?.image_url
             }));
 
+        // Get administrative case information if applicable
+        let adminCaseData = {};
+        if (appointment.administrative_case_id) {
+            try {
+                const adminCase = await this.administrativeCasesService.getAdministrativeCaseById(appointment.administrative_case_id);
+
+                if (adminCase) {
+                    adminCaseData = {
+                        caseNumber: adminCase.case_number,
+                        agencyName: adminCase.requesting_agency,
+                        agencyContact: adminCase.agency_contact_name
+                    };
+                }
+            } catch (error) {
+                console.error('Error fetching administrative case for report:', error);
+            }
+        }
+
         // Compile all data
         const reportData: TestResultReportData = {
             // Result data
@@ -158,7 +200,10 @@ export default class ReportGeneratorService {
 
             // Laboratory technician data
             labTechnicianId: labTechnician._id.toString(),
-            labTechnicianName: `${labTechnician.first_name} ${labTechnician.last_name}`
+            labTechnicianName: `${labTechnician.first_name} ${labTechnician.last_name}`,
+
+            // Administrative case data
+            ...adminCaseData
         };
 
         return reportData;

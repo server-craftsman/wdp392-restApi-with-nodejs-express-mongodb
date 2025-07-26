@@ -1,5 +1,5 @@
 import ResultSchema from './result.model';
-import { IResult, ResultMatch, IResultData } from './result.interface';
+import { IResult, ICertificateRequest } from './result.interface';
 import { ResultMatchEnum } from './result.enum';
 import ResultController from './result.controller';
 import ResultService from './result.service';
@@ -10,8 +10,7 @@ import { CreateResultDto, UpdateResultDto, StartTestingDto } from './dtos';
 export {
     ResultSchema,
     IResult,
-    ResultMatch,
-    IResultData,
+    ICertificateRequest,
     ResultMatchEnum,
     ResultController,
     ResultService,

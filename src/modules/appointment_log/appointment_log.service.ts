@@ -1,7 +1,7 @@
 import { HttpStatus } from '../../core/enums';
 import { HttpException } from '../../core/exceptions';
 import { IAppointmentLog } from './appointment_log.interface';
-import { AppointmentLogTypeEnum } from './appointment_log.enum';
+import { AppointmentLogTypeEnum, AppointmentLogActionEnum } from './appointment_log.enum';
 import AppointmentLogRepository from './appointment_log.repository';
 import { IAppointment } from '../appointment/appointment.interface';
 import { SearchPaginationResponseModel } from '../../core/models';
@@ -12,326 +12,419 @@ export default class AppointmentLogService {
     private appointmentLogRepository = new AppointmentLogRepository();
 
     /**
-     * Tạo log cho sự kiện tạo appointment
-     * @param appointmentData Thông tin appointment
-     * @param oldStatus Trạng thái cũ (null cho sự kiện tạo mới)
-     * @param newStatus Trạng thái mới
+     * Convert AppointmentStatusEnum to AppointmentLogTypeEnum
+     */
+    private convertStatusToLogType(status: any): AppointmentLogTypeEnum {
+        // Map appointment status to log type
+        const statusMap: Record<string, AppointmentLogTypeEnum> = {
+            'pending': AppointmentLogTypeEnum.PENDING,
+            'confirmed': AppointmentLogTypeEnum.CONFIRMED,
+            'sample_assigned': AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
+            'sample_collected': AppointmentLogTypeEnum.SAMPLE_COLLECTED,
+            'sample_received': AppointmentLogTypeEnum.SAMPLE_RECEIVED,
+            'testing': AppointmentLogTypeEnum.TESTING,
+            'completed': AppointmentLogTypeEnum.COMPLETED,
+            'cancelled': AppointmentLogTypeEnum.CANCELLED,
+            'awaiting_authorization': AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
+            'authorized': AppointmentLogTypeEnum.AUTHORIZED,
+            'ready_for_collection': AppointmentLogTypeEnum.READY_FOR_COLLECTION
+        };
+
+        return statusMap[status] || AppointmentLogTypeEnum.PENDING;
+    }
+
+    /**
+     * Create a comprehensive appointment log entry
      */
     public async createAppointmentLog(
         appointmentData: IAppointment,
-        oldStatus: AppointmentLogTypeEnum | undefined,
-        newStatus: AppointmentLogTypeEnum
+        action: AppointmentLogActionEnum,
+        performedByUserId: string,
+        performedByRole?: string,
+        oldStatus?: AppointmentLogTypeEnum,
+        newStatus?: AppointmentLogTypeEnum,
+        notes?: string,
+        metadata?: any
     ): Promise<IAppointmentLog> {
         try {
-            const appointmentLog = await this.appointmentLogRepository.create({
+            const logData = {
                 appointment_id: appointmentData._id as any,
                 customer_id: appointmentData.user_id,
                 staff_id: appointmentData.staff_id,
+                laboratory_technician_id: appointmentData.laboratory_technician_id,
+                administrative_case_id: appointmentData.administrative_case_id,
+                agency_contact_email: appointmentData.agency_contact_email,
                 old_status: oldStatus,
-                new_status: newStatus,
-                type: appointmentData.type,
+                new_status: newStatus || oldStatus || this.convertStatusToLogType(appointmentData.status),
+                action: action,
+                type: appointmentData.type as any, // Cast to handle type mismatch
+                notes: notes,
+                metadata: metadata,
+                action_timestamp: new Date(),
+                performed_by_user_id: performedByUserId,
+                performed_by_role: performedByRole,
                 created_at: new Date(),
                 updated_at: new Date()
-            });
+            };
 
-            return appointmentLog;
+            return await this.appointmentLogRepository.create(logData);
         } catch (error) {
+            console.error('Error creating appointment log:', error);
             throw new HttpException(HttpStatus.InternalServerError, 'Error creating appointment log');
         }
     }
 
     /**
-     * Log sự kiện tạo appointment
-     * @param appointmentData Thông tin appointment mới được tạo
+     * Log appointment creation
      */
-    public async logAppointmentCreation(appointmentData: IAppointment): Promise<IAppointmentLog> {
+    public async logAppointmentCreation(
+        appointmentData: IAppointment,
+        performedByUserId: string,
+        performedByRole?: string
+    ): Promise<IAppointmentLog> {
         return this.createAppointmentLog(
             appointmentData,
-            undefined, // Không có trạng thái cũ cho sự kiện tạo mới
-            appointmentData.status as unknown as AppointmentLogTypeEnum
+            AppointmentLogActionEnum.CREATE,
+            performedByUserId,
+            performedByRole,
+            undefined,
+            this.convertStatusToLogType(appointmentData.status),
+            'Appointment created successfully'
         );
     }
 
     /**
-     * Log sự kiện thay đổi trạng thái appointment
-     * @param appointmentData Thông tin appointment đã được cập nhật
-     * @param oldStatus Trạng thái cũ
+     * Log administrative appointment creation
      */
-    public async logStatusChange(
+    public async logAdministrativeAppointmentCreation(
         appointmentData: IAppointment,
-        oldStatus: AppointmentLogTypeEnum
+        caseId: string,
+        performedByUserId: string,
+        performedByRole?: string
     ): Promise<IAppointmentLog> {
         return this.createAppointmentLog(
             appointmentData,
+            AppointmentLogActionEnum.CREATE,
+            performedByUserId,
+            performedByRole,
+            undefined,
+            this.convertStatusToLogType(appointmentData.status),
+            'Administrative appointment created for legal case',
+            {
+                case_id: caseId,
+                is_administrative: true,
+                government_funded: true
+            }
+        );
+    }
+
+    /**
+     * Log status update
+     */
+    public async logStatusUpdate(
+        appointmentData: IAppointment,
+        oldStatus: AppointmentLogTypeEnum,
+        newStatus: AppointmentLogTypeEnum,
+        performedByUserId: string,
+        performedByRole?: string,
+        notes?: string
+    ): Promise<IAppointmentLog> {
+        return this.createAppointmentLog(
+            appointmentData,
+            AppointmentLogActionEnum.UPDATE_STATUS,
+            performedByUserId,
+            performedByRole,
             oldStatus,
-            appointmentData.status as unknown as AppointmentLogTypeEnum
+            newStatus,
+            notes || `Status changed from ${oldStatus} to ${newStatus}`
         );
     }
 
     /**
-     * Lấy logs cho một appointment cụ thể
-     * @param appointmentId ID của appointment
-     * @param queryParams Tham số truy vấn cho phân trang
+     * Log staff assignment
      */
-    public async getLogsByAppointmentId(
-        appointmentId: string,
-        queryParams: any = {}
-    ): Promise<SearchPaginationResponseModel<IAppointmentLog>> {
-        if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid appointment ID');
-        }
-
-        // Xử lý tham số truy vấn
-        const { pageNum = 1, pageSize = 10 } = this.processQueryParams(queryParams);
-        const skip = (pageNum - 1) * pageSize; // Bỏ qua bao nhiêu logs
-
-        // Xây dựng truy vấn
-        const query = { appointment_id: appointmentId };
-
-        // Đếm tổng số logs
-        const totalItems = await this.appointmentLogRepository.countDocuments(query);
-        const totalPages = Math.ceil(totalItems / pageSize);
-
-        // Lấy logs với phân trang và sắp xếp theo ngày tạo (mới nhất trước)
-        const logs = await this.appointmentLogRepository.findWithPopulate(
-            query,
-            { created_at: -1 }, // Sắp xếp theo ngày tạo (mới nhất trước)
-            skip,
-            pageSize
-        );
-
-        return {
-            pageData: logs,
-            pageInfo: {
-                pageNum,
-                pageSize,
-                totalItems,
-                totalPages
-            }
-        };
-    }
-
-    /**
-     * Process query parameters
-     */
-    private processQueryParams(queryParams: any): any {
-        const { pageNum = 1, pageSize = 10, ...rest } = queryParams;
-        return {
-            pageNum: parseInt(pageNum),
-            pageSize: parseInt(pageSize),
-            ...rest
-        };
-    }
-
-    /**
-     * Log sample creation for an appointment
-     * @param appointmentData The appointment data
-     * @param samples The created samples
-     */
-    public async logSampleCreation(
+    public async logStaffAssignment(
         appointmentData: IAppointment,
-        samples: ISample[]
+        assignedStaffIds: string[],
+        performedByUserId: string,
+        performedByRole?: string
     ): Promise<IAppointmentLog> {
-        try {
-            const sampleTypes = samples.map(sample => sample.type).join(', ');
-            const notes = `Created ${samples.length} sample(s): ${sampleTypes}`;
-
-            const appointmentLog = await this.appointmentLogRepository.create({
-                appointment_id: appointmentData._id as any,
-                customer_id: appointmentData.user_id,
-                staff_id: appointmentData.staff_id,
-                old_status: appointmentData.status as unknown as AppointmentLogTypeEnum,
-                new_status: AppointmentLogTypeEnum.SAMPLE_CREATED,
-                type: appointmentData.type,
-                notes: notes,
-                created_at: new Date(),
-                updated_at: new Date()
-            });
-
-            return appointmentLog;
-        } catch (error) {
-            console.error('Error creating sample creation log:', error);
-            throw new HttpException(HttpStatus.InternalServerError, 'Error creating sample creation log');
-        }
-    }
-
-    /**
-     * Log consultation creation
-     */
-    public async logConsultationCreation(consultation: any): Promise<void> {
-        try {
-            const logData = {
-                customer_id: undefined,
-                staff_id: undefined,
-                laboratory_technician_id: undefined,
-                appointment_id: undefined,
-                old_status: AppointmentLogTypeEnum.PENDING,
-                new_status: AppointmentLogTypeEnum.PENDING,
-                type: consultation.type, // Use consultation type (HOME/FACILITY)
-                notes: `Consultation request created for ${consultation.first_name} ${consultation.last_name} - Subject: ${consultation.subject}`,
-                created_at: new Date(),
-                updated_at: new Date()
-            };
-
-            await this.appointmentLogRepository.create(logData);
-        } catch (error) {
-            console.error('Error logging consultation creation:', error);
-        }
-    }
-
-    /**
-     * Log consultation assignment
-     */
-    public async logConsultationAssignment(consultation: any, consultantId: string): Promise<void> {
-        try {
-            const logData = {
-                customer_id: undefined,
-                staff_id: consultantId,
-                laboratory_technician_id: undefined,
-                appointment_id: undefined,
-                old_status: AppointmentLogTypeEnum.PENDING,
-                new_status: AppointmentLogTypeEnum.CONFIRMED,
-                type: consultation.type,
-                notes: `Consultant assigned to consultation for ${consultation.first_name} ${consultation.last_name} - Subject: ${consultation.subject}`,
-                created_at: new Date(),
-                updated_at: new Date()
-            };
-
-            await this.appointmentLogRepository.create(logData);
-        } catch (error) {
-            console.error('Error logging consultation assignment:', error);
-        }
-    }
-
-    /**
-     * Log consultation status change
-     */
-    public async logConsultationStatusChange(consultation: any, newStatus: string): Promise<void> {
-        try {
-            let logNewStatus = AppointmentLogTypeEnum.PENDING;
-            let logOldStatus = AppointmentLogTypeEnum.PENDING;
-
-            // Map consultation status to appropriate log type
-            switch (newStatus) {
-                case 'SCHEDULED':
-                    logNewStatus = AppointmentLogTypeEnum.CONFIRMED;
-                    break;
-                case 'COMPLETED':
-                    logNewStatus = AppointmentLogTypeEnum.COMPLETED;
-                    break;
-                case 'CANCELLED':
-                    logNewStatus = AppointmentLogTypeEnum.CANCELLED;
-                    break;
-                default:
-                    logNewStatus = AppointmentLogTypeEnum.PENDING;
+        const currentStatus = this.convertStatusToLogType(appointmentData.status);
+        return this.createAppointmentLog(
+            appointmentData,
+            AppointmentLogActionEnum.ASSIGN_STAFF,
+            performedByUserId,
+            performedByRole,
+            currentStatus,
+            currentStatus,
+            `Staff assigned to appointment`,
+            {
+                assigned_staff_ids: assignedStaffIds
             }
-
-            const logData = {
-                customer_id: undefined,
-                staff_id: consultation.assigned_consultant_id,
-                laboratory_technician_id: undefined,
-                appointment_id: undefined,
-                old_status: logOldStatus,
-                new_status: logNewStatus,
-                type: consultation.type,
-                notes: `Consultation status changed to ${newStatus} for ${consultation.first_name} ${consultation.last_name} - Subject: ${consultation.subject}`,
-                created_at: new Date(),
-                updated_at: new Date()
-            };
-
-            await this.appointmentLogRepository.create(logData);
-        } catch (error) {
-            console.error('Error logging consultation status change:', error);
-        }
+        );
     }
 
     /**
-     * Search appointment/consultation logs with filters
+     * Log staff unassignment
      */
-    public async searchAppointmentLogs(queryParams: any = {}): Promise<SearchPaginationResponseModel<IAppointmentLog>> {
-        try {
-            const {
-                pageNum = 1,
-                pageSize = 10,
-                customer_id,
-                staff_id,
-                appointment_id,
-                type,
-                old_status,
-                new_status,
-                start_date,
-                end_date,
-                search_term
-            } = this.processQueryParams(queryParams);
+    public async logStaffUnassignment(
+        appointmentData: IAppointment,
+        unassignedStaffIds: string[],
+        performedByUserId: string,
+        performedByRole?: string
+    ): Promise<IAppointmentLog> {
+        const currentStatus = this.convertStatusToLogType(appointmentData.status);
+        return this.createAppointmentLog(
+            appointmentData,
+            AppointmentLogActionEnum.ASSIGN_STAFF,
+            performedByUserId,
+            performedByRole,
+            currentStatus,
+            currentStatus,
+            `Staff unassigned from appointment`,
+            {
+                unassigned_staff_ids: unassignedStaffIds
+            }
+        );
+    }
 
+    /**
+     * Log lab technician assignment
+     */
+    public async logLabTechAssignment(
+        appointmentData: IAppointment,
+        labTechId: string,
+        performedByUserId: string,
+        performedByRole?: string
+    ): Promise<IAppointmentLog> {
+        const currentStatus = this.convertStatusToLogType(appointmentData.status);
+        return this.createAppointmentLog(
+            appointmentData,
+            AppointmentLogActionEnum.ASSIGN_LAB_TECH,
+            performedByUserId,
+            performedByRole,
+            currentStatus,
+            currentStatus,
+            `Laboratory technician assigned to appointment`,
+            {
+                assigned_lab_tech_id: labTechId
+            }
+        );
+    }
+
+    /**
+     * Log check-in
+     */
+    public async logCheckin(
+        appointmentData: IAppointment,
+        performedByUserId: string,
+        performedByRole?: string,
+        checkinNote?: string,
+        location?: string
+    ): Promise<IAppointmentLog> {
+        const currentStatus = this.convertStatusToLogType(appointmentData.status);
+        return this.createAppointmentLog(
+            appointmentData,
+            AppointmentLogActionEnum.CHECKIN,
+            performedByUserId,
+            performedByRole,
+            currentStatus,
+            currentStatus,
+            checkinNote || 'Staff checked in at appointment location',
+            {
+                checkin_location: location || appointmentData.collection_address,
+                checkin_note: checkinNote
+            }
+        );
+    }
+
+    /**
+     * Log note addition
+     */
+    public async logNoteAddition(
+        appointmentData: IAppointment,
+        note: string,
+        performedByUserId: string,
+        performedByRole?: string
+    ): Promise<IAppointmentLog> {
+        const currentStatus = this.convertStatusToLogType(appointmentData.status);
+        return this.createAppointmentLog(
+            appointmentData,
+            AppointmentLogActionEnum.ADD_NOTE,
+            performedByUserId,
+            performedByRole,
+            currentStatus,
+            currentStatus,
+            `Note added: ${note}`
+        );
+    }
+
+    /**
+     * Log administrative progress update
+     */
+    public async logAdministrativeProgressUpdate(
+        appointmentData: IAppointment,
+        oldStatus: AppointmentLogTypeEnum,
+        newStatus: AppointmentLogTypeEnum,
+        caseStatusUpdate: string,
+        performedByUserId: string,
+        performedByRole?: string
+    ): Promise<IAppointmentLog> {
+        return this.createAppointmentLog(
+            appointmentData,
+            AppointmentLogActionEnum.PROGRESS_UPDATE,
+            performedByUserId,
+            performedByRole,
+            oldStatus,
+            newStatus,
+            `Administrative appointment progress updated`,
+            {
+                case_status_update: caseStatusUpdate,
+                is_administrative: true
+            }
+        );
+    }
+
+    /**
+     * Log agency notification
+     */
+    public async logAgencyNotification(
+        appointmentData: IAppointment,
+        agencyEmail: string,
+        performedByUserId: string,
+        performedByRole?: string
+    ): Promise<IAppointmentLog> {
+        const currentStatus = this.convertStatusToLogType(appointmentData.status);
+        return this.createAppointmentLog(
+            appointmentData,
+            AppointmentLogActionEnum.AGENCY_NOTIFICATION,
+            performedByUserId,
+            performedByRole,
+            currentStatus,
+            currentStatus,
+            `Notification sent to agency: ${agencyEmail}`,
+            {
+                agency_notified: true,
+                agency_email: agencyEmail
+            }
+        );
+    }
+
+    /**
+     * Get appointment logs with pagination
+     */
+    public async getAppointmentLogs(
+        appointmentId: string,
+        pageNum: number = 1,
+        pageSize: number = 10
+    ): Promise<SearchPaginationResponseModel<IAppointmentLog>> {
+        try {
+            const query = { appointment_id: appointmentId };
             const skip = (pageNum - 1) * pageSize;
 
-            const query: any = {};
+            const [logs, totalCount] = await Promise.all([
+                this.appointmentLogRepository.find(query, { created_at: -1 }, skip, pageSize),
+                this.appointmentLogRepository.countDocuments(query)
+            ]);
 
-            if (customer_id && mongoose.Types.ObjectId.isValid(customer_id)) {
-                query.customer_id = customer_id;
-            }
-            if (staff_id && mongoose.Types.ObjectId.isValid(staff_id)) {
-                query.staff_id = staff_id;
-            }
-            if (appointment_id && mongoose.Types.ObjectId.isValid(appointment_id)) {
-                query.appointment_id = appointment_id;
-            }
-            if (type) {
-                query.type = type;
-            }
-            if (old_status) {
-                query.old_status = old_status;
-            }
-            if (new_status) {
-                query.new_status = new_status;
-            }
-            if (start_date || end_date) {
-                query.created_at = {};
-                if (start_date) query.created_at.$gte = new Date(start_date);
-                if (end_date) query.created_at.$lte = new Date(end_date);
-            }
-            if (search_term) {
-                const regex = new RegExp(search_term, 'i');
-                query.notes = { $regex: regex };
-            }
+            const totalPages = Math.ceil(totalCount / pageSize);
 
-            const totalItems = await this.appointmentLogRepository.countDocuments(query);
-            const totalPages = Math.ceil(totalItems / pageSize);
-
-            const logs = await this.appointmentLogRepository.findWithPopulate(
-                query,
-                { created_at: -1 },
-                skip,
+            return new SearchPaginationResponseModel(logs, {
+                totalItems: totalCount,
+                totalPages,
+                pageNum,
                 pageSize
-            );
-
-            return {
-                pageData: logs,
-                pageInfo: {
-                    pageNum,
-                    pageSize,
-                    totalItems,
-                    totalPages
-                }
-            };
+            });
         } catch (error) {
-            console.error('Error searching appointment logs:', error);
-            throw new HttpException(HttpStatus.InternalServerError, 'Error searching appointment logs');
+            throw new HttpException(HttpStatus.InternalServerError, 'Error fetching appointment logs');
         }
     }
 
     /**
-     * Get single appointment log by ID
+     * Get administrative case logs
      */
-    public async getAppointmentLogById(logId: string): Promise<IAppointmentLog> {
-        if (!mongoose.Types.ObjectId.isValid(logId)) {
-            throw new HttpException(HttpStatus.BadRequest, 'Invalid log ID');
+    public async getAdministrativeCaseLogs(
+        caseId: string,
+        pageNum: number = 1,
+        pageSize: number = 10
+    ): Promise<SearchPaginationResponseModel<IAppointmentLog>> {
+        try {
+            const query = { administrative_case_id: caseId };
+            const skip = (pageNum - 1) * pageSize;
+
+            const [logs, totalCount] = await Promise.all([
+                this.appointmentLogRepository.find(query, { created_at: -1 }, skip, pageSize),
+                this.appointmentLogRepository.countDocuments(query)
+            ]);
+
+            const totalPages = Math.ceil(totalCount / pageSize);
+
+            return new SearchPaginationResponseModel(logs, {
+                totalItems: totalCount,
+                totalPages,
+                pageNum,
+                pageSize
+            });
+        } catch (error) {
+            throw new HttpException(HttpStatus.InternalServerError, 'Error fetching administrative case logs');
         }
-        const log = await this.appointmentLogRepository.findByIdWithPopulate(logId);
-        if (!log) {
-            throw new HttpException(HttpStatus.NotFound, 'Log entry not found');
+    }
+
+    /**
+     * Get logs by action type
+     */
+    public async getLogsByAction(
+        action: AppointmentLogActionEnum,
+        pageNum: number = 1,
+        pageSize: number = 10
+    ): Promise<SearchPaginationResponseModel<IAppointmentLog>> {
+        try {
+            const query = { action };
+            const skip = (pageNum - 1) * pageSize;
+
+            const [logs, totalCount] = await Promise.all([
+                this.appointmentLogRepository.find(query, { created_at: -1 }, skip, pageSize),
+                this.appointmentLogRepository.countDocuments(query)
+            ]);
+
+            const totalPages = Math.ceil(totalCount / pageSize);
+
+            return new SearchPaginationResponseModel(logs, {
+                totalItems: totalCount,
+                totalPages,
+                pageNum,
+                pageSize
+            });
+        } catch (error) {
+            throw new HttpException(HttpStatus.InternalServerError, 'Error fetching logs by action');
         }
-        return log;
+    }
+
+    /**
+     * Get activity timeline for appointment
+     */
+    public async getAppointmentTimeline(appointmentId: string): Promise<IAppointmentLog[]> {
+        try {
+            const query = { appointment_id: appointmentId };
+            return await this.appointmentLogRepository.find(query, { created_at: 1 });
+        } catch (error) {
+            throw new HttpException(HttpStatus.InternalServerError, 'Error fetching appointment timeline');
+        }
+    }
+
+    // Legacy methods for backward compatibility
+    public async logStatusChange(
+        appointmentData: IAppointment,
+        oldStatus: AppointmentLogTypeEnum,
+        newStatus: AppointmentLogTypeEnum,
+        performedByUserId?: string
+    ): Promise<IAppointmentLog> {
+        return this.logStatusUpdate(
+            appointmentData,
+            oldStatus,
+            newStatus,
+            performedByUserId || 'system',
+            'SYSTEM'
+        );
     }
 } 

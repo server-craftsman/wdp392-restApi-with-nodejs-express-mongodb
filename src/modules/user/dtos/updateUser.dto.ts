@@ -1,52 +1,50 @@
-import { IsDate, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsDate, IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import { IAddress } from '../user.interface';
+
 export default class UpdateUserDto {
-    constructor(
-        first_name: string,
-        last_name: string,
-        phone_number: string,
-        avatar_url: string,
-        dob: Date | string,
-        address: IAddress,
-        gender: string
-    ) {
-        this.first_name = first_name;
-        this.last_name = last_name;
-        this.phone_number = phone_number;
-        this.avatar_url = avatar_url;
-        this.dob = dob;
-        this.address = {
-            street: address.street,
-            ward: address.ward,
-            district: address.district,
-            city: address.city,
-            country: address.country
-        };
-        this.gender = gender;
-    }
-
-    @IsNotEmpty()
-    public first_name: string;
-
-    @IsNotEmpty()
-    public last_name: string;
+    @IsString()
+    @IsOptional()
+    public first_name?: string;
 
     @IsString()
-    public phone_number: string;
+    @IsOptional()
+    public last_name?: string;
+
+    @IsNumber()
+    @IsOptional()
+    @Transform(({ value }) => {
+        if (typeof value === 'string') {
+            const num = parseInt(value, 10);
+            return isNaN(num) ? value : num;
+        }
+        return value;
+    })
+    public phone_number?: number;
 
     @IsString()
-    public avatar_url: string;
+    @IsOptional()
+    public avatar_url?: string;
 
     @IsDate()
     @Type(() => Date)
-    public dob: Date | string;
+    @IsOptional()
+    public dob?: Date | string;
+
+    @IsOptional()
+    @Transform(({ value }) => {
+        if (typeof value === 'string') {
+            try {
+                return JSON.parse(value);
+            } catch {
+                return value;
+            }
+        }
+        return value;
+    })
+    public address?: IAddress | string;
 
     @IsString()
     @IsOptional()
-    public address: IAddress;
-
-    @IsString()
-    @IsOptional()
-    public gender: string;
+    public gender?: string;
 }

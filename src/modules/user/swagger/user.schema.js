@@ -36,9 +36,9 @@
  *           description: User account status (true = active, false = inactive)
  *           example: true
  *         phone_number:
- *           type: string
+ *           type: number
  *           description: User's phone number
- *           example: "+84912345678"
+ *           example: 84912345678
  *         avatar_url:
  *           type: string
  *           description: URL to user's avatar
@@ -133,9 +133,9 @@
  *           description: User role (defaults to customer if not specified)
  *           example: "customer"
  *         phone_number:
- *           type: string
+ *           type: number
  *           description: User's phone number
- *           example: "+84912345678"
+ *           example: 84912345678
  *         avatar_url:
  *           type: string
  *           description: URL to user's avatar
@@ -163,45 +163,67 @@
  *
  *     UpdateUserDto:
  *       type: object
- *       required:
- *         - first_name
- *         - last_name
  *       properties:
  *         first_name:
  *           type: string
- *           description: User's first name
+ *           description: User's first name (optional)
  *           example: "John"
  *         last_name:
  *           type: string
- *           description: User's last name
+ *           description: User's last name (optional)
  *           example: "Doe"
  *         phone_number:
- *           type: string
- *           description: User's phone number
- *           example: "+84912345678"
+ *           type: number
+ *           description: User's phone number (optional)
+ *           example: 84912345678
  *         avatar_url:
  *           type: string
- *           description: URL to user's avatar
+ *           description: URL to user's avatar (optional)
  *           example: "https://example.com/avatars/user123.jpg"
  *         dob:
  *           type: string
  *           format: date
- *           description: Date of birth
+ *           description: Date of birth (optional)
  *           example: "1990-01-15"
  *         address:
- *           type: object
- *           description: User's address
- *           example: {
- *             street: "123 Main Street",
- *             ward: "Ward 1",
- *             district: "District 1",
- *             city: "HCM",
- *             country: "Việt Nam"
- *           }
+ *           oneOf:
+ *             - type: string
+ *               description: Address as JSON string (will be parsed automatically)
+ *               example: "{\"street\":\"123 Main Street\",\"ward\":\"Ward 1\",\"district\":\"District 1\",\"city\":\"HCM\",\"country\":\"Việt Nam\"}"
+ *             - type: object
+ *               description: Address as object
+ *               properties:
+ *                 street:
+ *                   type: string
+ *                   description: Street address
+ *                   example: "123 Main Street"
+ *                 ward:
+ *                   type: string
+ *                   description: Ward/commune
+ *                   example: "Ward 1"
+ *                 district:
+ *                   type: string
+ *                   description: District
+ *                   example: "District 1"
+ *                 city:
+ *                   type: string
+ *                   description: City/province
+ *                   example: "HCM"
+ *                 country:
+ *                   type: string
+ *                   description: Country
+ *                   example: "Việt Nam"
+ *               example: {
+ *                 street: "123 Main Street",
+ *                 ward: "Ward 1",
+ *                 district: "District 1",
+ *                 city: "HCM",
+ *                 country: "Việt Nam"
+ *               }
  *         gender:
  *           type: string
  *           enum: [male, female, other]
- *           description: User's gender
+ *           description: User's gender (optional)
  *           example: "male"
  *
  *     ChangePasswordDto:

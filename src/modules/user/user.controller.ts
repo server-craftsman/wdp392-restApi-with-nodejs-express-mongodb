@@ -14,6 +14,7 @@ import { IUser } from './user.interface';
 import UserService from './user.service';
 import ReviewProfileDto from './dtos/reviewProfileDto';
 import { HttpException } from '../../core/exceptions';
+import { DataStoredInToken, UserInfoInTokenDefault } from '../auth';
 
 export default class UserController {
     private userService = new UserService();
@@ -28,7 +29,7 @@ export default class UserController {
                 'BloodlineAdmin@6969', // password admin
                 UserRoleEnum.ADMIN,
                 true,
-                '0869872830',
+                869872830,
                 '',
                 new Date(),
                 {
@@ -164,4 +165,39 @@ export default class UserController {
             next(error);
         }
     }
+
+    /**
+     * Search customer by phone number or email (for staff convenience)
+     */
+    public searchCustomerByPhoneOrEmail = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { searchTerm } = req.query;
+            const userData: DataStoredInToken = req.user as DataStoredInToken || UserInfoInTokenDefault;
+
+            // Check if user has permission (staff, manager, admin)
+            if (![UserRoleEnum.STAFF, UserRoleEnum.MANAGER, UserRoleEnum.ADMIN].includes(userData.role as UserRoleEnum)) {
+                throw new HttpException(HttpStatus.Forbidden, 'Access denied. Staff, Manager, or Admin access required.');
+            }
+
+            if (!searchTerm || typeof searchTerm !== 'string') {
+                throw new HttpException(HttpStatus.BadRequest, 'Search term is required');
+            }
+
+            const customer = await this.userService.searchCustomerByPhoneOrEmail(searchTerm);
+
+            if (!customer) {
+                res.status(HttpStatus.NotFound).json(formatResponse<null>(null, false, 'Customer not found'));
+                return;
+            }
+
+            res.status(HttpStatus.Success).json(formatResponse<IUser>(customer, true, 'Customer found successfully'));
+        } catch (error) {
+            console.error('Error in searchCustomerByPhoneOrEmail:', error);
+            if (error instanceof HttpException) {
+                res.status(error.status).json(formatResponse<string>(error.message, false));
+            } else {
+                res.status(HttpStatus.InternalServerError).json(formatResponse<string>('Internal server error', false, error instanceof Error ? error.message : 'Unknown error'));
+            }
+        }
+    };
 }

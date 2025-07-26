@@ -233,6 +233,193 @@
 
 /**
  * @swagger
+ * /api/users/search-customer:
+ *   get:
+ *     tags: [users]
+ *     summary: Search customer by phone or email (Staff convenience)
+ *     description: Search for a customer by phone number or email address. Returns customer information including their administrative cases. Accessible by Staff, Manager, and Admin only.
+ *     security:
+ *       - Bearer: []
+ *     parameters:
+ *       - in: query
+ *         name: searchTerm
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Phone number (digits only) or email address to search for
+ *         example: "john.doe@example.com"
+ *         examples:
+ *           email:
+ *             summary: Search by email
+ *             value: "john.doe@example.com"
+ *           phone:
+ *             summary: Search by phone number
+ *             value: "84912345678"
+ *     responses:
+ *       200:
+ *         description: Customer found successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Customer found successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       description: Customer ID
+ *                       example: "60d5ec9af682fbd12a0f4a1a"
+ *                     first_name:
+ *                       type: string
+ *                       description: Customer's first name
+ *                       example: "John"
+ *                     last_name:
+ *                       type: string
+ *                       description: Customer's last name
+ *                       example: "Doe"
+ *                     email:
+ *                       type: string
+ *                       description: Customer's email address
+ *                       example: "john.doe@example.com"
+ *                     phone_number:
+ *                       type: number
+ *                       description: Customer's phone number
+ *                       example: 84912345678
+ *                     role:
+ *                       type: string
+ *                       enum: [customer]
+ *                       description: Customer role
+ *                       example: "customer"
+ *                     status:
+ *                       type: boolean
+ *                       description: Account status
+ *                       example: true
+ *                     is_verified:
+ *                       type: boolean
+ *                       description: Email verification status
+ *                       example: true
+ *                     avatar_url:
+ *                       type: string
+ *                       description: Avatar URL
+ *                       example: "https://example.com/avatar.jpg"
+ *                     dob:
+ *                       type: string
+ *                       format: date
+ *                       description: Date of birth
+ *                       example: "1990-01-15"
+ *                     gender:
+ *                       type: string
+ *                       enum: [male, female, other]
+ *                       description: Gender
+ *                       example: "male"
+ *                     address:
+ *                       type: object
+ *                       description: Address information
+ *                       properties:
+ *                         street:
+ *                           type: string
+ *                           example: "123 Main Street"
+ *                         ward:
+ *                           type: string
+ *                           example: "Ward 1"
+ *                         district:
+ *                           type: string
+ *                           example: "District 1"
+ *                         city:
+ *                           type: string
+ *                           example: "HCM"
+ *                         country:
+ *                           type: string
+ *                           example: "Việt Nam"
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Account creation date
+ *                       example: "2023-06-01T09:30:00.000Z"
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Last update date
+ *                       example: "2023-07-15T14:20:00.000Z"
+ *                     administrative_cases:
+ *                       type: array
+ *                       description: Customer's administrative cases
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             description: Case ID
+ *                             example: "60d5ec9af682fbd12a0f4a1b"
+ *                           case_number:
+ *                             type: string
+ *                             description: Case number
+ *                             example: "PL-2024-001"
+ *                           case_type:
+ *                             type: string
+ *                             enum: [paternity, maternity, sibling, grandparent, other]
+ *                             description: Type of DNA test case
+ *                             example: "paternity"
+ *                           status:
+ *                             type: string
+ *                             enum: [pending, approved, rejected, completed]
+ *                             description: Case status
+ *                             example: "approved"
+ *                           requesting_agency:
+ *                             type: string
+ *                             description: Requesting agency name
+ *                             example: "Tòa án nhân dân TP.HCM"
+ *                           created_at:
+ *                             type: string
+ *                             format: date-time
+ *                             description: Case creation date
+ *                             example: "2024-01-15T00:00:00.000Z"
+ *       400:
+ *         description: Bad request - Search term is required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Search term is required"
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Staff, Manager, or Admin access required
+ *       404:
+ *         description: Customer not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Customer not found"
+ *                 data:
+ *                   type: null
+ *                   example: null
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
  * /api/users/{id}:
  *   get:
  *     summary: Get user by ID
@@ -266,7 +453,7 @@
  *
  *   put:
  *     summary: Update user profile
- *     description: Update user profile information (own profile or Admin access), with optional avatar upload
+ *     description: Update user profile information (own profile or Admin access), with optional avatar upload. All fields are optional - only provided fields will be updated. Address can be provided as JSON string or object - both formats are supported.
  *     tags: [users]
  *     security:
  *       - Bearer: []
@@ -284,18 +471,18 @@
  *         multipart/form-data:
  *           schema:
  *             type: object
- *             required:
- *               - first_name
- *               - last_name
  *             properties:
  *               first_name:
  *                 type: string
+ *                 description: User's first name (optional)
  *                 example: "John"
  *               last_name:
  *                 type: string
+ *                 description: User's last name (optional)
  *                 example: "Doe"
  *               phone_number:
  *                 type: string
+ *                 description: User's phone number (optional)
  *                 example: "+84912345678"
  *               avatar_image:
  *                 type: string
@@ -308,19 +495,47 @@
  *               dob:
  *                 type: string
  *                 format: date
+ *                 description: Date of birth (optional)
  *                 example: "1990-01-15"
  *               address:
- *                 type: object
- *                 example: {
- *                   street: "123 Main Street",
- *                   ward: "Ward 1",
- *                   district: "District 1",
- *                   city: "HCM",
- *                   country: "Việt Nam"
- *                 }
+ *                 oneOf:
+ *                   - type: string
+ *                     description: Address as JSON string (will be parsed automatically)
+ *                     example: "{\"street\":\"123 Main Street\",\"ward\":\"Ward 1\",\"district\":\"District 1\",\"city\":\"HCM\",\"country\":\"Việt Nam\"}"
+ *                   - type: object
+ *                     description: Address as object
+ *                     properties:
+ *                       street:
+ *                         type: string
+ *                         description: Street address
+ *                         example: "123 Main Street"
+ *                       ward:
+ *                         type: string
+ *                         description: Ward/commune
+ *                         example: "Ward 1"
+ *                       district:
+ *                         type: string
+ *                         description: District
+ *                         example: "District 1"
+ *                       city:
+ *                         type: string
+ *                         description: City/province
+ *                         example: "HCM"
+ *                       country:
+ *                         type: string
+ *                         description: Country
+ *                         example: "Việt Nam"
+ *                     example: {
+ *                       street: "123 Main Street",
+ *                       ward: "Ward 1",
+ *                       district: "District 1",
+ *                       city: "HCM",
+ *                       country: "Việt Nam"
+ *                     }
  *               gender:
  *                 type: string
  *                 enum: [male, female, other]
+ *                 description: User's gender (optional)
  *                 example: "male"
  *     responses:
  *       200:

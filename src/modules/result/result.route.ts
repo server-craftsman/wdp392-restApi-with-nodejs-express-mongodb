@@ -70,5 +70,26 @@ export default class ResultRoute implements IRoute {
             validationMiddleware(StartTestingDto),
             this.resultController.startTesting
         );
+
+        // POST: domain:/api/result/:resultId/request-certificate -> Request physical certificate for legal result (customer only)
+        this.router.post(
+            `${API_PATH.RESULT}/:resultId/request-certificate`,
+            authMiddleWare([UserRoleEnum.CUSTOMER]),
+            this.resultController.requestCertificate
+        );
+
+        // GET: domain:/api/result/:resultId/certificate-requests -> Get certificate requests for a result
+        this.router.get(
+            `${API_PATH.RESULT}/:resultId/certificate-requests`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.CUSTOMER]),
+            this.resultController.getCertificateRequests
+        );
+
+        // PUT: domain:/api/result/certificate-requests/:requestId/status -> Update certificate request status (staff/admin only)
+        this.router.put(
+            `${API_PATH.RESULT}/certificate-requests/:requestId/status`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            this.resultController.updateCertificateRequestStatus
+        );
     }
 } 

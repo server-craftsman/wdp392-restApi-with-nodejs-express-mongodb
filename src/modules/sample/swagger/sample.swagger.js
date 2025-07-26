@@ -673,8 +673,16 @@
  * /api/sample/collect:
  *   post:
  *     tags: [samples]
- *     summary: Collect sample at facility (Staff only)
- *     description: Staff collects a sample at the medical facility and records the information
+ *     summary: Thu thập mẫu tại cơ sở y tế (Chỉ dành cho nhân viên)
+ *     description: |
+ *       Nhân viên thu thập mẫu tại cơ sở y tế và ghi lại thông tin.
+ *       
+ *       **Đối với Lịch hẹn Hành chính:**
+ *       - `person_info` là tùy chọn - hệ thống sẽ tự động điền thông tin từ người tham gia vụ án hành chính
+ *       - Hệ thống ánh xạ người tham gia vụ án với person_info dựa trên số lượng loại mẫu được yêu cầu
+ *       
+ *       **Đối với Lịch hẹn Thường:**
+ *       - `person_info` là bắt buộc và phải được cung cấp trong yêu cầu
  *     security:
  *       - Bearer: []
  *     requestBody:
@@ -686,7 +694,6 @@
  *             required:
  *               - appointment_id
  *               - type
- *               - person_info
  *             properties:
  *               appointment_id:
  *                 type: string
@@ -699,11 +706,21 @@
  *                   type: string
  *                   enum: [blood, saliva, hair, other]
  *                 example: ["blood", "saliva"]
+ *               collection_date:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Date and time when samples were collected (optional, defaults to current time)
+ *                 example: "2024-01-20T10:30:00.000Z"
  *               person_info:
  *                 type: array
- *                 description: Information about the persons from whom samples were collected
+ *                 description: |
+ *                   Information about the persons from whom samples were collected.
+ *                   **Optional for administrative appointments** - will be auto-populated from case participants.
+ *                   **Required for regular appointments**.
  *                 items:
  *                   type: object
+ *                   required:
+ *                     - name
  *                   properties:
  *                     name:
  *                       type: string
@@ -728,33 +745,48 @@
  *                       example: "0909090909"
  *                     birth_place:
  *                       type: string
- *                       description: Birth place of the person
- *                       example: "Vietnam"
+ *                       description: Place of birth
+ *                       example: "Ho Chi Minh City"
  *                     nationality:
  *                       type: string
- *                       description: Nationality of the person
+ *                       description: Nationality
  *                       example: "Vietnamese"
  *                     identity_document:
  *                       type: string
- *                       description: ID document number
- *                       example: "1234567890"
- *                 example:
- *                   - name: "Thích Tâm Phúc"
- *                     dob: "1983-03-08"
- *                     relationship: "Self"
+ *                       description: Identity document number (CCCD, CMND, etc.)
+ *                       example: "123456789012"
+ *           examples:
+ *             administrative_appointment:
+ *               summary: Administrative Appointment (Auto-populated person_info)
+ *               description: For administrative appointments, person_info is automatically populated from case participants
+ *               value:
+ *                 appointment_id: "60d21b4667d0d8992e610c85"
+ *                 type: ["blood", "saliva"]
+ *                 collection_date: "2024-01-20T10:30:00.000Z"
+ *             regular_appointment:
+ *               summary: Regular Appointment (Manual person_info)
+ *               description: For regular appointments, person_info must be provided
+ *               value:
+ *                 appointment_id: "60d21b4667d0d8992e610c85"
+ *                 type: ["blood", "saliva"]
+ *                 collection_date: "2024-01-20T10:30:00.000Z"
+ *                 person_info:
+ *                   - name: "Nguyễn Văn A"
+ *                     dob: "1990-01-15"
+ *                     relationship: "Father"
  *                     gender: "Male"
- *                     phone_number: "0909090909"
- *                     birth_place: "Vietnam"
+ *                     phone_number: "0909123456"
+ *                     birth_place: "Hanoi"
  *                     nationality: "Vietnamese"
- *                     identity_document: "1234567890"
- *                   - name: "Nguyễn Đan Huy"
- *                     dob: "2003-10-15"
- *                     relationship: "Self"
- *                     gender: "Male"
- *                     phone_number: "0909090909"
- *                     birth_place: "Vietnam"
+ *                     identity_document: "123456789012"
+ *                   - name: "Nguyễn Thị B"
+ *                     dob: "1995-03-20"
+ *                     relationship: "Mother"
+ *                     gender: "Female"
+ *                     phone_number: "0909654321"
+ *                     birth_place: "Ho Chi Minh City"
  *                     nationality: "Vietnamese"
- *                     identity_document: "1234567890"
+ *                     identity_document: "987654321098"
  *     responses:
  *       201:
  *         description: Sample collected successfully

@@ -1,5 +1,5 @@
-import { IsBoolean, IsDate, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsBoolean, IsDate, IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength, IsNumber } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import { UserRoles } from '../user.constant';
 import { UserRole, IAddress } from '../user.interface';
 import { UserRoleEnum } from './../user.enum';
@@ -13,7 +13,7 @@ export default class RegisterDto {
         password: string,
         role: UserRole = UserRoleEnum.CUSTOMER,
         status: boolean = true,
-        phone_number: string = '',
+        phone_number: number = 0,
         avatar_url: string = '',
         dob: Date = new Date(),
         address: IAddress = {
@@ -85,7 +85,15 @@ export default class RegisterDto {
     public status: boolean;
 
     @IsNotEmpty()
-    public phone_number: string;
+    @IsNumber()
+    @Transform(({ value }) => {
+        if (typeof value === 'string') {
+            const num = parseInt(value, 10);
+            return isNaN(num) ? value : num;
+        }
+        return value;
+    })
+    public phone_number: number;
 
     @IsOptional()
     public avatar_url: string;

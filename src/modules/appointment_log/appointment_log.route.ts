@@ -15,25 +15,39 @@ export default class AppointmentLogRoute implements IRoute {
     }
 
     private initializeRoutes() {
-        // GET: domain:/api/appointment-logs/appointment/:appointmentId -> Get logs for a specific appointment
+        // GET: domain:/api/appointment-log/appointment/:appointmentId -> Get logs for specific appointment
         this.router.get(
-            `${API_PATH.GET_LOGS_BY_APPOINTMENT}`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.CUSTOMER]),
-            this.appointmentLogController.getLogsByAppointmentId
+            `${this.path}/appointment/:appointmentId`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
+            this.appointmentLogController.getAppointmentLogs
         );
 
-        // GET: domain:/api/appointment-logs/search -> Search logs with filters (Admin/Manager only)
+        // GET: domain:/api/appointment-log/appointment/:appointmentId/timeline -> Get timeline for appointment
         this.router.get(
-            `${this.path}/search`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.CUSTOMER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
-            this.appointmentLogController.searchAppointmentLogs
+            `${this.path}/appointment/:appointmentId/timeline`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
+            this.appointmentLogController.getAppointmentTimeline
         );
 
-        // GET: domain:/api/appointment-logs/:id -> Get log by ID (Admin/Manager only)
+        // GET: domain:/api/appointment-log/administrative-case/:caseId -> Get logs for administrative case
         this.router.get(
-            `${this.path}/:id`,
-            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.CUSTOMER, UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]),
-            this.appointmentLogController.getAppointmentLogById
+            `${this.path}/administrative-case/:caseId`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
+            this.appointmentLogController.getAdministrativeCaseLogs
+        );
+
+        // GET: domain:/api/appointment-log/action/:action -> Get logs by action type
+        this.router.get(
+            `${this.path}/action/:action`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
+            this.appointmentLogController.getLogsByAction
+        );
+
+        // GET: domain:/api/appointment-log/statistics -> Get log statistics for dashboard
+        this.router.get(
+            `${this.path}/statistics`,
+            authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]),
+            this.appointmentLogController.getLogStatistics
         );
     }
 } 

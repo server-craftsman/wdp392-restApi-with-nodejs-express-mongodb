@@ -3,14 +3,13 @@ import { PaymentMethodEnum, PaymentStatusEnum, PaymentStageEnum } from './paymen
 
 export type PaymentMethod =
     PaymentMethodEnum.CASH |
-    PaymentMethodEnum.PAY_OS;
+    PaymentMethodEnum.PAYOS;
 
 export type PaymentStatus =
     PaymentStatusEnum.PENDING |
     PaymentStatusEnum.COMPLETED |
     PaymentStatusEnum.FAILED |
-    PaymentStatusEnum.CANCELLED |
-    PaymentStatusEnum.REFUNDED;
+    PaymentStatusEnum.CANCELLED;
 
 export type PaymentStage = PaymentStageEnum.DEPOSIT | PaymentStageEnum.REMAINING;
 

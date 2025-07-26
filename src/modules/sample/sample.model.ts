@@ -34,7 +34,7 @@ const SampleSchemaEntity: Schema<ISample> = new Schema({
         required: true
     },
     person_info: { type: PersonInfoSchema },
-    person_info_list: { type: [PersonInfoSchema] },
+    // person_info_list: { type: [PersonInfoSchema] },
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now },
     created_by: { type: String },

@@ -10,7 +10,7 @@ import SampleService from '../sample/sample.service';
 import { SampleStatusEnum } from '../sample/sample.enum';
 import AppointmentService from '../appointment/appointment.service';
 import { AppointmentStatusEnum, PaymentStatusEnum } from '../appointment/appointment.enum';
-import { AppointmentLogService } from '../appointment_log';
+import AppointmentLogService from '../appointment_log/appointment_log.service';
 import { AppointmentLogTypeEnum } from '../appointment_log/appointment_log.enum';
 import ReportGeneratorService from './services/reportGenerator.service';
 import { sendMail, createNotificationEmailTemplate } from '../../core/utils';
@@ -19,6 +19,9 @@ import UserSchema from '../user/user.model';
 import ServiceSchema from '../service/service.model';
 import AppointmentSchema from '../appointment/appointment.model';
 import { ServiceTypeEnum } from '../service/service.enum';
+import CertificateRequestSchema from './certificate-request.model';
+import { ICertificateRequest } from './result.interface';
+import { UserRoleEnum } from '../user/user.enum';
 
 /**
  * Helper function to extract appointment ID from a sample object that might have populated appointment_id
@@ -49,10 +52,52 @@ function extractAppointmentIdFromSample(sample: any): string {
 
 export default class ResultService {
     private resultRepository = new ResultRepository();
-    private sampleService = new SampleService();
-    private appointmentService = new AppointmentService();
+    private sampleService?: SampleService;
+    private appointmentService?: AppointmentService;
     private appointmentLogService = new AppointmentLogService();
     private reportGeneratorService = new ReportGeneratorService();
+
+    /**
+     * Lazy load SampleService to avoid circular dependency
+     */
+    private getSampleService(): SampleService {
+        if (!this.sampleService) {
+            this.sampleService = new SampleService();
+        }
+        return this.sampleService;
+    }
+
+    /**
+     * Lazy load AppointmentService to avoid circular dependency
+     */
+    private getAppointmentService(): AppointmentService {
+        if (!this.appointmentService) {
+            this.appointmentService = new AppointmentService();
+        }
+        return this.appointmentService;
+    }
+
+    /**
+     * Convert AppointmentStatusEnum to AppointmentLogTypeEnum
+     */
+    private convertStatusToLogType(status: any): AppointmentLogTypeEnum {
+        // Map appointment status to log type
+        const statusMap: Record<string, AppointmentLogTypeEnum> = {
+            'pending': AppointmentLogTypeEnum.PENDING,
+            'confirmed': AppointmentLogTypeEnum.CONFIRMED,
+            'sample_assigned': AppointmentLogTypeEnum.SAMPLE_ASSIGNED,
+            'sample_collected': AppointmentLogTypeEnum.SAMPLE_COLLECTED,
+            'sample_received': AppointmentLogTypeEnum.SAMPLE_RECEIVED,
+            'testing': AppointmentLogTypeEnum.TESTING,
+            'completed': AppointmentLogTypeEnum.COMPLETED,
+            'cancelled': AppointmentLogTypeEnum.CANCELLED,
+            'awaiting_authorization': AppointmentLogTypeEnum.AWAITING_AUTHORIZATION,
+            'authorized': AppointmentLogTypeEnum.AUTHORIZED,
+            'ready_for_collection': AppointmentLogTypeEnum.READY_FOR_COLLECTION
+        };
+
+        return statusMap[status] || AppointmentLogTypeEnum.PENDING;
+    }
 
     /**
      * Create a new test result
@@ -77,7 +122,7 @@ export default class ResultService {
 
             // Check if all samples exist
             for (const sampleId of resultData.sample_ids) {
-                const sample = await this.sampleService.getSampleById(sampleId);
+                const sample = await this.getSampleService().getSampleById(sampleId);
                 if (!sample) {
                     throw new HttpException(HttpStatus.NotFound, `Sample not found: ${sampleId}`);
                 }
@@ -114,7 +159,7 @@ export default class ResultService {
                 throw new HttpException(HttpStatus.BadRequest, 'Invalid appointment ID format');
             }
 
-            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
             if (!appointment) {
                 throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
             }
@@ -190,7 +235,7 @@ export default class ResultService {
             }
 
             // Check if appointment has been paid for
-            if (appointment.payment_status !== PaymentStatusEnum.PAID) {
+            if (appointment.payment_status !== PaymentStatusEnum.PAID && appointment.payment_status !== PaymentStatusEnum.GOVERNMENT_FUNDED) {
                 throw new HttpException(
                     HttpStatus.BadRequest,
                     `Cannot create result for appointment that hasn't been paid for (payment status: ${appointment.payment_status})`
@@ -288,11 +333,11 @@ export default class ResultService {
 
                 // Update all samples status to COMPLETED
                 for (const sampleId of resultData.sample_ids) {
-                    await this.sampleService.updateSampleStatus(sampleId, SampleStatusEnum.COMPLETED);
+                    await this.getSampleService().updateSampleStatus(sampleId, SampleStatusEnum.COMPLETED);
                 }
 
                 // Update appointment status to COMPLETED
-                await this.appointmentService.updateAppointmentStatus(
+                await this.getAppointmentService().updateAppointmentStatus(
                     appointmentId,
                     AppointmentStatusEnum.COMPLETED
                 );
@@ -301,7 +346,9 @@ export default class ResultService {
                 try {
                     await this.appointmentLogService.logStatusChange(
                         appointment,
-                        AppointmentLogTypeEnum.COMPLETED
+                        this.convertStatusToLogType(appointment.status),
+                        AppointmentLogTypeEnum.COMPLETED,
+                        laboratoryTechnicianId
                     );
                 } catch (logError) {
                     console.error('Failed to create appointment log for result creation:', logError);
@@ -398,7 +445,7 @@ export default class ResultService {
                 // Send result updated email
                 try {
                     if (updatedResult.appointment_id) {
-                        const appointment = await this.appointmentService.getAppointmentById(updatedResult.appointment_id.toString());
+                        const appointment = await this.getAppointmentService().getAppointmentById(updatedResult.appointment_id.toString());
                         await this.sendResultUpdatedEmail(updatedResult, appointment);
                     } else {
                         console.error('Cannot send result updated email: appointment_id is undefined');
@@ -484,7 +531,7 @@ export default class ResultService {
             }
 
             // Check if sample exists
-            const sample = await this.sampleService.getSampleById(sampleId);
+            const sample = await this.getSampleService().getSampleById(sampleId);
             if (!sample) {
                 throw new HttpException(HttpStatus.NotFound, 'Sample not found');
             }
@@ -494,12 +541,12 @@ export default class ResultService {
             console.log('Extracted appointment ID:', appointmentId);
 
             // Check if appointment exists and has been paid for
-            const appointment = await this.appointmentService.getAppointmentById(appointmentId);
+            const appointment = await this.getAppointmentService().getAppointmentById(appointmentId);
             if (!appointment) {
                 throw new HttpException(HttpStatus.NotFound, `Appointment not found with ID: ${appointmentId}`);
             }
 
-            if (appointment.payment_status !== PaymentStatusEnum.PAID) {
+            if (appointment.payment_status !== PaymentStatusEnum.PAID && appointment.payment_status !== PaymentStatusEnum.GOVERNMENT_FUNDED) {
                 throw new HttpException(
                     HttpStatus.BadRequest,
                     `Cannot start testing for appointment that hasn't been paid for (payment status: ${appointment.payment_status})`
@@ -510,7 +557,7 @@ export default class ResultService {
             // If it's still PENDING, automatically mark it as RECEIVED first.
             if (sample.status === SampleStatusEnum.PENDING) {
                 // Automatically move sample to RECEIVED before starting testing
-                await this.sampleService.updateSampleStatus(sampleId, SampleStatusEnum.RECEIVED);
+                await this.getSampleService().updateSampleStatus(sampleId, SampleStatusEnum.RECEIVED);
                 console.log(`Sample ${sampleId} status changed from PENDING -> RECEIVED automatically before testing.`);
             } else if (sample.status !== SampleStatusEnum.RECEIVED) {
                 // For any other status that is not RECEIVED, throw an error
@@ -521,14 +568,14 @@ export default class ResultService {
             }
 
             // Update sample status to TESTING
-            await this.sampleService.updateSampleStatus(sampleId, SampleStatusEnum.TESTING);
+            await this.getSampleService().updateSampleStatus(sampleId, SampleStatusEnum.TESTING);
 
             // Get appointment ID as string for updating
             const appointmentObjectId = appointment._id.toString();
 
             // Update appointment status to TESTING
             if (appointment.status !== AppointmentStatusEnum.TESTING) {
-                await this.appointmentService.updateAppointmentStatus(
+                await this.getAppointmentService().updateAppointmentStatus(
                     appointmentObjectId,
                     AppointmentStatusEnum.TESTING
                 );
@@ -537,7 +584,9 @@ export default class ResultService {
                 try {
                     await this.appointmentLogService.logStatusChange(
                         appointment,
-                        AppointmentLogTypeEnum.TESTING
+                        this.convertStatusToLogType(appointment.status),
+                        AppointmentLogTypeEnum.TESTING,
+                        laboratoryTechnicianId
                     );
                 } catch (logError) {
                     console.error('Failed to create appointment log for testing start:', logError);
@@ -582,45 +631,102 @@ export default class ResultService {
             }
 
             // Get service details if available
-            let serviceName = 'DNA Testing Service';
+            let serviceName = 'Dịch vụ xét nghiệm ADN';
+            let isAdministrative = false;
             if (appointment && appointment.service_id) {
                 try {
                     const service = await mongoose.model('Service').findById(appointment.service_id);
                     if (service && service.name) {
                         serviceName = service.name;
+                        isAdministrative = service.type === 'administrative';
                     }
                 } catch (error) {
                     console.error('Error fetching service details:', error);
                 }
             }
 
+            // Get administrative case details if applicable
+            let adminCaseInfo = '';
+            if (isAdministrative && appointment.administrative_case_id) {
+                try {
+                    const AdministrativeCasesService = require('../administrative_cases/administrative_cases.service').default;
+                    const adminCasesService = new AdministrativeCasesService();
+                    const adminCase = await adminCasesService.getAdministrativeCaseById(appointment.administrative_case_id);
+
+                    if (adminCase) {
+                        adminCaseInfo = `
+                            <br><strong>Thông tin vụ việc hành chính:</strong>
+                            <br>Số vụ việc: ${adminCase.case_number}
+                            <br>Cơ quan yêu cầu: ${adminCase.requesting_agency}
+                            <br>Người liên hệ: ${adminCase.agency_contact_name}
+                            <br>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error fetching administrative case details:', error);
+                }
+            }
+
             const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
 
-            const title = 'Your Test Results Are Ready';
+            const title = isAdministrative ? 'Kết quả xét nghiệm hành chính đã sẵn sàng' : 'Kết quả xét nghiệm của bạn đã sẵn sàng';
+
+            // Build report URL section
+            let reportSection = '';
+            if (result.report_url) {
+                reportSection = `
+                    <br><br>
+                    <strong>📄 Báo cáo chi tiết:</strong>
+                    <br>
+                    <a href="${result.report_url}" target="_blank" style="background-color: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0;">
+                        📥 Tải báo cáo PDF
+                    </a>
+                    <br>
+                    <small style="color: #666;">Liên kết báo cáo: <a href="${result.report_url}" target="_blank">${result.report_url}</a></small>
+                `;
+            }
+
             const message = `
-                Your test results for ${serviceName} are now ready.
+                ${isAdministrative ? 'Kết quả xét nghiệm hành chính' : 'Kết quả xét nghiệm'} cho dịch vụ ${serviceName} đã sẵn sàng.
+                ${adminCaseInfo}
                 <br><br>
-                <strong>Result Details:</strong>
+                <strong>Chi tiết kết quả:</strong>
                 <br>
-                Result ID: ${result._id}
+                Mã kết quả: ${result._id}
                 <br>
-                Date Completed: ${result.completed_at ? new Date(result.completed_at).toLocaleString() : new Date().toLocaleString()}
+                Ngày hoàn thành: ${result.completed_at ? new Date(result.completed_at).toLocaleString('vi-VN') : new Date().toLocaleString('vi-VN')}
                 <br><br>
-                ${result.is_match !== undefined ? `<strong>Result Match:</strong> ${result.is_match ? 'Positive' : 'Negative'}<br><br>` : ''}
-                You can view your detailed results by logging into your account and accessing the Results section.
-                ${result.report_url ? `<br><br>A detailed report has been generated and is available for viewing.` : ''}
+                ${result.is_match !== undefined ? `<strong>Kết quả khớp:</strong> ${result.is_match ? '✅ Dương tính' : '❌ Âm tính'}<br><br>` : ''}
+                ${isAdministrative ?
+                    'Cơ quan có thể xem kết quả chi tiết bằng cách truy cập hệ thống hoặc tải báo cáo bên dưới.' :
+                    'Bạn có thể xem kết quả chi tiết bằng cách đăng nhập vào tài khoản và truy cập phần Kết quả.'
+                }
+                ${reportSection}
                 <br><br>
-                If you have any questions about your results, please contact our medical team for assistance.
+                ${isAdministrative ?
+                    'Nếu có thắc mắc về kết quả, vui lòng liên hệ với đội ngũ y tế của chúng tôi để được hỗ trợ.' :
+                    'Nếu bạn có thắc mắc về kết quả, vui lòng liên hệ với đội ngũ y tế của chúng tôi để được hỗ trợ.'
+                }
+                <br><br>
+                <hr style="border: 1px solid #eee; margin: 20px 0;">
+                <small style="color: #666;">
+                    🏥 <strong>Hệ thống xét nghiệm ADN Bloodline</strong><br>
+                    📞 Hotline: 1900-XXX-XXX<br>
+                    📧 Email: support@bloodline.vn<br>
+                    🌐 Website: bloodline.vn
+                </small>
             `;
 
             const emailDetails: ISendMailDetail = {
                 toMail: recipientEmail || user.email,
-                subject: 'Test Results Ready - Bloodline DNA Testing Service',
+                subject: isAdministrative ?
+                    '🔬 Kết quả xét nghiệm hành chính - Hệ thống ADN Bloodline' :
+                    '🔬 Kết quả xét nghiệm đã sẵn sàng - Hệ thống ADN Bloodline',
                 html: createNotificationEmailTemplate(userName, title, message)
             };
 
             await sendMail(emailDetails);
-            console.log(`Result ready email sent to ${recipientEmail || user.email}`);
+            console.log(`Result ready email sent to ${recipientEmail || user.email}${isAdministrative ? ' (Administrative)' : ''}`);
         } catch (error) {
             console.error('Error sending result ready email:', error);
         }
@@ -699,13 +805,7 @@ export default class ResultService {
     private async sendTestingStartedEmail(sample: any, appointment: any): Promise<void> {
         try {
             // Get user details from appointment
-            const userId = appointment.user_id;
-            if (!userId) {
-                console.error('Cannot send email: User ID not found in appointment');
-                return;
-            }
-
-            const user = await UserSchema.findById(userId);
+            const user = await UserSchema.findById(appointment.user_id);
             if (!user || !user.email) {
                 console.error('Cannot send email: User not found or no email address');
                 return;
@@ -726,26 +826,26 @@ export default class ResultService {
 
             const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
 
-            const title = 'Sample Testing Started';
+            const title = 'Testing Started for Your Sample';
             const message = `
-                We are pleased to inform you that the laboratory has started processing your sample for ${serviceName}.
+                Testing has started for your sample related to ${serviceName}.
                 <br><br>
-                <strong>Testing Details:</strong>
+                <strong>Sample Details:</strong>
                 <br>
                 Sample ID: ${sample._id}
                 <br>
-                Sample Type: ${sample.sample_type || 'DNA Sample'}
+                Sample Type: ${sample.type}
                 <br>
-                Testing Started: ${new Date().toLocaleString()}
+                Collection Date: ${sample.collection_date ? new Date(sample.collection_date).toLocaleString() : 'Not specified'}
                 <br><br>
-                The testing process typically takes 3-5 business days to complete. We will notify you as soon as your results are ready.
+                We will notify you as soon as the results are ready.
                 <br><br>
-                If you have any questions during this process, please don't hesitate to contact our customer support team.
+                Thank you for choosing our DNA testing services.
             `;
 
             const emailDetails: ISendMailDetail = {
                 toMail: user.email,
-                subject: 'Sample Testing Started - Bloodline DNA Testing Service',
+                subject: 'Testing Started - Bloodline DNA Testing Service',
                 html: createNotificationEmailTemplate(userName, title, message)
             };
 
@@ -753,6 +853,343 @@ export default class ResultService {
             console.log(`Testing started email sent to ${user.email}`);
         } catch (error) {
             console.error('Error sending testing started email:', error);
+        }
+    }
+
+    /**
+     * Request physical certificate for legal DNA test result
+     */
+    public async requestCertificate(
+        resultId: string,
+        customerId: string,
+        reason: string,
+        deliveryAddress?: string
+    ): Promise<ICertificateRequest> {
+        try {
+            // Validate result exists and belongs to customer
+            const result = await this.resultRepository.findById(resultId);
+            if (!result) {
+                throw new HttpException(HttpStatus.NotFound, 'Result not found');
+            }
+
+            // Verify ownership
+            // if (result.customer_id !== customerId) {
+            //     throw new HttpException(HttpStatus.Forbidden, 'You are not authorized to request certificate for this result');
+            // }
+
+            // Check if result is from administrative service (legal cases)
+            const appointment = await AppointmentSchema.findById(result.appointment_id);
+            if (!appointment) {
+                throw new HttpException(HttpStatus.NotFound, 'Associated appointment not found');
+            }
+
+            const service = await ServiceSchema.findById(appointment.service_id);
+            const isAdministrative = service && service.type === ServiceTypeEnum.ADMINISTRATIVE;
+
+            if (!isAdministrative) {
+                throw new HttpException(HttpStatus.BadRequest, 'Certificate requests are only available for administrative/legal DNA tests');
+            }
+
+            // Check how many times this customer has requested certificate for this result
+            const existingRequests = await CertificateRequestSchema.find({
+                result_id: resultId,
+                customer_id: customerId,
+                status: { $ne: 'rejected' }
+            }).countDocuments();
+
+            // Determine if this is free (first time) or paid (subsequent times)
+            const requestCount = existingRequests + 1;
+            const isFree = requestCount === 1;
+
+            // Create certificate request
+            const certificateRequest = await CertificateRequestSchema.create({
+                result_id: resultId,
+                customer_id: customerId,
+                request_count: requestCount,
+                reason,
+                is_paid: isFree, // First request is automatically considered "paid" (free)
+                status: isFree ? 'processing' : 'pending', // Free requests go directly to processing
+                delivery_address: deliveryAddress,
+                created_at: new Date(),
+                updated_at: new Date()
+            });
+
+            // If not free, create payment
+            if (!isFree) {
+                try {
+                    const PaymentService = require('../payment/payment.service').default;
+                    const paymentService = new PaymentService();
+
+                    const payment = await paymentService.createCertificatePayment(
+                        customerId,
+                        certificateRequest._id.toString(),
+                        50000 // 50,000 VND for additional certificate copies
+                    );
+
+                    // Update certificate request with payment ID
+                    await CertificateRequestSchema.findByIdAndUpdate(
+                        certificateRequest._id,
+                        { payment_id: payment._id },
+                        { new: true }
+                    );
+
+                    console.log(`Payment created for certificate request: ${payment._id}`);
+                } catch (paymentError) {
+                    console.error('Error creating payment for certificate request:', paymentError);
+                    // Don't fail the request creation if payment fails
+                }
+            }
+
+            // Send email notification
+            try {
+                await this.sendCertificateRequestEmail(certificateRequest, customerId, isFree);
+            } catch (emailError) {
+                console.error('Error sending certificate request email:', emailError);
+            }
+
+            return certificateRequest;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error creating certificate request');
+        }
+    }
+
+    /**
+     * Get certificate requests for a result
+     */
+    public async getCertificateRequests(
+        resultId: string,
+        userId: string,
+        userRole: string
+    ): Promise<ICertificateRequest[]> {
+        try {
+            // Validate result exists
+            const result = await this.resultRepository.findById(resultId);
+            if (!result) {
+                throw new HttpException(HttpStatus.NotFound, 'Result not found');
+            }
+
+            // Authorization check
+            // if (userRole === UserRoleEnum.CUSTOMER && result.customer_id !== userId) {
+            //     throw new HttpException(HttpStatus.Forbidden, 'You are not authorized to view certificate requests for this result');
+            // }
+
+            // Get certificate requests
+            const requests = await CertificateRequestSchema.find({
+                result_id: resultId
+            })
+                // .populate('customer_id', 'first_name last_name email phone_number')
+                .populate('payment_id', 'amount status payment_method created_at')
+                .sort({ created_at: -1 });
+
+            return requests;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error retrieving certificate requests');
+        }
+    }
+
+    /**
+     * Update certificate request status
+     */
+    public async updateCertificateRequestStatus(
+        requestId: string,
+        status: string,
+        agencyNotes?: string,
+        staffId?: string
+    ): Promise<ICertificateRequest> {
+        try {
+            const validStatuses = ['pending', 'processing', 'issued', 'rejected'];
+            if (!validStatuses.includes(status)) {
+                throw new HttpException(HttpStatus.BadRequest, 'Invalid status');
+            }
+
+            const updateData: any = {
+                status,
+                updated_at: new Date()
+            };
+
+            if (agencyNotes) {
+                updateData.agency_notes = agencyNotes;
+            }
+
+            if (status === 'issued') {
+                updateData.certificate_issued_at = new Date();
+            }
+
+            const updatedRequest = await CertificateRequestSchema.findByIdAndUpdate(
+                requestId,
+                updateData,
+                { new: true }
+            )
+                .populate('customer_id', 'first_name last_name email')
+                .populate('result_id', '_id report_url');
+
+            if (!updatedRequest) {
+                throw new HttpException(HttpStatus.NotFound, 'Certificate request not found');
+            }
+
+            // Send email notification about status change
+            try {
+                await this.sendCertificateStatusUpdateEmail(updatedRequest, status);
+            } catch (emailError) {
+                console.error('Error sending certificate status update email:', emailError);
+            }
+
+            return updatedRequest;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new HttpException(HttpStatus.InternalServerError, 'Error updating certificate request status');
+        }
+    }
+
+    /**
+     * Send email notification for certificate request
+     */
+    private async sendCertificateRequestEmail(
+        certificateRequest: ICertificateRequest,
+        customerId: string,
+        isFree: boolean
+    ): Promise<void> {
+        try {
+            const user = await UserSchema.findById(customerId);
+            if (!user || !user.email) {
+                console.error('Cannot send certificate request email: User not found or no email');
+                return;
+            }
+
+            const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+            const title = 'Yêu cầu cấp giấy chứng nhận kết quả xét nghiệm';
+
+            const message = `
+                Yêu cầu cấp giấy chứng nhận kết quả xét nghiệm pháp lý của bạn đã được tiếp nhận.
+                <br><br>
+                <strong>Chi tiết yêu cầu:</strong>
+                <br>
+                Mã yêu cầu: ${certificateRequest._id}
+                <br>
+                Lý do yêu cầu: ${certificateRequest.reason}
+                <br>
+                Loại yêu cầu: ${isFree ? '🆓 Miễn phí (lần đầu)' : '💳 Có phí (lần thứ ' + certificateRequest.request_count + ')'}
+                <br>
+                Trạng thái: ${certificateRequest.status === 'processing' ? '⏳ Đang xử lý' : '⏸️ Chờ thanh toán'}
+                <br><br>
+                ${isFree ?
+                    'Giấy chứng nhận đầu tiên được cấp miễn phí. Chúng tôi sẽ xử lý yêu cầu trong vòng 3-5 ngày làm việc.' :
+                    'Vui lòng hoàn tất thanh toán để chúng tôi tiến hành xử lý yêu cầu. Phí cấp bản sao: 50.000 VNĐ.'
+                }
+                <br><br>
+                Chúng tôi sẽ thông báo khi giấy chứng nhận sẵn sàng để giao.
+                <br><br>
+                <hr style="border: 1px solid #eee; margin: 20px 0;">
+                <small style="color: #666;">
+                    🏥 <strong>Hệ thống xét nghiệm ADN Bloodline</strong><br>
+                    📞 Hotline: 1900-1900-1900<br>
+                    📧 Email: support@bloodline.vn
+                </small>
+            `;
+
+            const emailDetails: ISendMailDetail = {
+                toMail: user.email,
+                subject: '📋 Yêu cầu cấp giấy chứng nhận - Hệ thống ADN Bloodline',
+                html: createNotificationEmailTemplate(userName, title, message)
+            };
+
+            await sendMail(emailDetails);
+            console.log(`Certificate request email sent to ${user.email}`);
+        } catch (error) {
+            console.error('Error sending certificate request email:', error);
+        }
+    }
+
+    /**
+     * Send email notification for certificate status update
+     */
+    private async sendCertificateStatusUpdateEmail(
+        certificateRequest: any,
+        newStatus: string
+    ): Promise<void> {
+        try {
+            const user = certificateRequest.customer_id;
+            if (!user || !user.email) {
+                console.error('Cannot send certificate status update email: User not found or no email');
+                return;
+            }
+
+            const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
+
+            let title = '';
+            let message = '';
+            let statusText = '';
+            let statusEmoji = '';
+
+            switch (newStatus) {
+                case 'processing':
+                    title = 'Yêu cầu giấy chứng nhận đang được xử lý';
+                    statusText = 'Đang xử lý';
+                    statusEmoji = '⏳';
+                    message = 'Yêu cầu cấp giấy chứng nhận của bạn đang được xử lý. Chúng tôi sẽ hoàn tất trong vòng 3-5 ngày làm việc.';
+                    break;
+                case 'issued':
+                    title = 'Giấy chứng nhận đã sẵn sàng';
+                    statusText = 'Đã cấp';
+                    statusEmoji = '✅';
+                    message = 'Giấy chứng nhận kết quả xét nghiệm của bạn đã sẵn sàng. Vui lòng liên hệ để nhận giấy chứng nhận.';
+                    break;
+                case 'rejected':
+                    title = 'Yêu cầu giấy chứng nhận bị từ chối';
+                    statusText = 'Bị từ chối';
+                    statusEmoji = '❌';
+                    message = 'Yêu cầu cấp giấy chứng nhận của bạn đã bị từ chối.';
+                    break;
+                default:
+                    title = 'Cập nhật trạng thái yêu cầu giấy chứng nhận';
+                    statusText = newStatus;
+                    statusEmoji = '📋';
+                    message = 'Trạng thái yêu cầu cấp giấy chứng nhận của bạn đã được cập nhật.';
+            }
+
+            const fullMessage = `
+                ${message}
+                <br><br>
+                <strong>Chi tiết yêu cầu:</strong>
+                <br>
+                Mã yêu cầu: ${certificateRequest._id}
+                <br>
+                Trạng thái: ${statusEmoji} ${statusText}
+                <br>
+                Ngày cập nhật: ${new Date().toLocaleString('vi-VN')}
+                <br><br>
+                ${certificateRequest.agency_notes ? `<strong>Ghi chú:</strong><br>${certificateRequest.agency_notes}<br><br>` : ''}
+                ${newStatus === 'issued' ?
+                    'Vui lòng mang theo CMND/CCCD và liên hệ với chúng tôi để nhận giấy chứng nhận trong giờ hành chính.' :
+                    'Nếu có thắc mắc, vui lòng liên hệ với chúng tôi qua thông tin bên dưới.'
+                }
+                <br><br>
+                <hr style="border: 1px solid #eee; margin: 20px 0;">
+                <small style="color: #666;">
+                    🏥 <strong>Hệ thống xét nghiệm ADN Bloodline</strong><br>
+                    📞 Hotline: 1900-1900-1900<br>
+                    📧 Email: support@bloodline.vn
+                </small>
+            `;
+
+            const emailDetails: ISendMailDetail = {
+                toMail: user.email,
+                subject: `📋 ${title} - Hệ thống ADN Bloodline`,
+                html: createNotificationEmailTemplate(userName, title, fullMessage)
+            };
+
+            await sendMail(emailDetails);
+            console.log(`Certificate status update email sent to ${user.email}`);
+        } catch (error) {
+            console.error('Error sending certificate status update email:', error);
         }
     }
 } 

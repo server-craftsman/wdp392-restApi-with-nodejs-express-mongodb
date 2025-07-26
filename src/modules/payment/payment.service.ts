@@ -18,6 +18,7 @@ import { sendMail, createNotificationEmailTemplate } from '../../core/utils';
 import { ISendMailDetail } from '../../core/interfaces';
 import { TransactionStatusEnum } from '../transaction/transaction.enum';
 import { UserRoleEnum } from '../user/user.enum';
+import { PaymentTypeEnum } from './payment.enum';
 
 export default class PaymentService {
     private paymentSchema = PaymentSchema;
@@ -265,7 +266,7 @@ export default class PaymentService {
             };
 
             // If PAY_OS, generate checkout URL
-            if (paymentData.payment_method === PaymentMethodEnum.PAY_OS) {
+            if (paymentData.payment_method === PaymentMethodEnum.PAYOS) {
                 const user = await this.userService.getUserById(userId);
                 const description = `${stage === PaymentStageEnum.DEPOSIT ? 'Đặt cọc' : 'Thanh toán còn lại'} - ${paymentNo}`;
 
@@ -414,7 +415,7 @@ export default class PaymentService {
             }
 
             // For PayOS payments, check with PayOS API
-            if (payment.payment_method === PaymentMethodEnum.PAY_OS && payment.payos_order_code) {
+            if (payment.payment_method === PaymentMethodEnum.PAYOS && payment.payos_order_code) {
                 try {
                     console.log(`Checking PayOS status for order code: ${payment.payos_order_code}`);
 
@@ -664,7 +665,7 @@ export default class PaymentService {
             }
 
             // Add specific instructions based on payment method
-            if (payment.payment_method === PaymentMethodEnum.PAY_OS) {
+            if (payment.payment_method === PaymentMethodEnum.PAYOS) {
                 message += `
                     Please complete your payment by clicking on the checkout link that has been provided.
                     <br>
@@ -909,6 +910,69 @@ export default class PaymentService {
             created_at: new Date(),
             updated_at: new Date()
         });
+    }
+
+    /**
+     * Create payment for result certificate request (2nd+ requests)
+     */
+    public async createCertificatePayment(
+        certificateRequestId: string,
+        customerId: string,
+        amount: number = 100000 // Default 100k VND for certificate
+    ): Promise<any> {
+        try {
+            // Generate payment number
+            const paymentNo = `PAY-CERT-${uuidv4().substring(0, 8)}-${moment().format('HHmmss')}`;
+
+            // Create payment record
+            const paymentData = {
+                payment_no: paymentNo,
+                user_id: customerId,
+                amount: amount,
+                payment_method: PaymentMethodEnum.PAYOS,
+                payment_type: PaymentTypeEnum.RESULT_CERTIFICATE,
+                description: `Certificate request fee - Request ID: ${certificateRequestId}`,
+                status: PaymentStatusEnum.PENDING,
+                metadata: {
+                    certificate_request_id: certificateRequestId,
+                    fee_type: 'certificate_reissuance'
+                }
+            };
+
+            const payment = await PaymentSchema.create(paymentData);
+
+            // Create PayOS payment
+            const payOSResponse = await createPayosPayment(
+                amount,
+                Math.floor(Date.now() / 1000).toString(),
+                `Phí phát giấy kết quả lần 2+`,
+                `Customer ${customerId}`,
+                'customer@example.com', // Placeholder email, replace with actual customer email
+                '0000000000' // Placeholder phone number, replace with actual customer phone number
+            );
+
+            // Update payment with PayOS details
+            await PaymentSchema.findByIdAndUpdate(payment._id, {
+                payos_order_code: payOSResponse.orderCode,
+                payos_payment_url: payOSResponse.checkoutUrl,
+                updated_at: new Date()
+            });
+
+            return {
+                payment_id: payment._id,
+                payment_no: paymentNo,
+                amount: amount,
+                payos_order_code: payOSResponse.orderCode,
+                checkout_url: payOSResponse.checkoutUrl,
+                description: paymentData.description
+            };
+        } catch (error) {
+            console.error('Error creating certificate payment:', error);
+            throw new HttpException(
+                HttpStatus.InternalServerError,
+                'Failed to create certificate payment'
+            );
+        }
     }
 
     /**

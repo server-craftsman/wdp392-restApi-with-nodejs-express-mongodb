@@ -125,16 +125,16 @@ export default class ResultController {
             //     }
             // }
 
-            if (req.user.role === UserRoleEnum.CUSTOMER) {
-                // Handles both populated and unpopulated customer_id
-                const resultCustomerId = typeof result.customer_id === 'object' && result.customer_id !== null
-                    ? (result.customer_id as any)._id?.toString?.() || (result.customer_id as any).toString?.()
-                    : result.customer_id?.toString?.();
+            // if (req.user.role === UserRoleEnum.CUSTOMER) {
+            //     // Handles both populated and unpopulated customer_id
+            //     const resultCustomerId = typeof result.customer_id === 'object' && result.customer_id !== null
+            //         ? (result.customer_id as any)._id?.toString?.() || (result.customer_id as any).toString?.()
+            //         : result.customer_id?.toString?.();
 
-                if (resultCustomerId !== req.user.id?.toString()) {
-                    throw new HttpException(HttpStatus.Forbidden, 'You do not have access to this result');
-                }
-            }
+            //     if (resultCustomerId !== req.user.id?.toString()) {
+            //         throw new HttpException(HttpStatus.Forbidden, 'You do not have access to this result');
+            //     }
+            // }
 
             res.status(HttpStatus.Success).json(formatResponse<IResult>(result));
         } catch (error) {
@@ -212,6 +212,91 @@ export default class ResultController {
             }
         } catch (error) {
             console.error('Error in startTesting controller:', error);
+            next(error);
+        }
+    };
+
+    /**
+     * Request physical certificate for legal result
+     * @route POST /results/:resultId/request-certificate
+     */
+    public requestCertificate = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
+            }
+
+            const { resultId } = req.params;
+            const { reason, delivery_address } = req.body;
+
+            if (!reason) {
+                throw new HttpException(HttpStatus.BadRequest, 'Reason is required');
+            }
+
+            const certificateRequest = await this.resultService.requestCertificate(
+                resultId,
+                userId,
+                reason,
+                delivery_address
+            );
+
+            res.status(HttpStatus.Created).json(formatResponse(certificateRequest, true, 'Certificate request submitted successfully'));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Get certificate requests for a result
+     * @route GET /results/:resultId/certificate-requests
+     */
+    public getCertificateRequests = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            if (!userId) {
+                throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
+            }
+
+            const { resultId } = req.params;
+
+            const requests = await this.resultService.getCertificateRequests(resultId, userId, userRole);
+
+            res.status(HttpStatus.Success).json(formatResponse(requests, true, 'Certificate requests retrieved successfully'));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    /**
+     * Update certificate request status (Staff/Admin only)
+     * @route PUT /results/certificate-requests/:requestId/status
+     */
+    public updateCertificateRequestStatus = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const staffId = req.user?.id;
+            const userRole = req.user?.role;
+            if (!staffId) {
+                throw new HttpException(HttpStatus.Unauthorized, 'User not authenticated');
+            }
+
+            if (userRole !== UserRoleEnum.STAFF && userRole !== UserRoleEnum.ADMIN) {
+                throw new HttpException(HttpStatus.Forbidden, 'Only staff and admin can update certificate requests');
+            }
+
+            const { requestId } = req.params;
+            const { status, agency_notes } = req.body;
+
+            const updatedRequest = await this.resultService.updateCertificateRequestStatus(
+                requestId,
+                status,
+                agency_notes,
+                staffId
+            );
+
+            res.status(HttpStatus.Success).json(formatResponse(updatedRequest, true, 'Certificate request status updated successfully'));
+        } catch (error) {
             next(error);
         }
     };

@@ -68,6 +68,13 @@ export default class UserRoute implements IRoute {
             this.userController.getStaffAndLabTechUsers
         );
 
+        // Search customer by phone or email (for staff convenience)
+        this.router.get(
+            `${this.path}/search-customer`,
+            authMiddleWare([UserRoleEnum.STAFF, UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]),
+            this.userController.searchCustomerByPhoneOrEmail
+        );
+
         // GET domain:/api/users/:id -> Get user by id
         this.router.get(`${this.path}/:id`, authMiddleWare([], true), this.userController.getUserById);
 

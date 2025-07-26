@@ -18,7 +18,7 @@ export interface IUser extends Document {
     last_name: string; // required
     gender: UserGender; // male, female, other
     email: string; // unique
-    phone_number: string | number; // unique
+    phone_number: number; // unique
     password?: string; // required if google_id is null or empty
     dob?: Date; // date of birth
     role: UserRole; // default is "client"
