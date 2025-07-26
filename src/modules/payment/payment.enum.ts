@@ -42,7 +42,4 @@ export enum ReservationPaymentMethodEnum {
     PAYOS = 'payos',
     CASH = 'cash',
     BANK_TRANSFER = 'bank_transfer',
-    CREDIT_CARD = 'credit_card',
-    DEBIT_CARD = 'debit_card',
-    E_WALLET = 'e_wallet',
 }
