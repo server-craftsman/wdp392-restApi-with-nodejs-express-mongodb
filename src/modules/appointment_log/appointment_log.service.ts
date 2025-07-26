@@ -255,18 +255,188 @@ export default class AppointmentLogService {
     }
 
     /**
-     * Get activity timeline for appointment
+     * Get appointment timeline (chronological activity)
      */
     public async getAppointmentTimeline(appointmentId: string): Promise<IAppointmentLog[]> {
         try {
-            const query = { appointment_id: appointmentId };
-            return await this.appointmentLogRepository.find(query, { created_at: 1 });
+            return await this.appointmentLogRepository.find({ appointment_id: appointmentId }, { action_timestamp: 1 });
         } catch (error) {
+            console.error('Error fetching appointment timeline:', error);
             throw new HttpException(HttpStatus.InternalServerError, 'Error fetching appointment timeline');
         }
     }
 
-    // Legacy methods for backward compatibility
+    /**
+     * Get comprehensive log statistics for dashboard
+     */
+    public async getLogStatistics(startDate?: string, endDate?: string): Promise<any> {
+        try {
+            // Build date filter
+            const dateFilter: any = {};
+            if (startDate || endDate) {
+                dateFilter.action_timestamp = {};
+                if (startDate) {
+                    dateFilter.action_timestamp.$gte = new Date(startDate);
+                }
+                if (endDate) {
+                    dateFilter.action_timestamp.$lte = new Date(endDate);
+                }
+            }
+
+            // Get total logs count
+            const totalLogs = await this.appointmentLogRepository.countDocuments(dateFilter);
+
+            // Get logs by action type
+            const logsByAction = await this.appointmentLogRepository.aggregate([
+                { $match: dateFilter },
+                {
+                    $group: {
+                        _id: '$action',
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { count: -1 } }
+            ]);
+
+            // Get logs by status
+            const logsByStatus = await this.appointmentLogRepository.aggregate([
+                { $match: dateFilter },
+                {
+                    $group: {
+                        _id: '$new_status',
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { count: -1 } }
+            ]);
+
+            // Get logs by appointment type
+            const logsByType = await this.appointmentLogRepository.aggregate([
+                { $match: dateFilter },
+                {
+                    $group: {
+                        _id: '$type',
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { count: -1 } }
+            ]);
+
+            // Get administrative appointments count
+            const adminAppointments = await this.appointmentLogRepository.countDocuments({
+                ...dateFilter,
+                administrative_case_id: { $exists: true, $ne: null }
+            });
+
+            // Get logs by user role (who performed the action)
+            const logsByRole = await this.appointmentLogRepository.aggregate([
+                { $match: dateFilter },
+                {
+                    $group: {
+                        _id: '$performed_by_role',
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { count: -1 } }
+            ]);
+
+            // Get daily activity for the last 30 days
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const dailyActivity = await this.appointmentLogRepository.aggregate([
+                {
+                    $match: {
+                        ...dateFilter,
+                        action_timestamp: { $gte: thirtyDaysAgo }
+                    }
+                },
+                {
+                    $group: {
+                        _id: {
+                            $dateToString: {
+                                format: '%Y-%m-%d',
+                                date: '$action_timestamp'
+                            }
+                        },
+                        count: { $sum: 1 }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]);
+
+            // Get most active staff members
+            const mostActiveStaff = await this.appointmentLogRepository.aggregate([
+                { $match: dateFilter },
+                {
+                    $group: {
+                        _id: '$performed_by_user_id',
+                        count: { $sum: 1 },
+                        actions: { $addToSet: '$action' }
+                    }
+                },
+                { $sort: { count: -1 } },
+                { $limit: 10 }
+            ]);
+
+            // Get recent activity (last 10 logs)
+            const recentActivity = await this.appointmentLogRepository.find(dateFilter, { action_timestamp: -1 }, 0, 10);
+
+            // Convert arrays to objects for easier frontend consumption
+            const logsByActionObj = logsByAction.reduce((acc: any, item: any) => {
+                acc[item._id] = item.count;
+                return acc;
+            }, {});
+
+            const logsByStatusObj = logsByStatus.reduce((acc: any, item: any) => {
+                acc[item._id] = item.count;
+                return acc;
+            }, {});
+
+            const logsByTypeObj = logsByType.reduce((acc: any, item: any) => {
+                acc[item._id] = item.count;
+                return acc;
+            }, {});
+
+            const logsByRoleObj = logsByRole.reduce((acc: any, item: any) => {
+                acc[item._id || 'unknown'] = item.count;
+                return acc;
+            }, {});
+
+            return {
+                summary: {
+                    totalLogs,
+                    adminAppointments,
+                    dateRange: {
+                        startDate: startDate || null,
+                        endDate: endDate || null
+                    }
+                },
+                breakdowns: {
+                    byAction: logsByActionObj,
+                    byStatus: logsByStatusObj,
+                    byType: logsByTypeObj,
+                    byRole: logsByRoleObj
+                },
+                trends: {
+                    dailyActivity,
+                    mostActiveStaff: mostActiveStaff.map((staff: any) => ({
+                        userId: staff._id,
+                        actionCount: staff.count,
+                        uniqueActions: staff.actions.length
+                    }))
+                },
+                recentActivity
+            };
+        } catch (error) {
+            console.error('Error fetching log statistics:', error);
+            throw new HttpException(HttpStatus.InternalServerError, 'Error fetching log statistics');
+        }
+    }
+
+    /**
+     * Log status change (alias for logStatusUpdate)
+     */
     public async logStatusChange(appointmentData: IAppointment, oldStatus: AppointmentLogTypeEnum, newStatus: AppointmentLogTypeEnum, performedByUserId?: string): Promise<IAppointmentLog> {
         return this.logStatusUpdate(appointmentData, oldStatus, newStatus, performedByUserId || 'system', 'SYSTEM');
     }

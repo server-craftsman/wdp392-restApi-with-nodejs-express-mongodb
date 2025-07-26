@@ -48,4 +48,12 @@ export default class AppointmentLogRepository {
             .populate('laboratory_technician_id', '_id first_name last_name')
             .populate('appointment_id');
     }
+
+    public async aggregate(pipeline: any[]): Promise<any[]> {
+        return AppointmentLogSchema.aggregate(pipeline);
+    }
+
+    public async findWithChaining(query: any): Promise<any> {
+        return AppointmentLogSchema.find(query);
+    }
 }

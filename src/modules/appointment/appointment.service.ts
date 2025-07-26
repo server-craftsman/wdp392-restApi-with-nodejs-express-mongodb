@@ -1596,6 +1596,7 @@ export default class AppointmentService {
                 appointmentId,
                 {
                     laboratory_technician_id: labTechId,
+                    status: AppointmentStatusEnum.CONFIRMED,
                     updated_at: new Date(),
                 },
                 { new: true },

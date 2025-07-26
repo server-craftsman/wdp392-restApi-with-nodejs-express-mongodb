@@ -6,6 +6,7 @@ import AppointmentLogService from './appointment_log.service';
 import { validateOrReject } from 'class-validator';
 import { plainToClass } from 'class-transformer';
 import { AppointmentLogActionEnum } from './appointment_log.enum';
+import { GetLogStatisticsDto } from './dtos/getLogStatistics.dto';
 
 export default class AppointmentLogController {
     private appointmentLogService = new AppointmentLogService();
@@ -87,16 +88,14 @@ export default class AppointmentLogController {
      */
     public getLogStatistics = async (req: Request, res: Response): Promise<void> => {
         try {
-            const { startDate, endDate } = req.query;
+            // Validate DTO
+            const dto = plainToClass(GetLogStatisticsDto, req.query);
+            await validateOrReject(dto);
 
-            // This would require additional service methods to implement
-            const stats = {
-                totalLogs: 0,
-                logsByAction: {},
-                logsByStatus: {},
-                adminAppointments: 0,
-                message: 'Statistics feature coming soon',
-            };
+            const stats = await this.appointmentLogService.getLogStatistics(
+                dto.startDate,
+                dto.endDate
+            );
 
             res.status(HttpStatus.Success).json(formatResponse(stats, true, 'Log statistics retrieved successfully'));
         } catch (error: any) {

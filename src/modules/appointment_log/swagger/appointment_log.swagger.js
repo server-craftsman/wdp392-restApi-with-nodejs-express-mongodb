@@ -105,7 +105,7 @@
  *   get:
  *     tags:
  *       - appointment-logs
- *     summary: Get logs for a specific appointment
+ *     summary: Get logs for a specific appointment (for admin, manager, staff and lab tech)
  *     description: |
  *       Retrieve paginated logs for a specific appointment including all status changes,
  *       staff assignments, check-ins, and administrative actions.
@@ -160,7 +160,7 @@
  *   get:
  *     tags:
  *       - appointment-logs
- *     summary: Get chronological timeline for appointment
+ *     summary: Get chronological timeline for appointment (for admin, manager, staff and lab tech)
  *     description: |
  *       Retrieve complete chronological activity timeline for an appointment,
  *       showing all actions in the order they occurred.
@@ -198,7 +198,7 @@
  *   get:
  *     tags:
  *       - appointment-logs
- *     summary: Get logs for an administrative case
+ *     summary: Get logs for an administrative case (for admin, manager, staff and lab tech)
  *     description: |
  *       Retrieve paginated logs for all appointments associated with a specific
  *       administrative/legal case, including case progress updates and agency notifications.
@@ -253,7 +253,7 @@
  *   get:
  *     tags:
  *       - appointment-logs
- *     summary: Get logs by action type
+ *     summary: Get logs by action type (for admin, manager)
  *     description: |
  *       Retrieve paginated logs filtered by specific action type.
  *       Useful for analyzing patterns and generating reports.
@@ -309,7 +309,7 @@
  *   get:
  *     tags:
  *       - appointment-logs
- *     summary: Get log statistics for dashboard
+ *     summary: Get log statistics for dashboard (for admin, manager)
  *     description: |
  *       Retrieve statistical data about appointment logs for dashboard and reporting purposes.
  *       Includes counts by action type, status, and administrative appointments.
