@@ -37,12 +37,28 @@ export default class AdministrativeAppointmentController {
                 throw new HttpException(HttpStatus.BadRequest, `Validation failed: ${JSON.stringify(validationErrors)}`);
             }
 
-            // Validate appointment creation
+            // Validate appointment creation and get case details
             const validation = await this.administrativeAppointmentService.validateAppointmentCreation(caseId);
 
             if (!validation.canCreate) {
                 throw new HttpException(HttpStatus.BadRequest, validation.reason || 'Cannot create appointment');
             }
+
+            // Validate user permissions and get case details
+            const userRole = req.user?.role || '';
+            const permissionValidation = await this.administrativeAppointmentService.validateUserPermissions(caseId, userId, userRole);
+
+            if (!permissionValidation.canAccess) {
+                throw new HttpException(HttpStatus.Forbidden, permissionValidation.reason || 'Access denied');
+            }
+
+            console.log('=== CONTROLLER DEBUG ===');
+            console.log('Permission validation case details:', JSON.stringify(permissionValidation.caseDetails, null, 2));
+            console.log('Assigned staff ID from case:', permissionValidation.caseDetails?.assigned_staff_id);
+            console.log('Assigned staff ID type:', typeof permissionValidation.caseDetails?.assigned_staff_id);
+            console.log('User ID:', userId);
+            console.log('User ID type:', typeof userId);
+            console.log('========================');
 
             const appointment = await this.administrativeAppointmentService.createAdministrativeAppointment(
                 caseId,
@@ -51,7 +67,7 @@ export default class AdministrativeAppointmentController {
                     service_id: dto.service_id,
                     appointment_date: dto.appointment_date,
                     collection_address: dto.collection_address,
-                    staff_id: dto.staff_id,
+                    staff_id: permissionValidation.caseDetails?.assigned_staff_id || userId, // Use assigned staff or current user
                     laboratory_technician_id: dto.laboratory_technician_id,
                     participants: dto.participants || [],
                 },
@@ -84,6 +100,15 @@ export default class AdministrativeAppointmentController {
     public getAppointmentsByCase = async (req: Request, res: Response): Promise<void> => {
         try {
             const { caseId } = req.params;
+            const userId = req.user?.id || '';
+            const userRole = req.user?.role || '';
+
+            // Validate user permissions
+            const permissionValidation = await this.administrativeAppointmentService.validateUserPermissions(caseId, userId, userRole);
+
+            if (!permissionValidation.canAccess) {
+                throw new HttpException(HttpStatus.Forbidden, permissionValidation.reason || 'Access denied');
+            }
 
             const appointments = await this.administrativeAppointmentService.getAppointmentsByCase(caseId);
 
@@ -100,10 +125,31 @@ export default class AdministrativeAppointmentController {
     public updateAppointmentProgress = async (req: Request, res: Response): Promise<void> => {
         try {
             const { appointmentId } = req.params;
+            const userId = req.user?.id || '';
+            const userRole = req.user?.role || '';
 
             // Validate DTO
             const dto = plainToClass(UpdateAppointmentProgressDto, req.body);
             await validateOrReject(dto);
+
+            // Get appointment to validate permissions
+            const appointment = await this.administrativeAppointmentService.getAppointmentById(appointmentId);
+            if (!appointment) {
+                throw new HttpException(HttpStatus.NotFound, 'Appointment not found');
+            }
+
+            // Validate user permissions for the case
+            if (appointment.administrative_case_id) {
+                const permissionValidation = await this.administrativeAppointmentService.validateUserPermissions(
+                    appointment.administrative_case_id,
+                    userId,
+                    userRole
+                );
+
+                if (!permissionValidation.canAccess) {
+                    throw new HttpException(HttpStatus.Forbidden, permissionValidation.reason || 'Access denied');
+                }
+            }
 
             await this.administrativeAppointmentService.updateAdministrativeCaseProgress(appointmentId, dto.status as AppointmentStatusEnum);
 
@@ -120,6 +166,15 @@ export default class AdministrativeAppointmentController {
     public validateAppointmentCreation = async (req: Request, res: Response): Promise<void> => {
         try {
             const { caseId } = req.params;
+            const userId = req.user?.id || '';
+            const userRole = req.user?.role || '';
+
+            // Validate user permissions
+            const permissionValidation = await this.administrativeAppointmentService.validateUserPermissions(caseId, userId, userRole);
+
+            if (!permissionValidation.canAccess) {
+                throw new HttpException(HttpStatus.Forbidden, permissionValidation.reason || 'Access denied');
+            }
 
             const validation = await this.administrativeAppointmentService.validateAppointmentCreation(caseId);
 

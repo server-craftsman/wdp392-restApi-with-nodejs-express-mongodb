@@ -20,4 +20,5 @@ export const COLLECTION_NAME = {
     SLOT: 'Slot',
     ATTENDANCE: 'Attendance',
     REFUND: 'Refund',
+    RESERVATION: 'Reservation',
 };

@@ -97,7 +97,7 @@ export interface IAdministrativeCase extends Document {
 
     // Người tạo và quản lý
     created_by_user_id?: string; // User tạo case (thường là staff/admin)
-    assigned_staff_id?: string; // Staff được phân công xử lý
+    assigned_staff_id?: string | null; // Staff được phân công xử lý
 
     // Thông tin kết quả
     result_delivery_method?: 'pickup' | 'mail' | 'email'; // Cách giao kết quả

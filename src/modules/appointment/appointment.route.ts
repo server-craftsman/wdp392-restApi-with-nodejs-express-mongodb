@@ -26,7 +26,7 @@ export default class AppointmentRoute implements IRoute {
 
         // Staff and Lab Tech specific routes - should be before generic /:id routes
         // GET: domain:/api/appointment/staff/available -> Get available staff
-        this.router.get(`${this.path}/staff/available`, authMiddleWare([UserRoleEnum.MANAGER]), this.appointmentController.getStaffRoles);
+        this.router.get(`${this.path}/staff/available`, authMiddleWare([UserRoleEnum.MANAGER, UserRoleEnum.ADMIN]), this.appointmentController.getStaffRoles);
 
         // GET: domain:/api/appointment/staff/slots -> Get available slots for logged-in staff
         this.router.get(`${this.path}/staff/slots`, authMiddleWare([UserRoleEnum.STAFF]), this.appointmentController.getStaffAvailableSlots);

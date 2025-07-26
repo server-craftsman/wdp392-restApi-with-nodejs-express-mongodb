@@ -10,7 +10,7 @@ import { ServiceRoute } from './modules/service';
 import { DepartmentRoute } from './modules/department';
 import { StaffProfileRoute } from './modules/staff_profile';
 import { SlotRoute } from './modules/slot';
-import { AppointmentRoute, ConsultationRoute } from './modules/appointment';
+import { AppointmentRoute, ConsultationRoute, ReservationRoute } from './modules/appointment';
 import { AppointmentLogRoute } from './modules/appointment_log';
 import { KitRoute } from './modules/kit';
 import { SampleRoute } from './modules/sample';
@@ -21,6 +21,7 @@ import { LogRoute } from './modules/blog/log';
 import { ReviewRoute } from './modules/review';
 import { AdministrativeCasesRoute } from './modules/administrative_cases';
 import { DashboardRoute } from './modules/dashboard';
+
 // Load environment variables
 dotenv.config();
 
@@ -50,6 +51,7 @@ const routes = [
     new ReviewRoute(),
     new AdministrativeCasesRoute(),
     new DashboardRoute(),
+    new ReservationRoute(),
 ];
 
 // Create app instance

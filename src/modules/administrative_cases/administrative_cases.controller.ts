@@ -67,8 +67,14 @@ export default class AdministrativeCasesController {
                 throw new HttpException(HttpStatus.BadRequest, 'Case ID is required');
             }
 
-            // Transform and validate request body
-            const dto = plainToClass(UpdateAdministrativeCaseDto, req.body);
+            // Handle null assignment for assigned_staff_id
+            const updateData = { ...req.body };
+            if (updateData.assigned_staff_id === 'null' || updateData.assigned_staff_id === '') {
+                updateData.assigned_staff_id = null;
+            }
+
+            // Transform and validate the processed data
+            const dto = plainToClass(UpdateAdministrativeCaseDto, updateData);
             const errors = await validate(dto);
 
             if (errors.length > 0) {
@@ -305,6 +311,15 @@ export default class AdministrativeCasesController {
             }
 
             res.status(HttpStatus.Success).json(formatResponse(result, true, 'Case assigned to staff successfully'));
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    public getAvailableStaffMembers = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const staffMembers = await this.administrativeCasesService.getAvailableStaffMembers();
+            res.status(HttpStatus.Success).json(formatResponse(staffMembers, true, 'Available staff members retrieved successfully'));
         } catch (error) {
             next(error);
         }

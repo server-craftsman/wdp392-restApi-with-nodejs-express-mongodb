@@ -12,6 +12,11 @@ import { CreateAppointmentDto } from './dtos/createAppointment.dto';
 import { CreateConsultationDto } from './dtos/createConsultation.dto';
 import AdministrativeAppointmentController from './administrative-appointment.controller';
 import AdministrativeAppointmentService from './administrative-appointment.service';
+import ReservationController from './reservation.controller';
+import ReservationService from './reservation.service';
+import { CreateReservationDto } from './dtos/createReservation.dto';
+import { ReservationPaymentDto } from './dtos/reservationPayment.dto';
+import ReservationRoute from './reservation.route';
 
 export {
     AppointmentSchema,
@@ -32,4 +37,9 @@ export {
     CreateConsultationDto,
     AdministrativeAppointmentController,
     AdministrativeAppointmentService,
+    ReservationController,
+    ReservationService,
+    CreateReservationDto,
+    ReservationPaymentDto,
+    ReservationRoute,
 };

@@ -5,6 +5,7 @@ import UserSchema from '../user/user.model';
 import { UserRoleEnum } from '../user';
 import { CreateAdministrativeCaseDto, UpdateAdministrativeCaseDto } from './dtos/commonAdminCases.dto';
 import { validateOrReject } from 'class-validator';
+import mongoose from 'mongoose';
 
 export default class AdministrativeCasesService {
     public async createCase(data: CreateAdministrativeCaseDto, userId: string): Promise<IAdministrativeCase> {
@@ -66,6 +67,31 @@ export default class AdministrativeCasesService {
             throw new Error('Cannot update deleted case');
         }
 
+        // Validate assigned_staff_id is a valid staff
+        if (data.assigned_staff_id !== undefined) {
+            if (data.assigned_staff_id === null || data.assigned_staff_id === '') {
+                // Allow clearing the assignment by setting to null or empty string
+                data.assigned_staff_id = null;
+            } else if (typeof data.assigned_staff_id === 'string' && data.assigned_staff_id.trim() !== '') {
+                // Validate that the staff ID is a valid ObjectId format
+                if (!/^[0-9a-fA-F]{24}$/.test(data.assigned_staff_id)) {
+                    throw new Error('Invalid staff ID format. Staff ID must be a valid 24-character hexadecimal string.');
+                }
+
+                // Try to find the staff member, but don't fail if not found
+                const staff = await UserSchema.findById(data.assigned_staff_id);
+                if (staff) {
+                    if (staff.role !== UserRoleEnum.STAFF) {
+                        throw new Error(`User with ID ${data.assigned_staff_id} (${staff.email}) is not a staff member. Only users with STAFF role can be assigned to cases.`);
+                    }
+                } else {
+                    console.log(`Warning: Staff member with ID ${data.assigned_staff_id} not found, but allowing assignment anyway`);
+                }
+            } else {
+                throw new Error('assigned_staff_id must be a valid string or null');
+            }
+        }
+
         // Validate DTO if provided
         if (Object.keys(data).length > 0) {
             await validateOrReject(data);
@@ -74,7 +100,18 @@ export default class AdministrativeCasesService {
         // Create update object with timestamp
         const updateData: any = { ...data, updated_at: new Date() };
 
-        return AdministrativeCaseSchema.findByIdAndUpdate(id, updateData, { new: true }).populate('created_by_user_id', 'email first_name last_name role').populate('assigned_staff_id', 'email first_name last_name role');
+        // Convert assigned_staff_id to ObjectId for database operation if it's a string
+        if (updateData.assigned_staff_id && typeof updateData.assigned_staff_id === 'string') {
+            updateData.assigned_staff_id = new mongoose.Types.ObjectId(updateData.assigned_staff_id);
+        }
+
+        // Use $set operator explicitly to ensure all fields are updated
+        const updateQuery = { $set: updateData };
+
+        // Perform the update and get the result
+        const result = await AdministrativeCaseSchema.findByIdAndUpdate(id, updateQuery, { new: true }).populate('created_by_user_id', 'email first_name last_name role').populate('assigned_staff_id', 'email first_name last_name role');
+
+        return result;
     }
 
     public async updateCaseStatus(id: string, status: string): Promise<IAdministrativeCase | null> {
@@ -333,5 +370,24 @@ export default class AdministrativeCasesService {
             .populate('created_by_user_id', 'email first_name last_name role')
             .populate('assigned_staff_id', 'email first_name last_name role')
             .sort({ created_at: -1 });
+    }
+
+    /**
+     * Get available staff members for assignment
+     */
+    public async getAvailableStaffMembers(): Promise<any[]> {
+        const staffMembers = await UserSchema.find({
+            role: UserRoleEnum.STAFF,
+            is_deleted: { $ne: true }
+        }).select('_id email first_name last_name role');
+
+        return staffMembers.map(staff => ({
+            id: staff._id,
+            email: staff.email,
+            first_name: staff.first_name,
+            last_name: staff.last_name,
+            role: staff.role,
+            full_name: `${staff.first_name} ${staff.last_name}`.trim()
+        }));
     }
 }

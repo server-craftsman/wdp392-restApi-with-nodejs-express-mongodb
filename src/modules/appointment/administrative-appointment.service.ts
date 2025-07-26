@@ -67,6 +67,11 @@ export default class AdministrativeAppointmentService {
         createdByUserId: string,
     ): Promise<IAppointment> {
         try {
+            console.log('=== CREATING ADMINISTRATIVE APPOINTMENT ===');
+            console.log('Case ID:', caseId);
+            console.log('Appointment data:', JSON.stringify(appointmentData, null, 2));
+            console.log('Created by user ID:', createdByUserId);
+
             // Verify administrative case exists and is approved
             const adminCase = await this.administrativeCaseService.getAdministrativeCaseById(caseId);
             if (!adminCase) {
@@ -75,6 +80,19 @@ export default class AdministrativeAppointmentService {
 
             if (adminCase.status !== 'approved') {
                 throw new HttpException(HttpStatus.BadRequest, 'Administrative case must be approved before scheduling appointment');
+            }
+
+            // Ensure staff_id is set from the case
+            if (!appointmentData.staff_id) {
+                if (!adminCase.assigned_staff_id) {
+                    throw new HttpException(HttpStatus.BadRequest, 'Case must have an assigned staff member before creating appointment');
+                }
+                appointmentData.staff_id = adminCase.assigned_staff_id;
+                console.log('Auto-assigned staff_id from case:', appointmentData.staff_id);
+                console.log('Auto-assigned staff_id type:', typeof appointmentData.staff_id);
+            } else {
+                // Use provided staff_id without validation against case assignment
+                console.log('Using provided staff_id:', appointmentData.staff_id);
             }
 
             // Validate service
@@ -289,6 +307,18 @@ export default class AdministrativeAppointmentService {
     }
 
     /**
+     * Get appointment by ID
+     */
+    public async getAppointmentById(appointmentId: string): Promise<IAppointment | null> {
+        try {
+            return await this.appointmentRepository.findById(appointmentId);
+        } catch (error) {
+            console.error('Error fetching appointment by ID:', error);
+            return null;
+        }
+    }
+
+    /**
      * Get all appointments for an administrative case
      */
     public async getAppointmentsByCase(caseId: string): Promise<IAppointment[]> {
@@ -296,6 +326,92 @@ export default class AdministrativeAppointmentService {
             return await this.appointmentRepository.find({ administrative_case_id: caseId });
         } catch (error) {
             throw new HttpException(HttpStatus.InternalServerError, 'Error fetching case appointments');
+        }
+    }
+
+    /**
+     * Validate user permissions for appointment operations
+     */
+    public async validateUserPermissions(caseId: string, userId: string, userRole: string): Promise<{
+        canAccess: boolean;
+        reason?: string;
+        caseDetails?: any;
+    }> {
+        try {
+            console.log('=== VALIDATE USER PERMISSIONS DEBUG ===');
+            console.log('Case ID:', caseId);
+            console.log('User ID:', userId);
+            console.log('User Role:', userRole);
+
+            const adminCase = await this.administrativeCaseService.getAdministrativeCaseById(caseId);
+            if (!adminCase) {
+                console.log('Case not found');
+                return { canAccess: false, reason: 'Administrative case not found' };
+            }
+
+            console.log('Admin case found:', {
+                case_number: adminCase.case_number,
+                status: adminCase.status,
+                assigned_staff_id: adminCase.assigned_staff_id,
+                assigned_staff_id_type: typeof adminCase.assigned_staff_id
+            });
+
+            // Admin and Manager can access all cases
+            if (userRole === 'admin' || userRole === 'manager') {
+                console.log('Admin/Manager access granted');
+                return {
+                    canAccess: true,
+                    caseDetails: {
+                        assigned_staff_id: adminCase.assigned_staff_id,
+                        status: adminCase.status,
+                        case_number: adminCase.case_number
+                    }
+                };
+            }
+
+            // Staff can access any case (removed assignment check)
+            if (userRole === 'staff') {
+                console.log('Staff access granted (no assignment check)');
+                return {
+                    canAccess: true,
+                    caseDetails: {
+                        assigned_staff_id: adminCase.assigned_staff_id,
+                        status: adminCase.status,
+                        case_number: adminCase.case_number
+                    }
+                };
+            }
+
+            console.log('Insufficient permissions');
+            return { canAccess: false, reason: 'Insufficient permissions' };
+        } catch (error) {
+            console.error('Error validating user permissions:', error);
+            return { canAccess: false, reason: 'Error validating permissions' };
+        }
+    }
+
+    /**
+     * Get case details for appointment creation
+     */
+    public async getCaseDetails(caseId: string): Promise<any> {
+        try {
+            const adminCase = await this.administrativeCaseService.getAdministrativeCaseById(caseId);
+            if (!adminCase) {
+                return null;
+            }
+
+            return {
+                case_number: adminCase.case_number,
+                status: adminCase.status,
+                assigned_staff_id: adminCase.assigned_staff_id,
+                agency_contact_email: adminCase.agency_contact_email,
+                agency_contact_name: adminCase.agency_contact_name,
+                case_type: adminCase.case_type,
+                authorization_code: adminCase.authorization_code,
+            };
+        } catch (error) {
+            console.error('Error getting case details:', error);
+            return null;
         }
     }
 

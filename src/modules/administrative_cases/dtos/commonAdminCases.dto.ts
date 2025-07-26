@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsOptional, Matches, IsEnum, IsArray, IsNumber, IsBoolean, IsDate, ValidateNested } from 'class-validator';
+import { IsString, IsEmail, IsOptional, Matches, IsEnum, IsArray, IsNumber, IsBoolean, IsDate, ValidateNested, ValidateIf } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { AdministrativeCaseStatus, AdministrativeCaseType, CaseUrgency } from '../administrative_cases.enum';
 
@@ -146,8 +146,7 @@ export class CreateAdministrativeCaseDto {
     denial_reason?: string;
 
     @IsOptional()
-    @IsString()
-    assigned_staff_id?: string;
+    assigned_staff_id?: string | null;
 
     @IsOptional()
     @IsString()
@@ -264,8 +263,7 @@ export class UpdateAdministrativeCaseDto {
     denial_reason?: string;
 
     @IsOptional()
-    @IsString()
-    assigned_staff_id?: string;
+    assigned_staff_id?: string | null;
 
     @IsOptional()
     @IsString()

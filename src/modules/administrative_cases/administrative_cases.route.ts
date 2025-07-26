@@ -62,5 +62,8 @@ export default class AdministrativeCasesRouter implements IRoute {
 
         // GET: domain:/api/administrative-cases/assigned/search -> Search assigned cases for staff/labtech
         this.router.get(`${this.path}/assigned/search`, authMiddleWare([UserRoleEnum.STAFF, UserRoleEnum.LABORATORY_TECHNICIAN]), this.administrativeCasesController.searchAssignedCases);
+
+        // GET: domain:/api/administrative-cases/staff/available -> Get available staff members for assignment
+        this.router.get(`${this.path}/staff/available`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.administrativeCasesController.getAvailableStaffMembers);
     }
 }

@@ -48,6 +48,9 @@ export const API_PATH = {
     ASSIGN_STAFF_TO_APPOINTMENT: '/api/appointment/:id/assign-staff',
     CONFIRM_APPOINTMENT: '/api/appointment/:id/confirm',
 
+    // Reservation
+    RESERVATIONS: '/api/reservations',
+
     // Appointment Log
     APPOINTMENT_LOG: '/api/appointment-logs',
     GET_LOGS_BY_APPOINTMENT: '/api/appointment-logs/appointment/:appointmentId',

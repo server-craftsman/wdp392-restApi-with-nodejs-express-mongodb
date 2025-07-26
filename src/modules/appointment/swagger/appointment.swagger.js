@@ -1088,7 +1088,6 @@
  *             service_id: "6880ff47cda9a9e0a4c528e1"
  *             user_id: "68810ddb8c84f0da10721596"
  *             collection_address: "123 Main St, Ho Chi Minh City"
- *             staff_id: "60d0fe4f5311236168a109cd"
  *             laboratory_technician_id: "68810d92071ec5fbf580ec89"
  *     responses:
  *       201:
