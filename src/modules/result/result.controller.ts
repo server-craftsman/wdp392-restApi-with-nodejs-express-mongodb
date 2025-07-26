@@ -8,6 +8,7 @@ import { CreateResultDto } from './dtos/createResult.dto';
 import { UpdateResultDto } from './dtos/updateResult.dto';
 import { StartTestingDto } from './dtos/startTesting.dto';
 import { UserRoleEnum } from '../user/user.enum';
+import { DataStoredInToken, UserInfoInTokenDefault } from '../auth';
 
 export default class ResultController {
     private resultService = new ResultService();
@@ -285,6 +286,293 @@ export default class ResultController {
             res.status(HttpStatus.Success).json(formatResponse(updatedRequest, true, 'Certificate request status updated successfully'));
         } catch (error) {
             next(error);
+        }
+    };
+
+    /**
+     * Test PDF generation with sample data (for development/testing only)
+     * Note: This endpoint only generates PDF, does NOT save to database
+     */
+    public testPDFGeneration = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const userData: DataStoredInToken = req.user as DataStoredInToken || UserInfoInTokenDefault;
+
+            // Check if user has permission (staff, manager, admin)
+            if (![UserRoleEnum.STAFF, UserRoleEnum.MANAGER, UserRoleEnum.ADMIN].includes(userData.role as UserRoleEnum)) {
+                throw new HttpException(HttpStatus.Forbidden, 'Access denied. Staff, Manager, or Admin access required.');
+            }
+
+            // Import the PDF generator function
+            const { generateTestResultPDF } = await import('./utils/pdfGenerator.util');
+
+            // Create unique test ID using timestamp and random string to avoid MongoDB conflicts
+            const timestamp = Date.now();
+            const randomSuffix = Math.random().toString(36).substring(2, 8);
+            const uniqueTestId = `TEST-${timestamp}-${randomSuffix}`;
+
+            // Create sample data for testing (NOT saved to database)
+            const sampleData = {
+                resultId: uniqueTestId,
+                isMatch: true,
+                resultData: {
+                    probability: '99.99',
+                    confidence_interval: '99.9%-100%',
+                    markers_tested: '24',
+                    markers_matched: '24',
+                    dna_match_percentage: '99.99',
+                    confidence_level: 'high'
+                },
+                completedAt: new Date(),
+                sampleId: `SAMPLE-TEST-${timestamp}`,
+                sampleType: 'blood',
+                collectionMethod: 'facility',
+                collectionDate: new Date('2024-01-20'),
+                allSampleIds: [`SAMPLE-TEST-${timestamp}-1`, `SAMPLE-TEST-${timestamp}-2`],
+                personsInfo: [
+                    {
+                        name: 'Nguyễn Văn A',
+                        relationship: 'Alleged Father',
+                        dob: new Date('1980-05-15'),
+                        birthPlace: '456 Nguyễn Huệ, Q1, TP.HCM',
+                        nationality: 'Vietnamese',
+                        identityDocument: '123456789',
+                        sampleId: `SAMPLE-TEST-${timestamp}-1`
+                    },
+                    {
+                        name: 'Nguyễn Minh Phúc',
+                        relationship: 'Child',
+                        dob: new Date('2010-08-20'),
+                        birthPlace: '789 Lê Lợi, Q1, TP.HCM',
+                        nationality: 'Vietnamese',
+                        identityDocument: '987654321',
+                        sampleId: `SAMPLE-TEST-${timestamp}-2`
+                    }
+                ],
+                appointmentId: `APT-TEST-${timestamp}`,
+                appointmentDate: new Date('2024-01-25'),
+                serviceType: 'administrative',
+                customerId: `CUST-TEST-${timestamp}`,
+                customerName: 'Nhân viên Hành chính NVHC',
+                customerGender: 'male',
+                customerDateOfBirth: new Date('1985-07-23'),
+                customerContactInfo: {
+                    email: 'NVHC@bloodline.com',
+                    phone: '869872830',
+                    address: '{"street":"Yên Hoàng Hữu Nam","ward":"Phường Thịnh Mỹ","district":"Quận 9","city":"TP. Hồ Chí Minh","country":"Việt Nam"}'
+                },
+                labTechnicianId: `TECH-TEST-${timestamp}`,
+                labTechnicianName: 'Kỹ thuật viên phòng Lab',
+                caseNumber: `PL-TEST-${timestamp}`,
+                agencyName: 'Tòa án nhân dân TP.HCM',
+                agencyContact: 'Phòng Hành chính'
+            };
+
+            // Generate PDF with administrative template (NO database save)
+            const pdfUrl = await generateTestResultPDF(sampleData, 'administrative_report_template');
+
+            res.status(HttpStatus.Success).json({
+                success: true,
+                message: 'PDF generated successfully for testing (NOT saved to database)',
+                data: {
+                    pdfUrl,
+                    testInfo: {
+                        resultId: uniqueTestId,
+                        isMatch: sampleData.isMatch,
+                        customerName: sampleData.customerName,
+                        caseNumber: sampleData.caseNumber,
+                        generatedAt: new Date().toISOString(),
+                        note: 'This is test data only - no database operations performed'
+                    }
+                }
+            });
+        } catch (error: any) {
+            console.error('Error in test PDF generation:', error);
+
+            if (error instanceof HttpException) {
+                res.status(error.status).json({
+                    success: false,
+                    message: error.message
+                });
+            } else {
+                res.status(HttpStatus.InternalServerError).json({
+                    success: false,
+                    message: 'Internal server error during PDF generation test',
+                    error: process.env.NODE_ENV === 'development' ? error.message : undefined
+                });
+            }
+        }
+    };
+
+    /**
+     * Get list of real result IDs for testing (Development/Testing only)
+     * Note: This endpoint returns real result IDs from database for testing other endpoints
+     */
+    public getTestResultIds = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const userData: DataStoredInToken = req.user as DataStoredInToken || UserInfoInTokenDefault;
+
+            // Check if user has permission (staff, manager, admin)
+            if (![UserRoleEnum.STAFF, UserRoleEnum.MANAGER, UserRoleEnum.ADMIN].includes(userData.role as UserRoleEnum)) {
+                throw new HttpException(HttpStatus.Forbidden, 'Access denied. Staff, Manager, or Admin access required.');
+            }
+
+            // Import mongoose to access the Result model
+            const { default: mongoose } = await import('mongoose');
+            const ResultModel = mongoose.model('Result');
+
+            // Get first 5 results from database
+            const results = await ResultModel.find({})
+                .select('_id sample_ids appointment_id customer_id is_match completed_at')
+                .limit(5)
+                .sort({ created_at: -1 });
+
+            const resultIds = results.map(result => ({
+                _id: result._id.toString(),
+                sample_ids: result.sample_ids?.map((id: any) => id.toString()) || [],
+                appointment_id: result.appointment_id?.toString(),
+                customer_id: result.customer_id?.toString(),
+                is_match: result.is_match,
+                completed_at: result.completed_at
+            }));
+
+            res.status(HttpStatus.Success).json({
+                success: true,
+                message: 'Real result IDs retrieved for testing',
+                data: {
+                    count: resultIds.length,
+                    results: resultIds,
+                    note: 'Use these real IDs to test GET /api/result/:id endpoint'
+                }
+            });
+        } catch (error: any) {
+            console.error('Error in getTestResultIds:', error);
+
+            if (error instanceof HttpException) {
+                res.status(error.status).json({
+                    success: false,
+                    message: error.message
+                });
+            } else {
+                res.status(HttpStatus.InternalServerError).json({
+                    success: false,
+                    message: 'Internal server error while retrieving test result IDs',
+                    error: process.env.NODE_ENV === 'development' ? error.message : undefined
+                });
+            }
+        }
+    };
+
+    /**
+     * Simple test PDF generation (for development/testing only)
+     * Note: This endpoint only generates PDF, does NOT save to database
+     */
+    public simpleTestPDF = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const userData: DataStoredInToken = req.user as DataStoredInToken || UserInfoInTokenDefault;
+
+            // Check if user has permission (staff, manager, admin)
+            if (![UserRoleEnum.STAFF, UserRoleEnum.MANAGER, UserRoleEnum.ADMIN].includes(userData.role as UserRoleEnum)) {
+                throw new HttpException(HttpStatus.Forbidden, 'Access denied. Staff, Manager, or Admin access required.');
+            }
+
+            // Import the PDF generator function
+            const { generateTestResultPDF } = await import('./utils/pdfGenerator.util');
+
+            // Create unique test ID using timestamp and random string to avoid MongoDB conflicts
+            const timestamp = Date.now();
+            const randomSuffix = Math.random().toString(36).substring(2, 8);
+            const uniqueTestId = `SIMPLE-TEST-${timestamp}-${randomSuffix}`;
+
+            // Create simple sample data for testing (NOT saved to database)
+            const simpleData = {
+                resultId: uniqueTestId,
+                isMatch: true,
+                resultData: {
+                    probability: '99.99',
+                    confidence_interval: '99.9%-100%',
+                    markers_tested: '24',
+                    markers_matched: '24',
+                    dna_match_percentage: '99.99',
+                    confidence_level: 'high'
+                },
+                completedAt: new Date(),
+                sampleId: `SAMPLE-SIMPLE-${timestamp}`,
+                sampleType: 'blood',
+                collectionMethod: 'facility',
+                collectionDate: new Date('2024-01-20'),
+                allSampleIds: [`SAMPLE-SIMPLE-${timestamp}-1`, `SAMPLE-SIMPLE-${timestamp}-2`],
+                personsInfo: [
+                    {
+                        name: 'Nguyễn Văn Test',
+                        relationship: 'Alleged Father',
+                        dob: new Date('1980-05-15'),
+                        birthPlace: 'TP. Hồ Chí Minh',
+                        nationality: 'Vietnamese',
+                        identityDocument: '123456789',
+                        sampleId: `SAMPLE-SIMPLE-${timestamp}-1`
+                    },
+                    {
+                        name: 'Nguyễn Thị Test',
+                        relationship: 'Child',
+                        dob: new Date('2010-08-20'),
+                        birthPlace: 'TP. Hồ Chí Minh',
+                        nationality: 'Vietnamese',
+                        identityDocument: '987654321',
+                        sampleId: `SAMPLE-SIMPLE-${timestamp}-2`
+                    }
+                ],
+                appointmentId: `APT-SIMPLE-${timestamp}`,
+                appointmentDate: new Date('2024-01-25'),
+                serviceType: 'administrative',
+                customerId: `CUST-SIMPLE-${timestamp}`,
+                customerName: 'Khách hàng Test',
+                customerGender: 'male',
+                customerDateOfBirth: new Date('1985-07-23'),
+                customerContactInfo: {
+                    email: 'test@example.com',
+                    phone: '0123456789',
+                    address: '{"street":"Đường Test","ward":"Phường Test","district":"Quận Test","city":"TP. Hồ Chí Minh","country":"Việt Nam"}'
+                },
+                labTechnicianId: `TECH-SIMPLE-${timestamp}`,
+                labTechnicianName: 'Kỹ thuật viên Test',
+                caseNumber: `CASE-SIMPLE-${timestamp}`,
+                agencyName: 'Cơ quan Test',
+                agencyContact: 'Phòng Test'
+            };
+
+            // Generate PDF with administrative template (NO database save)
+            const pdfUrl = await generateTestResultPDF(simpleData, 'administrative_report_template');
+
+            res.status(HttpStatus.Success).json({
+                success: true,
+                message: 'Simple test PDF generated successfully (NOT saved to database)',
+                data: {
+                    pdfUrl,
+                    testInfo: {
+                        resultId: uniqueTestId,
+                        isMatch: simpleData.isMatch,
+                        customerName: simpleData.customerName,
+                        caseNumber: simpleData.caseNumber,
+                        generatedAt: new Date().toISOString(),
+                        note: 'This is test data only - no database operations performed'
+                    }
+                }
+            });
+        } catch (error: any) {
+            console.error('Error in simple test PDF generation:', error);
+
+            if (error instanceof HttpException) {
+                res.status(error.status).json({
+                    success: false,
+                    message: error.message
+                });
+            } else {
+                res.status(HttpStatus.InternalServerError).json({
+                    success: false,
+                    message: 'Internal server error during simple PDF generation test',
+                    error: process.env.NODE_ENV === 'development' ? error.message : undefined
+                });
+            }
         }
     };
 }

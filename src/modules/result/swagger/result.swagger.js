@@ -829,4 +829,267 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse' 
+ */
+
+/**
+ * @swagger
+ * /api/result/test-pdf:
+ *   get:
+ *     tags: [results]
+ *     summary: Test PDF generation with sample data (Development/Testing only)
+ *     description: |
+ *       Generate a test PDF report with sample data to verify PDF generation functionality and Vietnamese character encoding. 
+ *       This endpoint is for development and testing purposes only.
+ *       
+ *       **Important Notes:**
+ *       - **NO database operations** - Data is NOT saved to MongoDB
+ *       - **Unique IDs** - Uses timestamp + random string to avoid MongoDB conflicts
+ *       - **Test data only** - All data is generated for testing purposes
+ *       - **PDF generation only** - Only creates and uploads PDF file
+ *     security:
+ *       - Bearer: []
+ *     responses:
+ *       200:
+ *         description: PDF generated successfully for testing (NOT saved to database)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "PDF generated successfully for testing (NOT saved to database)"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     pdfUrl:
+ *                       type: string
+ *                       description: URL to the generated PDF file
+ *                       example: "https://wdp392-generate-pdf.s3.ap-southeast-2.amazonaws.com/test-results/TEST-1703123456789-abc123/TEST-1703123456789-abc123-20241226-123456.pdf"
+ *                     testInfo:
+ *                       type: object
+ *                       description: Test information summary
+ *                       properties:
+ *                         resultId:
+ *                           type: string
+ *                           description: Unique test result ID (timestamp + random string)
+ *                           example: "TEST-1703123456789-abc123"
+ *                         isMatch:
+ *                           type: boolean
+ *                           example: true
+ *                         customerName:
+ *                           type: string
+ *                           example: "Nhân viên Hành chính NVHC"
+ *                         caseNumber:
+ *                           type: string
+ *                           example: "PL-TEST-1703123456789"
+ *                         generatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                           description: When the test PDF was generated
+ *                           example: "2024-12-26T12:34:56.789Z"
+ *                         note:
+ *                           type: string
+ *                           example: "This is test data only - no database operations performed"
+ *       401:
+ *         description: Unauthorized - User not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         description: Forbidden - Access denied (Staff, Manager, or Admin access required)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error - PDF generation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+
+/**
+ * @swagger
+ * /api/result/simple-test-pdf:
+ *   get:
+ *     tags: [results]
+ *     summary: Simple test PDF generation (Development/Testing only)
+ *     description: |
+ *       Generate a simple test PDF report with basic sample data to verify PDF generation functionality and Vietnamese character encoding. 
+ *       This endpoint is for development and testing purposes only.
+ *       
+ *       **Important Notes:**
+ *       - **NO database operations** - Data is NOT saved to MongoDB
+ *       - **Unique IDs** - Uses timestamp + random string to avoid MongoDB conflicts
+ *       - **Test data only** - All data is generated for testing purposes
+ *       - **PDF generation only** - Only creates and uploads PDF file
+ *     security:
+ *       - Bearer: []
+ *     responses:
+ *       200:
+ *         description: Simple test PDF generated successfully (NOT saved to database)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Simple test PDF generated successfully (NOT saved to database)"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     pdfUrl:
+ *                       type: string
+ *                       description: URL to the generated PDF file
+ *                       example: "https://wdp392-generate-pdf.s3.ap-southeast-2.amazonaws.com/test-results/SIMPLE-TEST-1703123456789-xyz789/SIMPLE-TEST-1703123456789-xyz789-20241226-123456.pdf"
+ *                     testInfo:
+ *                       type: object
+ *                       description: Test information summary
+ *                       properties:
+ *                         resultId:
+ *                           type: string
+ *                           description: Unique test result ID (timestamp + random string)
+ *                           example: "SIMPLE-TEST-1703123456789-xyz789"
+ *                         isMatch:
+ *                           type: boolean
+ *                           example: true
+ *                         customerName:
+ *                           type: string
+ *                           example: "Khách hàng Test"
+ *                         caseNumber:
+ *                           type: string
+ *                           example: "CASE-SIMPLE-1703123456789"
+ *                         generatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                           description: When the test PDF was generated
+ *                           example: "2024-12-26T12:34:56.789Z"
+ *                         note:
+ *                           type: string
+ *                           example: "This is test data only - no database operations performed"
+ *       401:
+ *         description: Unauthorized - User not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         description: Forbidden - Access denied (Staff, Manager, or Admin access required)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error - PDF generation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+
+/**
+ * @swagger
+ * /api/result/test-ids:
+ *   get:
+ *     tags: [results]
+ *     summary: Get real result IDs for testing (Development/Testing only)
+ *     description: |
+ *       Retrieve real result IDs from the database for testing other endpoints that require valid MongoDB ObjectIds.
+ *       This endpoint is for development and testing purposes only.
+ *       
+ *       **Use Case:**
+ *       - Get real result IDs to test `GET /api/result/:id` endpoint
+ *       - Get real sample IDs to test `GET /api/result/sample/:sampleId` endpoint  
+ *       - Get real appointment IDs to test `GET /api/result/appointment/:appointmentId` endpoint
+ *       
+ *       **Important Notes:**
+ *       - **Read-only operation** - Only retrieves existing data
+ *       - **Real data** - Returns actual result IDs from database
+ *       - **Limited results** - Returns only first 5 results to avoid overwhelming response
+ *     security:
+ *       - Bearer: []
+ *     responses:
+ *       200:
+ *         description: Real result IDs retrieved successfully for testing
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Real result IDs retrieved for testing"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     count:
+ *                       type: number
+ *                       description: Number of results returned
+ *                       example: 3
+ *                     results:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                             description: Valid MongoDB ObjectId for result
+ *                             example: "60d21b4667d0d8992e610c85"
+ *                           sample_ids:
+ *                             type: array
+ *                             items:
+ *                               type: string
+ *                             description: Array of sample IDs associated with this result
+ *                             example: ["60c72b2f9b1e8b3b4c8d6e26", "60c72b2f9b1e8b3b4c8d6e27"]
+ *                           appointment_id:
+ *                             type: string
+ *                             description: Appointment ID associated with this result
+ *                             example: "5f8d0e0e9d3b9a0017c1a7a2"
+ *                           customer_id:
+ *                             type: string
+ *                             description: Customer ID associated with this result
+ *                             example: "60d21b4667d0d8992e610c83"
+ *                           is_match:
+ *                             type: boolean
+ *                             description: Whether the DNA test result is a match
+ *                             example: true
+ *                           completed_at:
+ *                             type: string
+ *                             format: date-time
+ *                             description: When the result was completed
+ *                             example: "2024-01-20T10:30:00.000Z"
+ *                     note:
+ *                       type: string
+ *                       example: "Use these real IDs to test GET /api/result/:id endpoint"
+ *       401:
+ *         description: Unauthorized - User not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         description: Forbidden - Access denied (Staff, Manager, or Admin access required)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal Server Error - Database query failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */ 
