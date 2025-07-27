@@ -87,7 +87,7 @@
  *     tags: 
  *       - administrative-cases
  *     summary: Lấy danh sách hồ sơ pháp lý
- *     description: Lấy tất cả hồ sơ xét nghiệm DNA pháp lý (không bao gồm hồ sơ đã xóa)
+ *     description: "Lấy tất cả hồ sơ xét nghiệm DNA pháp lý (không bao gồm hồ sơ đã xóa)"
  *     security:
  *       - Bearer: []
  *     parameters:
@@ -146,7 +146,7 @@
  *         name: case_number
  *         schema:
  *           type: string
- *         description: Tìm kiếm theo số hồ sơ (hỗ trợ partial match)
+ *         description: "Tìm kiếm theo số hồ sơ (hỗ trợ partial match)"
  *         example: "PL-2025-001"
  *       - in: query
  *         name: case_type
@@ -176,14 +176,14 @@
  *         schema:
  *           type: string
  *           format: date
- *         description: Tìm kiếm từ ngày (YYYY-MM-DD)
+ *         description: "Tìm kiếm từ ngày (YYYY-MM-DD)"
  *         example: "2025-01-01"
  *       - in: query
  *         name: to_date
  *         schema:
  *           type: string
  *           format: date
- *         description: Tìm kiếm đến ngày (YYYY-MM-DD)
+ *         description: "Đến ngày (YYYY-MM-DD)"
  *         example: "2025-12-31"
  *     responses:
  *       200:
@@ -220,7 +220,7 @@
  *         name: sequential
  *         schema:
  *           type: boolean
- *         description: Sử dụng số thứ tự tuần tự (true) hoặc timestamp (false)
+ *         description: "Sử dụng số thứ tự tuần tự (true) hoặc timestamp (false)"
  *         example: true
  *     responses:
  *       200:
@@ -251,7 +251,7 @@
  *     tags: 
  *       - administrative-cases
  *     summary: Lấy hồ sơ theo số hồ sơ
- *     description: Tìm hồ sơ bằng số hồ sơ (case_number)
+ *     description: "Tìm hồ sơ bằng số hồ sơ (case_number)"
  *     security:
  *       - Bearer: []
  *     parameters:
@@ -342,7 +342,7 @@
  *     tags: 
  *       - administrative-cases
  *     summary: Xóa hồ sơ (soft delete)
- *     description: Đánh dấu hồ sơ là đã xóa (không xóa vĩnh viễn)
+ *     description: "Đánh dấu hồ sơ là đã xóa (không xóa vĩnh viễn)"
  *     security:
  *       - Bearer: []
  *     parameters:
@@ -521,7 +521,7 @@
  *         case_number:
  *           type: string
  *           pattern: '^PL-\d{4}-\d{3}$'
- *           description: Số hồ sơ (Format: PL-YYYY-XXX)
+ *           description: "Số hồ sơ (Format: PL-YYYY-XXX)"
  *           example: "PL-2024-001"
  *         case_type:
  *           type: string
@@ -553,17 +553,17 @@
  *         agency_contact_phone:
  *           type: string
  *           pattern: '^0\d{9}$'
- *           description: Số điện thoại (10 số, bắt đầu bằng 0)
+ *           description: "Số điện thoại (10 số, bắt đầu bằng 0)"
  *           example: "0123456789"
  *         authorization_code:
  *           type: string
  *           pattern: '^QD-\d{4}-\d{3}$'
- *           description: Số phép (Format: QD-YYYY-XXX)
+ *           description: "Số phép (Format: QD-YYYY-XXX)"
  *           example: "QD-2024-001"
  *         court_order_number:
  *           type: string
  *           pattern: '^SO-\d{3}/\d{4}$'
- *           description: Số quyết định tòa án (Format: SO-XXX/YYYY)
+ *           description: "Số quyết định tòa án (Format: SO-XXX/YYYY)"
  *           example: "SO-001/2024"
  *         authorization_date:
  *           type: string
@@ -602,7 +602,7 @@
  *           description: Ghi chú nội bộ
  *         denial_reason:
  *           type: string
- *           description: Lý do từ chối (nếu có)
+ *           description: "Lý do từ chối (nếu có)"
  *         assigned_staff_id:
  *           type: string
  *           description: ID nhân viên được giao
@@ -640,15 +640,15 @@
  *         agency_contact_phone:
  *           type: string
  *           pattern: '^0\d{9}$'
- *           description: Số điện thoại (10 số, bắt đầu bằng 0)
+ *           description: "Số điện thoại (10 số, bắt đầu bằng 0)"
  *         authorization_code:
  *           type: string
  *           pattern: '^QD-\d{4}-\d{3}$'
- *           description: Số phép (Format: QD-YYYY-XXX)
+ *           description: "Số phép (Format: QD-YYYY-XXX)"
  *         court_order_number:
  *           type: string
  *           pattern: '^SO-\d{3}/\d{4}$'
- *           description: Số quyết định tòa án (Format: SO-XXX/YYYY)
+ *           description: "Số quyết định tòa án (Format: SO-XXX/YYYY)"
  *         authorization_date:
  *           type: string
  *           format: date-time
@@ -817,7 +817,7 @@
  *         schema:
  *           type: string
  *           enum: [paternity, maternity, sibling, kinship, immigration, inheritance]
- *         description: Loại vụ việc (chỉ trong phạm vi cho phép)
+ *         description: "Loại vụ việc (chỉ trong phạm vi cho phép)"
  *         example: "paternity"
  *       - in: query
  *         name: status
@@ -837,14 +837,14 @@
  *         schema:
  *           type: string
  *           format: date
- *         description: Từ ngày (YYYY-MM-DD)
+ *         description: "Từ ngày (YYYY-MM-DD)"
  *         example: "2024-01-01"
  *       - in: query
  *         name: to_date
  *         schema:
  *           type: string
  *           format: date
- *         description: Đến ngày (YYYY-MM-DD)
+ *         description: "Đến ngày (YYYY-MM-DD)"
  *         example: "2024-12-31"
  *     responses:
  *       200:
@@ -871,7 +871,7 @@
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
- *         description: Không có quyền truy cập (chỉ Staff/LabTech)
+ *         description: "Không có quyền truy cập (chỉ Staff/LabTech)"
  *         content:
  *           application/json:
  *             schema:
@@ -882,7 +882,10 @@
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
- *
+ */
+
+/**
+ * @swagger
  * /api/administrative-cases/{id}/assign:
  *   put:
  *     tags: [administrative-cases]
@@ -954,7 +957,7 @@
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
- *         description: Không có quyền giao vụ việc (chỉ Admin/Manager)
+ *         description: "Không có quyền giao vụ việc (chỉ Admin/Manager)"
  *         content:
  *           application/json:
  *             schema:

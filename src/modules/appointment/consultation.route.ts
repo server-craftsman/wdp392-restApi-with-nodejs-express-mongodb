@@ -12,20 +12,14 @@ export default class ConsultationRoute implements IRoute {
     private appointmentController = new AppointmentController();
 
     constructor() {
-        console.log('[CONSULTATION ROUTE] Constructor called, registering routes...');
         this.initializeRoutes();
     }
 
     private initializeRoutes() {
-        console.log('[CONSULTATION ROUTE] Initializing routes with path:', this.path);
 
         // POST: domain:/api/consultation -> Create consultation request (public)
         this.router.post(
             `${this.path}`,
-            (req, res, next) => {
-                console.log('[CONSULTATION ROUTE] POST /api/consultation matched');
-                next();
-            },
             validationMiddleware(CreateConsultationDto),
             this.appointmentController.createConsultation,
         );
@@ -33,10 +27,6 @@ export default class ConsultationRoute implements IRoute {
         // GET: domain:/api/consultation -> Get consultation requests
         this.router.get(
             `${this.path}`,
-            (req, res, next) => {
-                console.log('[CONSULTATION ROUTE] GET /api/consultation matched');
-                next();
-            },
             authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER, UserRoleEnum.STAFF]),
             this.appointmentController.getConsultationRequests,
         );
