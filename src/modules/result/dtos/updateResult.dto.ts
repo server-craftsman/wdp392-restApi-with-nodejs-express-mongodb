@@ -1,9 +1,4 @@
-import { IsBoolean, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-
-export class ResultDataDto {
-    [key: string]: any;
-}
+import { IsBoolean, IsOptional, IsString, IsObject } from 'class-validator';
 
 export class UpdateResultDto {
     @IsOptional()
@@ -11,8 +6,7 @@ export class UpdateResultDto {
     is_match?: boolean;
 
     @IsOptional()
-    @ValidateNested()
-    @Type(() => ResultDataDto)
+    @IsObject({ message: 'Result data must be an object' })
     result_data?: Record<string, any>;
 
     @IsOptional()

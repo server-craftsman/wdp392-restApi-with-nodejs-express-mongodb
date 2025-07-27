@@ -1,9 +1,4 @@
-import { IsArray, IsBoolean, IsMongoId, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-
-export class ResultDataDto {
-    [key: string]: any;
-}
+import { IsArray, IsBoolean, IsMongoId, IsNotEmpty, IsOptional, IsString, IsObject } from 'class-validator';
 
 export class CreateResultDto {
     @IsNotEmpty({ message: 'Sample IDs are required' })
@@ -24,8 +19,7 @@ export class CreateResultDto {
     is_match: boolean = false;
 
     @IsOptional()
-    @ValidateNested()
-    @Type(() => ResultDataDto)
+    @IsObject({ message: 'Result data must be an object' })
     result_data?: Record<string, any>;
 
     @IsOptional()

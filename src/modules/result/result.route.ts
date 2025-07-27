@@ -22,7 +22,7 @@ export default class ResultRoute implements IRoute {
         this.router.post(
             `${API_PATH.RESULT}/`,
             authMiddleWare([UserRoleEnum.LABORATORY_TECHNICIAN]),
-            // validationMiddleware(CreateResultDto),
+            validationMiddleware(CreateResultDto),
             this.resultController.createResult,
         );
 
