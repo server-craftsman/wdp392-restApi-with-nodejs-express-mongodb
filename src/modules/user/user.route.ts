@@ -40,6 +40,15 @@ export default class UserRoute implements IRoute {
         // PUT domain:/api/users/review-profile-account -> Review profile account
         this.router.put(API_PATH.REVIEW_PROFILE_ACCOUNT, authMiddleWare([UserRoleEnum.ADMIN]), validationMiddleware(ReviewProfileDto), this.userController.reviewProfileAccount);
 
+        // PUT domain:/api/users/change-password -> Change password
+        this.router.put(API_PATH.CHANGE_PASSWORD_USERS, authMiddleWare(), validationMiddleware(ChangePasswordDto), this.userController.changePassword);
+
+        // PUT domain:/api/users/change-status -> Change user status (block/unBlock)
+        this.router.put(API_PATH.CHANGE_STATUS_USERS, authMiddleWare([UserRoleEnum.ADMIN]), validationMiddleware(ChangeStatusDto), this.userController.changeStatus);
+
+        // PUT domain:/api/users/change-role -> Change user role
+        this.router.put(API_PATH.CHANGE_ROLE_USER, authMiddleWare([UserRoleEnum.ADMIN]), validationMiddleware(ChangeRoleDto), this.userController.changeRole);
+
         // GET: domain:/api/users/staff-lab-tech -> Get staff and laboratory technician users
         this.router.get(`${this.path}/staff-lab-tech`, authMiddleWare([UserRoleEnum.ADMIN, UserRoleEnum.MANAGER]), this.userController.getStaffAndLabTechUsers);
 
@@ -54,14 +63,5 @@ export default class UserRoute implements IRoute {
 
         // POST domain:/api/users/:id -> Delete user logic
         this.router.delete(`${this.path}/:id`, authMiddleWare([UserRoleEnum.ADMIN]), this.userController.deleteUser);
-
-        // PUT domain:/api/users/change-password -> Change password
-        this.router.put(API_PATH.CHANGE_PASSWORD_USERS, authMiddleWare(), validationMiddleware(ChangePasswordDto), this.userController.changePassword);
-
-        // PUT domain:/api/users/change-status -> Change user status (block/unBlock)
-        this.router.put(API_PATH.CHANGE_STATUS_USERS, authMiddleWare([UserRoleEnum.ADMIN]), validationMiddleware(ChangeStatusDto), this.userController.changeStatus);
-
-        // PUT domain:/api/users/change-role -> Change user role
-        this.router.put(API_PATH.CHANGE_ROLE_USER, authMiddleWare([UserRoleEnum.ADMIN]), validationMiddleware(ChangeRoleDto), this.userController.changeRole);
     }
 }
