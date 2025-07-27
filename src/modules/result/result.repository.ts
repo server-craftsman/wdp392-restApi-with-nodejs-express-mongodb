@@ -18,7 +18,9 @@ export default class ResultRepository {
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return null;
         }
-        return await ResultSchema.findById(id).exec();
+        return await ResultSchema.findById(id)
+            .select('_id sample_ids customer_id appointment_id laboratory_technician_id is_match result_data report_url completed_at created_at updated_at')
+            .exec();
     }
 
     /**
@@ -28,21 +30,27 @@ export default class ResultRepository {
         if (!mongoose.Types.ObjectId.isValid(sampleId)) {
             return null;
         }
-        return await ResultSchema.findOne({ sample_ids: { $in: [sampleId] } }).exec();
+        return await ResultSchema.findOne({ sample_ids: { $in: [sampleId] } })
+            .select('_id sample_ids customer_id appointment_id laboratory_technician_id is_match result_data report_url completed_at created_at updated_at')
+            .exec();
     }
 
     /**
      * Find one result by query
      */
     public async findOne(query: any): Promise<IResult | null> {
-        return await ResultSchema.findOne(query).exec();
+        return await ResultSchema.findOne(query)
+            .select('_id sample_ids customer_id appointment_id laboratory_technician_id is_match result_data report_url completed_at created_at updated_at')
+            .exec();
     }
 
     /**
      * Find results by query
      */
     public async find(query: any): Promise<IResult[]> {
-        return await ResultSchema.find(query).exec();
+        return await ResultSchema.find(query)
+            .select('_id sample_ids customer_id appointment_id laboratory_technician_id is_match result_data report_url completed_at created_at updated_at')
+            .exec();
     }
 
     /**
@@ -70,13 +78,22 @@ export default class ResultRepository {
     }
 
     public async findAll(query: any): Promise<IResult[]> {
-        return ResultSchema.find(query).populate('sample_ids').populate('customer_id').populate('appointment_id');
+        return ResultSchema.find(query)
+            .select('_id sample_ids customer_id appointment_id laboratory_technician_id is_match result_data report_url completed_at created_at updated_at')
+            .populate('sample_ids')
+            .populate('customer_id')
+            .populate('appointment_id');
     }
 
     /**
      * Find result by appointment ID with populated fields
      */
     public async findByAppointmentId(appointmentId: string): Promise<IResult | null> {
-        return ResultSchema.findOne({ appointment_id: appointmentId }).populate('sample_ids').populate('customer_id').populate('appointment_id').populate('laboratory_technician_id');
+        return ResultSchema.findOne({ appointment_id: appointmentId })
+            .select('_id sample_ids customer_id appointment_id laboratory_technician_id is_match result_data report_url completed_at created_at updated_at')
+            .populate('sample_ids')
+            .populate('customer_id')
+            .populate('appointment_id')
+            .populate('laboratory_technician_id');
     }
 }
