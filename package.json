@@ -41,7 +41,7 @@
     "moment": "^2.30.1",
     "mongoose": "^8.14.3",
     "morgan": "^1.10.0",
-    "multer": "^2.0.1",
+    "multer": "^2.0.2",
     "nodemailer": "^7.0.3",
     "path": "^0.12.7",
     "pdfkit": "^0.14.0",
