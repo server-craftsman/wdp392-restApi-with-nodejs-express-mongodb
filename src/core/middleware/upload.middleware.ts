@@ -32,6 +32,12 @@ const upload = multer({
 // Helper function to upload buffer directly to S3
 const uploadBufferToS3 = async (buffer: Buffer, originalname: string, mimetype: string, sampleId?: string, folder: string = s3Folders.personImages): Promise<string> => {
     try {
+        // Check if S3 is configured
+        const client = s3Client();
+        if (!client) {
+            throw new HttpException(HttpStatus.InternalServerError, 'AWS S3 is not configured');
+        }
+
         // Generate a unique file name
         const fileExtension = path.extname(originalname);
         const fileName = `${uuidv4()}${fileExtension}`;
@@ -48,10 +54,10 @@ const uploadBufferToS3 = async (buffer: Buffer, originalname: string, mimetype: 
             ContentType: mimetype,
         };
 
-        await s3Client.send(new PutObjectCommand(uploadParams));
+        await client.send(new PutObjectCommand(uploadParams));
 
         // Generate the URL for the uploaded file
-        const region = typeof s3Client.config.region === 'string' ? s3Client.config.region : 'ap-southeast-2'; // Default region based on error message
+        const region = typeof client.config.region === 'string' ? client.config.region : 'ap-southeast-2'; // Default region based on error message
 
         // Use the correct S3 URL format with dashed region
         const fileUrl = `https://${bucketName}.s3-${region}.amazonaws.com/${key}`;
