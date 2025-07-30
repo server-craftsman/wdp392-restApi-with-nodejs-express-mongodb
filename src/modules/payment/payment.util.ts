@@ -9,19 +9,38 @@ const clientId = process.env.PAYOS_CLIENT_ID;
 const apiKey = process.env.PAYOS_API_KEY;
 const checksumKey = process.env.PAYOS_CHECKSUM_KEY;
 
-// Validate credentials
-if (!clientId || !apiKey || !checksumKey) {
-    throw new Error('Missing PayOS configuration: CLIENT_ID, API_KEY, or CHECKSUM_KEY');
-}
+// Check if PayOS credentials are properly configured
+const isPayosConfigured = () => {
+    return clientId && apiKey && checksumKey;
+};
 
-// Initialize PayOS client
-const payosClient = new PayOS(clientId, apiKey, checksumKey);
+// Lazy initialization of PayOS client
+let payosClientInstance: PayOS | null = null;
+
+const getPayosClient = (): PayOS | null => {
+    if (!isPayosConfigured()) {
+        console.warn('PayOS not configured - missing required environment variables');
+        return null;
+    }
+
+    if (!payosClientInstance) {
+        payosClientInstance = new PayOS(clientId!, apiKey!, checksumKey!);
+    }
+
+    return payosClientInstance;
+};
 
 /**
  * Create a payment link using PayOS
  */
 export async function createPayosPayment(amount: number, orderCode?: string, description?: string, buyerName?: string, buyerEmail?: string, buyerPhone?: string): Promise<{ checkoutUrl: string; orderCode: number }> {
     try {
+        // Check if PayOS is configured
+        const client = getPayosClient();
+        if (!client) {
+            throw new Error('PayOS is not configured');
+        }
+
         // Validate input
         if (!amount || amount < 1000) {
             throw new Error('Amount must be a positive integer >= 1000 VND');
@@ -63,7 +82,7 @@ export async function createPayosPayment(amount: number, orderCode?: string, des
         console.log('PayOS Request:', paymentData);
 
         // Get payment link
-        const response = await payosClient.createPaymentLink(paymentData);
+        const response = await client.createPaymentLink(paymentData);
 
         console.log('PayOS Response:', response);
 

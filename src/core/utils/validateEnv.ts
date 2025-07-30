@@ -10,6 +10,12 @@ const validateEnv = () => {
         AWS_ACCESS_KEY_ID: str({ default: '' }),
         AWS_SECRET_ACCESS_KEY: str({ default: '' }),
         AWS_S3_BUCKET_NAME: str({ default: '' }),
+        // PayOS environment variables are optional
+        PAYOS_CLIENT_ID: str({ default: '' }),
+        PAYOS_API_KEY: str({ default: '' }),
+        PAYOS_CHECKSUM_KEY: str({ default: '' }),
+        PAYOS_CANCEL_URL: str({ default: '' }),
+        PAYOS_RETURN_URL: str({ default: '' }),
     });
 };
 

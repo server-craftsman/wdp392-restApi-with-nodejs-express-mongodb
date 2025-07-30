@@ -414,8 +414,25 @@ export default class PaymentService {
                 try {
                     console.log(`Checking PayOS status for order code: ${payment.payos_order_code}`);
 
+                    // Check if PayOS is configured
+                    const payosClientId = process.env.PAYOS_CLIENT_ID;
+                    const payosApiKey = process.env.PAYOS_API_KEY;
+                    const payosChecksumKey = process.env.PAYOS_CHECKSUM_KEY;
+
+                    if (!payosClientId || !payosApiKey || !payosChecksumKey) {
+                        console.warn('PayOS not configured - skipping payment verification');
+                        return {
+                            paymentNo: payment.payment_no || paymentIdentifier,
+                            payment_status: payment.status,
+                            payment_stage: payment.payment_stage,
+                            appointment_id: payment.appointment_id || '',
+                            payos_status: 'NOT_CONFIGURED',
+                            last_verified_at: new Date(),
+                        };
+                    }
+
                     const PayOS = require('@payos/node');
-                    const payosClient = new PayOS(process.env.PAYOS_CLIENT_ID, process.env.PAYOS_API_KEY, process.env.PAYOS_CHECKSUM_KEY);
+                    const payosClient = new PayOS(payosClientId, payosApiKey, payosChecksumKey);
 
                     const payosResponse = await payosClient.getPaymentLinkInformation(payment.payos_order_code);
                     console.log(`PayOS API response:`, JSON.stringify(payosResponse, null, 2));
